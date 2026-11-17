@@ -88,20 +88,20 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
+    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL (ΣΥΜΦΩΝΑ ΜΕ ΤΗ ΦΩΤΟΓΡΑΦΙΑ)
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Συγκεντρωτική Ανάλυση</div>', unsafe_allow_html=True)
     
     st.info(
-        "📌 Κάντε **Copy** τον πίνακα από το Excel σας και **Paste** παρακάτω.\n"
-        "Ο αναγνώστης εντοπίζει αυτόματα τις ημέρες, τις αποδοχές σε ευρώ (€) και τον φορέα σύμφωνα με τη δομή του αρχείου σας."
+        "📌 Κάντε **Copy** από το Excel σας και **Paste** παρακάτω.\n"
+        "Η σειρά είναι ακριβώς: **ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ**"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
-            "2007\t01/01/2007\t31/01/2007\t25\t101\t3304.39\tΤΡΑΠΕΖΑ\n"
-            "2007\t01/02/2007\t28/02/2007\t25\t101\t3304.39\tΤΡΑΠΕΖΑ"
+            "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
+            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t25\t3304.39"
         )
 
     def clear_text():
@@ -117,49 +117,36 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             if len(temp_df.columns) < 3:
                 temp_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
             
-            if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "YEAR", "HΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
+            # Αν η πρώτη γραμμή περιέχει επικεφαλίδες, την αφαιρούμε
+            if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "ΑΠΌ", "ΈΩΣ", "ΗΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
                 temp_df = temp_df.iloc[1:].reset_index(drop=True)
 
             final_data = []
             for _, row in temp_df.iterrows():
                 row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
-                if len(row_vals) >= 4:
+                if len(row_vals) >= 6:
+                    # Αντιστοίχιση ακριβώς σύμφωνα με τη φωτογραφία σου:
+                    # 0: ΕΤΟΣ, 1: Από, 2: Έως, 3: ΦΟΡΕΑΣ, 4: Ημέρες, 5: ΑΠΟΔΟΧΕΣ
                     etos = row_vals[0]
                     apo = row_vals[1]
                     eos = row_vals[2]
+                    forer = row_vals[3]
                     
-                    # Σαρώνουμε τα υπόλοιπα κελιά της γραμμής για να βρούμε με ασφάλεια:
-                    # - Ημέρες (ακέραιος μεταξύ 1 και 31)
-                    # - Αποδοχές (μεγαλύτερος αριθμός / δεκαδικός)
-                    # - Φορέα (το κείμενο που περιέχει γράμματα όπως ΤΡΑΠΕΖΑ, ΙΚΑ κ.λπ.)
-                    ensima = 25.0
-                    apod = 0.0
-                    forer = "ΤΡΑΠΕΖΑ"
+                    try:
+                        ensima = float(row_vals[4].replace(',', '.'))
+                    except:
+                        ensima = 25.0
                     
-                    nums = []
-                    for val in row_vals[3:]:
-                        clean_val = val.replace('€', '').replace('.', '').replace(',', '.')
-                        try:
-                            num = float(clean_val)
-                            nums.append((num, val))
-                        except:
-                            # Αν δεν είναι αριθμός, πιθανόν είναι ο φορέας
-                            if any(c.isalpha() for c in val):
-                                forer = val.upper()
-
-                    # Εντοπισμός ημέρας και αποδοχών από τους αριθμούς της γραμμής
-                    valid_nums = [n[0] for n in nums]
-                    for n in valid_nums:
-                        if 1 <= n <= 31 and ensima == 25.0:
-                            ensima = n
-                        elif n > 31:
-                            apod = n
+                    try:
+                        apod = float(row_vals[5].replace('€', '').replace('.', '').replace(',', '.'))
+                    except:
+                        apod = 0.0
 
                     final_data.append({
                         "ΕΤΟΣ": etos,
                         "ΑΠΟ": apo,
                         "ΕΩΣ": eos,
-                        "ΦΟΡΕΑΣ": forer,
+                        "ΦΟΡΕΑΣ": str(forer).upper().strip(),
                         "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ": ensima,
                         "ΑΠΟΔΟΧΕΣ": apod
                     })
@@ -178,7 +165,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
 
         # --- 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΕΠΑΝΩ (Συνολικά Ένσημα & Μικτές Αποδοχές από όλους τους φορείς) ---
         total_all_ensima = df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'].sum()
-        # Υπολογισμός συνολικών μικτών αποδοχών (Άθροισμα αποδοχών ανά μήνα)
         total_all_apodoches = df['ΑΠΟΔΟΧΕΣ'].sum()
         overall_avg_salary = df['ΑΠΟΔΟΧΕΣ'].mean() if len(df) > 0 else 0
 
@@ -273,62 +259,4 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                 "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f} €"
             },
             {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f} €",
-                "ΕΑΣ (€)": "0,00 €",
-                f"Υγεία ({health_pct}%) (€)": "21,00 €",
-                "Φόρος Μην. (€)": "0,00 €",
-                "Καθαρό Πληρωτέο (€)": "329,00 €"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": "100,58 €",
-                "ΕΑΣ (€)": "0,00 €",
-                f"Υγεία ({health_pct}%) (€)": "6,03 €",
-                "Φόρος Μην. (€)": "0,00 €",
-                "Καθαρό Πληρωτέο (€)": "94,55 €"
-            },
-            {
-                "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(total_all_ensima):,}",
-                "Μικτό Σύνολο (€)": "3.036,43 €",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f} €",
-                f"Υγεία ({health_pct}%) (€)": "168,22 €",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f} €",
-                "Καθαρό Πληρωτέο (€)": "🎯 2.307,18 €"
-            }
-        ])
-
-        st.dataframe(calc_table, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            st.metric(label="1. Τμήμα Α (Έτη έως 31/12/2013)", value="39.565,27 €")
-            st.metric(label="2. Τμήμα Β (Εισφορές 2014–2022)", value="15.478,35 €")
-        with e_col2:
-            st.metric(label="🌟 ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ", value="55.043,62 €")
-            st.info("Τρόπος & Χρόνος Καταβολής: Με την έκδοση της Κύριας Σύνταξης")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "📋 Δεδομένα & Αρχείο":
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
-    st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
-    st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
-    st.markdown('</div>', unsafe_allow_html=True)
+                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ
