@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import json
 
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
@@ -138,7 +139,42 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
+# --- SIDEBAR: ΕΙΣΑΓΩΓΗ / ΕΞΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ ΠΕΛΑΤΗ (ΓΙΑ ΝΑ ΜΗΝ ΧΑΝΟΝΤΑΙ) ---
 st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💾 Αρχείο Πελάτη")
+# Εξαγωγή δεδομένων σε αρχείο JSON
+client_export_data = {
+    "client_data": st.session_state.client_data,
+    "econ_mode": st.session_state.econ_mode,
+    "paste_input": st.session_state.paste_input,
+    "summary_years": st.session_state.summary_years,
+    "summary_avg_salary": st.session_state.summary_avg_salary
+}
+json_str = json.dumps(client_export_data, ensure_ascii=False, indent=4)
+st.sidebar.download_button(
+    label="📥 Αποθήκευση Δεδομένων σε Αρχείο",
+    data=json_str,
+    file_name=f"pelatis_{st.session_state.client_data.get('last_name', 'bms')}.json",
+    mime="application/json"
+)
+
+# Εισαγωγή δεδομένων από αποθηκευμένο αρχείο JSON
+uploaded_file = st.sidebar.file_uploader("📂 Φόρτωση από Αρχείο", type=["json"])
+if uploaded_file is not None:
+    try:
+        imported_data = json.load(uploaded_file)
+        st.session_state.client_data = imported_data.get("client_data", st.session_state.client_data)
+        st.session_state.econ_mode = imported_data.get("econ_mode", st.session_state.econ_mode)
+        st.session_state.paste_input = imported_data.get("paste_input", st.session_state.paste_input)
+        st.session_state.summary_years = imported_data.get("summary_years", st.session_state.summary_years)
+        st.session_state.summary_avg_salary = imported_data.get("summary_avg_salary", st.session_state.summary_avg_salary)
+        st.sidebar.success("✅ Τα δεδομένα φορτώθηκαν επιτυχώς!")
+    except Exception as e:
+        st.sidebar.error(f"Σφάλμα φόρτωσης: {e}")
+
+st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Αποσύνδεση"):
     st.session_state.logged_in = False
     st.rerun()
@@ -300,21 +336,15 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     if c_info["first_name"] or c_info["last_name"]:
         st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
 
-    # Παίρνουμε τα ΠΡΑΓΜΑΤΙΚΑ δεδομένα που καταχώρησε ο χρήστης
     tot_ensima = st.session_state.get('total_all_ensima', 3810)
     tot_years = tot_ensima / 300.0
     avg_sal = st.session_state.get('overall_avg_salary', 800.10)
 
-    # Δυναμικός υπολογισμός κύριας σύνταξης βάσει των πραγματικών ετών και μισθού
-    # (Εθνική σύνταξη + Ανταποδοτική με βάση τον μέσο μισθό και τα έτη)
     ethniki = 446.87
-    # Ποσοστό αναπλήρωσης ανάλογα με τα έτη (ενδεικτικός τύπος κλιμάκων Ν.4387)
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52) 
     antapodotiki = avg_sal * pososto_anapl
+    kria_mikto = ethniki + antapodotiki + 349.26 
     
-    kria_mikto = ethniki + antapodotiki + 349.26 # με προσαύξηση ΤΑΠΙΛΤ
-    
-    # Υπολογισμός κρατήσεων (ΕΑΣ, Υγεία 6%, Φόρος)
     eas_val = 146.62 if kria_mikto > 1400 else 0.00
     ygeia_val = kria_mikto * 0.06
     foros_val = 244.50 if kria_mikto > 1000 else 100.00
