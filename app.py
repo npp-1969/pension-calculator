@@ -223,7 +223,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - DB Connected</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Υπολογισμός από 1/1/2002</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -280,8 +280,8 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 # --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Επιλέξτε τρόπο καταχώρησης (Αναλυτικά με πίνακα ή Συγκεντρωτικά) και αποθηκεύστε τα.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Καταχωρήστε τα δεδομένα σας ανά περίοδο. Ο μέσος όρος υπολογίζεται αυτόματα από 1/1/2002 και μετά ανά φορέα.</div>', unsafe_allow_html=True)
 
     modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά (Συνολικά Έτη & Μέσος Όρος)"]
     m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
@@ -373,7 +373,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             sc1, sc2, sc3 = st.columns(3)
             sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
             sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
-            sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
+            sc3.metric("Συνολικός Μέσος Μισθός (από 2002)", f"{overall_avg_salary:,.2f} €")
 
     else:
         st.markdown("#### ⚡ Συγκεντρωτική Καταχώρηση")
@@ -384,7 +384,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             st.session_state['tapilt_ensima'] = st.session_state.summary_years * 300.0 * 0.75
             st.session_state['ika_ensima'] = st.session_state.summary_years * 300.0 * 0.25
         with eco_c2:
-            st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=float(st.session_state.summary_avg_salary))
+            st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€ από 1/1/2002)", value=float(st.session_state.summary_avg_salary))
             st.session_state['overall_avg_salary'] = st.session_state.summary_avg_salary
             st.session_state['tapilt_avg'] = st.session_state.summary_avg_salary
             st.session_state['ika_avg'] = st.session_state.summary_avg_salary
@@ -399,9 +399,8 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 # --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (EXCEL DASHBOARD STYLE) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
 
-    # Δεδομένα από session
     tot_ensima = st.session_state.get('total_all_ensima', 12771)
     tot_years = tot_ensima / 300.0
     avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
@@ -414,26 +413,25 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     ika_yr = ika_ens / 300.0
     ika_avg = st.session_state.get('ika_avg', 3247.43)
 
-    # ΠΑΝΩ ΜΕΡΟΣ: 3 ΠΙΝΑΚΕΣ ΔΙΠΛΑ-ΔΙΠΛΑ (Οπως ακριβώς στη φωτογραφία σου)
     top_col1, top_col2, top_col3 = st.columns([3, 3, 2.5])
 
     with top_col1:
-        st.markdown("""
+        st.markdown(f"""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; text-align: center; border: 1px solid #CBD5E1;">
             <tr class="excel-table-header">
-                <th>ΧΡΟΝΙΑ</th><th>ΦΟΡΕΑΣ</th><th>Μ. ΟΡΟΣ (€)</th><th>ΕΝΣΗΜΑ</th>
+                <th>ΧΡΟΝΙΑ</th><th>ΦΟΡΕΑΣ</th><th>Μ. ΟΡΟΣ (€ απο 2002)</th><th>ΕΝΣΗΜΑ</th>
             </tr>
             <tr>
-                <td><b>{:.2f}</b></td><td>ΤΡΑΠΕΖΑ</td><td>{:,.2f} €</td><td>{:,}</td>
+                <td><b>{tapilt_yr:.2f}</b></td><td>ΤΡΑΠΕΖΑ</td><td>{tapilt_avg:,.2f} €</td><td>{int(tapilt_ens):,}</td>
             </tr>
             <tr>
-                <td><b>{:.2f}</b></td><td>ΙΚΑ</td><td>{:,.2f} €</td><td>{:,}</td>
+                <td><b>{ika_yr:.2f}</b></td><td>ΙΚΑ</td><td>{ika_avg:,.2f} €</td><td>{int(ika_ens):,}</td>
             </tr>
             <tr style="background-color: #F1F5F9; font-weight: bold;">
-                <td>{:.2f}</td><td>-</td><td>{:,.2f} €</td><td>{:,}</td>
+                <td>{tot_years:.2f}</td><td>-</td><td>{avg_sal:,.2f} €</td><td>{int(tot_ensima):,}</td>
             </tr>
         </table>
-        """.format(tapilt_yr, tapilt_avg, int(tapilt_ens), ika_yr, ika_avg, int(ika_ens), tot_years, avg_sal, int(tot_ensima)), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     with top_col2:
         st.markdown("""
@@ -463,7 +461,6 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ & ΟΡΙΑ ΣΥΝΤΑΞΙΟΔΟΤΗΣΗΣ
     st.markdown("""
     <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
         <tr class="excel-table-header">
@@ -479,11 +476,10 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ</div>', unsafe_allow_html=True)
 
-    # Υπολογισμοί Κύριας & Επικουρικών
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
-    kria_mikto = ethniki + antapodotiki + 350.0  # προσαύξηση
+    kria_mikto = ethniki + antapodotiki + 350.0  
     
     eas_val = 232.73 if kria_mikto > 1400 else 0.00
     ygeia_val = kria_mikto * 0.06
@@ -491,11 +487,10 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     synolo_krat = eas_val + ygeia_val + foros_val
     katharo_main = max(kria_mikto - synolo_krat, 0.0)
 
-    # Πίνακας Συντάξεων ακριβώς όπως στη φωτογραφία
     calc_table = pd.DataFrame([
         {
             "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
+            "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": f"{ethniki:,.2f} €",
             "Ποσοστό Αναπλ. (%)": f"{pososto_anapl*100:.2f}%",
@@ -510,7 +505,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-            "Μέσος Μισθός (€)": "-",
+            "Μέσος Μισθός (€ απο 2002)": "-",
             "Χρόνια Ασφάλισης": f"{tapilt_yr:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
@@ -525,7 +520,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-            "Μέσος Μισθός (€)": f"{ika_avg:,.2f} €",
+            "Μέσος Μισθός (€ απο 2002)": f"{ika_avg:,.2f} €",
             "Χρόνια Ασφάλισης": f"{ika_yr:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
@@ -540,7 +535,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         },
         {
             "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-            "Μέσος Μισθός (€)": "-",
+            "Μέσος Μισθός (€ απο 2002)": "-",
             "Χρόνια Ασφάλισης": "-",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
