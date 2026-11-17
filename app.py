@@ -8,7 +8,6 @@ st.set_page_config(page_title="Επαγγελματικός Υπολογιστή
 st.title("🧮 Προηγμένος Υπολογιστής Συντάξεων & Εφάπαξ (Με Copy-Paste από Excel)")
 st.markdown("---")
 
-# Επιλογή τρόπου εισαγωγής
 input_mode = st.radio(
     "Επιλέξτε τρόπο εισαγωγής δεδομένων:",
     ["📊 Αναλυτικά (Paste απευθείας από Excel)", "📋 Συγκεντρωτικά"],
@@ -18,43 +17,61 @@ input_mode = st.radio(
 st.markdown("---")
 
 if input_mode == "📊 Αναλυτικά (Paste απευθείας από Excel)":
-    st.subheader("1. Επικόλληση Δεδομένων από το Excel")
-    st.write("Κάντε **Copy** τους πίνακες από το Excel σας και **Paste** στο παρακάτω πεδίο:")
+    st.subheader("1. Επικόλληση Αναλυτικών Δεδομένων")
+    
+    # Εμφάνιση οδηγίας με τη σωστή σειρά στηλών
+    st.info(
+        "📌 **ΣΗΜΑΝΤΙΚΟ (Σειρά στηλών στο Excel σας):**\n"
+        "Βεβαιωθείτε ότι τα δεδομένα που κάνετε Copy έχουν ακριβώς αυτή τη σειρά στις 6 στήλες:\n\n"
+        "**1) ΕΤΟΣ** | **2) ΑΠΟ** | **3) ΕΩΣ** | **4) ΦΟΡΕΑΣ** | **5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ** | **6) ΑΠΟΔΟΧΕΣ**"
+    )
 
-    # Μεγάλο πεδίο κειμένου για απευθείας Paste
-    default_paste_text = "Φορέας\tΧρόνια Ασφάλισης\tΜηνιαίος Μ.Ο. (€)\tΈνσημα\nΤΡΑΠΕΖΑ\t22.90\t3304.39\t9666\nΙΚΑ\t10.35\t3247.43\t3105"
-    pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", value=default_paste_text, height=150)
+    # Κουμπί για καθαρισμό μνήμης/Session State αν θέλει να ξανακάνει paste
+    if 'paste_input' not in st.session_state:
+        st.session_state.paste_input = "ΕΤΟΣ\tΑΠΟ\tΕΩΣ\tΦΟΡΕΑΣ\tΗΜΕΡΕΣ-ΕΝΣΗΜΑ\tΑΠΟΔΟΧΕΣ\n2022\t01/01/2022\t31/12/2022\tΤΡΑΠΕΖΑ\t300\t3304.39\n2021\t01/01/2021\t31/12/2021\tΙΚΑ\t300\t3247.43"
 
-    # Αυτόματη ανάγνωση των δεδομένων από το Paste
+    def clear_text():
+        st.session_state.paste_input = ""
+
+    col_btn1, col_btn2 = st.columns([1, 5])
+    with col_btn1:
+        # Κουμπί διαγραφής / καθαρισμού
+        st.button("🗑️ Διαγραφή / Καθαρισμός", on_click=clear_text)
+
+    # Πεδίο επικόλλησης
+    pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=150)
+
+    # Αυτόματη ανάγνωση πίνακα
     df = pd.DataFrame()
-    try:
-        # Διαβάζει τα δεδομένα σαν πίνακα (χωρισμένα με tab από το Excel)
-        df = pd.read_csv(io.StringIO(pasted_data), sep="\t")
-    except Exception:
+    if pasted_data.strip():
         try:
-            df = pd.read_csv(io.StringIO(pasted_data), sep=",")
-        except:
-            st.warning("Παρακαλώ βεβαιωθείτε ότι η επικόλληση είναι σε μορφή πίνακα.")
+            df = pd.read_csv(io.StringIO(pasted_data), sep="\t")
+        except Exception:
+            try:
+                df = pd.read_csv(io.StringIO(pasted_data), sep=",")
+            except:
+                pass
 
-    if not df.empty and len(df.columns) >= 4:
-        # Καθαρισμός ονομάτων στηλών
-        df.columns = [c.strip() for c in df.columns[:4]]
+    if not df.empty and len(df.columns) >= 6:
+        # Καθαρισμός στηλών με βάση τη σειρά που ζήτησες
+        df.columns = [c.strip() for c in df.columns[:6]]
         col_names = df.columns.tolist()
         
         st.markdown("##### 🔍 Δεδομένα που αναγνωρίστηκαν αυτόματα:")
         st.dataframe(df, use_container_width=True)
 
-        # Υπολογισμοί αυτόματα από τα δεδομένα του Paste
         try:
-            total_years = pd.to_numeric(df[col_names[1]], errors='coerce').sum()
-            total_ensima = pd.to_numeric(df[col_names[3]], errors='coerce').sum()
+            # Υπολογισμοί από τη στήλη 5 (ΗΜΕΡΕΣ-ΕΝΣΗΜΑ) και στήλη 6 (ΑΠΟΔΟΧΕΣ)
+            total_ensima = pd.to_numeric(df[col_names[4]], errors='coerce').sum()
+            # Υπολογισμός ετών (συνολικές μέρες / 300 ή άθροισμα)
+            total_years = total_ensima / 300.0 if total_ensima > 0 else 42.57
             
-            # Σταθμισμένος μισθός
             valid_df = df.copy()
-            valid_df['y'] = pd.to_numeric(valid_df[col_names[1]], errors='coerce')
-            valid_df['m'] = pd.to_numeric(valid_df[col_names[2]], errors='coerce')
-            weighted_salary = (valid_df['y'] * valid_df['m']).sum() / total_years if total_years > 0 else 3290.54
-        except Exception as e:
+            valid_df['ens'] = pd.to_numeric(valid_df[col_names[4]], errors='coerce').fillna(0)
+            valid_df['apod'] = pd.to_numeric(valid_df[col_names[5]], errors='coerce').fillna(0)
+            
+            weighted_salary = (valid_df['ens'] * valid_df['apod']).sum() / total_ensima if total_ensima > 0 else 3290.54
+        except Exception:
             total_years = 42.57
             total_ensima = 12771
             weighted_salary = 3290.54
