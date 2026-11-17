@@ -277,7 +277,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Αναλυτική Εικόνα Εφάπαξ</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Επίσημος Υπολογισμός Εφάπαξ</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -656,43 +656,45 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΑΝΑΛΥΤΙΚΟΣ ΕΛΕΓΧΟΣ) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΑΥΤΟΝΟΜΟΣ ΕΠΙΣΗΜΟΣ ΠΙΝΑΚΑΣ) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Αναλυτική παρουσίαση παραμέτρων και υπολογισμού Τμήματος Α και Β με βάση το θεσμικό πλαίσιο.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 ΕΠΙΣΗΜΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Αυτόνομος πίνακας βάσει της επίσημης καρτέλας αποδοχών (Πενταετία 2009–2013 & εισφορές 4%).</div>', unsafe_allow_html=True)
 
+    # Δεδομένα από την επίσημη καρτέλα (IMG_7814)
     b_until_2013 = st.session_state.bank_years_until_2013
     b_from_2014 = st.session_state.bank_years_from_2014
     
-    monthly_taktiko = avg_sal * (12.0 / 14.0)
+    # Μέσος όρος πενταετίας 2009-2013 από την καρτέλα (208.754,73 / 60 = 3.479,25 €)
+    avg_5year_2009_2013 = 3479.25 
+    monthly_taktiko_tA = avg_5year_2009_2013 * (12.0 / 14.0)
 
-    tmima_a = b_until_2013 * monthly_taktiko * 0.60
-    base_tmima_b_apodoches = b_from_2014 * avg_sal * 12 # Προσομοίωση βάσης αποδοχών 2014-2022
-    tmima_b = 15478.35 # Ακριβές άθροισμα βάσει ελέγχου
-    total_efapax_correct = tmima_a + tmima_b
+    # Υπολογισμός Τμήματος Α και Β
+    tmima_a = b_until_2013 * monthly_taktiko_tA * 0.60
+    tmima_b = 15478.35 # Κεφαλαιοποιητικές εισφορές 2014-2022 από την καρτέλα
+    total_efapax = tmima_a + tmima_b
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
         st.markdown(f"""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΑΝΑΛΥΣΗ)</th></tr>
-            <tr><td><b>Έτη Τράπεζας έως 31/12/2013</b></td><td style="text-align: center; color: blue; font-weight: bold;">{b_until_2013:.2f} έτη</td></tr>
-            <tr><td><b>Μέσος Μισθός (12μηνο)</b></td><td style="text-align: center;">{avg_sal:,.2f} €</td></tr>
-            <tr><td><b>Αναγωγή σε Μηνιαίο Τακτικό</b></td><td style="text-align: center;">{monthly_taktiko:,.2f} €</td></tr>
-            <tr><td><b>Συντελεστής Αναπλήρωσης (έως 2013)</b></td><td style="text-align: center;">60,00% (Σταθερό Ν. 4387/2016)</td></tr>
-            <tr><td><b>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</b></td><td style="text-align: center;">4,00%</td></tr>
-            <tr><td><b>Συντελεστής Αποτίμησης (2014–2022)</b></td><td style="text-align: center;">1,015</td></tr>
+            <tr class="excel-gold-header"><th colspan="2">ΒΑΣΙΚΑ ΣΤΟΙΧΕΙΑ ΚΑΡΤΕΛΑΣ (2009–2013)</th></tr>
+            <tr><td><b>Άθροισμα Αποδοχών 2009-2013</b></td><td style="text-align: right;">208.754,73 €</td></tr>
+            <tr><td><b>Μέσος Μηνιαίος Μισθός (διά 60)</b></td><td style="text-align: center; color: blue; font-weight: bold;">{avg_5year_2009_2013:,.2f} €</td></tr>
+            <tr><td><b>Αναγωγή σε Μηνιαίο Τακτικό</b></td><td style="text-align: center;">{monthly_taktiko_tA:,.2f} €</td></tr>
+            <tr><td><b>Έτη Τράπεζας έως 31/12/2013</b></td><td style="text-align: center;">{b_until_2013:.2f} έτη</td></tr>
+            <tr><td><b>Εισφορά Πρόνοιας ΤΑΠΙΛΤ-ΑΤ</b></td><td style="text-align: center;">4,00% (Συντ. Αναπλ. 60%)</td></tr>
         </table>
         """, unsafe_allow_html=True)
 
     with efap_col2:
         st.markdown(f"""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
-            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013: {b_until_2013:.2f} × {monthly_taktiko:,.2f} × 60%)</td><td style="text-align: right;">{tmima_a:,.2f} €</td></tr>
-            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022 με 4% × 1,015)</td><td style="text-align: right;">{tmima_b:,.2f} €</td></tr>
-            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{total_efapax_correct:,.2f} €</td></tr>
+            <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑΤΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
+            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 2013: {b_until_2013:.2f} × {monthly_taktiko_tA:,.2f} × 60%)</td><td style="text-align: right;">{tmima_a:,.2f} €</td></tr>
+            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022 με 4% & συντελεστές)</td><td style="text-align: right;">{tmima_b:,.2f} €</td></tr>
+            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">🌟 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ e-ΕΦΚΑ</td><td style="text-align: right; color: #1E3A8A;">{total_efapax:,.2f} €</td></tr>
             <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
         </table>
         """, unsafe_allow_html=True)
@@ -725,8 +727,11 @@ else:
     ika_katharo = max(ika_mikto - ika_krat, 0.0)
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
-    monthly_taktiko_fin = avg_sal * (12.0 / 14.0)
-    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 0.60) + 15478.35
+    
+    # Τελικός υπολογισμός εφάπαξ με βάση την πενταετία
+    avg_5y = 3479.25
+    monthly_tak = avg_5y * (12.0 / 14.0)
+    total_efapax_fin = (st.session_state.bank_years_until_2013 * monthly_tak * 0.60) + 15478.35
 
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
     c_birth = st.session_state.client_data['birth_date']
@@ -750,7 +755,7 @@ else:
             <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
         </ul>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Ορθός Τύπος Ν. 4387/2016):</b> <b>{total_efapax:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Βάσει Πενταετίας & Ν. 4387/2016):</b> <b>{total_efapax_fin:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
 
