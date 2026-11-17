@@ -92,6 +92,19 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==========================================
+# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE ΓΙΑ ΤΑ ΔΕΔΟΜΕΝΑ
+# ==========================================
+if 'client_data' not in st.session_state:
+    st.session_state.client_data = {
+        "first_name": "",
+        "last_name": "",
+        "gender": "Άνδρας",
+        "birth_date": "",
+        "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)",
+        "first_work_date": ""
+    }
+
+# ==========================================
 # ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
 # ==========================================
 st.markdown(f"""
@@ -125,27 +138,32 @@ st.sidebar.success("🟢 Secured & Encrypted Session")
 if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">👤 Κατηγορία: Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Διαχειριστείτε τα στοιχεία ταυτότητας και ασφαλιστικού προφίλ.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Διαχειριστείτε τα στοιχεία ταυτότητας και ασφαλιστικού προφίλ. Τα δεδομένα αποθηκεύονται αυτόματα στη μνήμη της συνεδρίας σας.</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        first_name = st.text_input("Όνομα", placeholder="Όνομα...")
+        st.session_state.client_data["first_name"] = st.text_input("Όνομα", value=st.session_state.client_data["first_name"], placeholder="Όνομα...")
     with col2:
-        last_name = st.text_input("Επώνυμο", placeholder="Επώνυμο...")
+        st.session_state.client_data["last_name"] = st.text_input("Επώνυμο", value=st.session_state.client_data["last_name"], placeholder="Επώνυμο...")
     with col3:
-        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"])
+        genders = ["Άνδρας", "Γυναίκα"]
+        g_idx = genders.index(st.session_state.client_data["gender"]) if st.session_state.client_data["gender"] in genders else 0
+        st.session_state.client_data["gender"] = st.selectbox("Φύλο", genders, index=g_idx)
 
     col4, col5, col6 = st.columns(3)
     with col4:
-        birth_date = st.text_input("Ημερομηνία Γέννησης", placeholder="π.χ. 16/09/1969")
+        st.session_state.client_data["birth_date"] = st.text_input("Ημερομηνία Γέννησης", value=st.session_state.client_data["birth_date"], placeholder="π.χ. 16/09/1969")
     with col5:
-        insurance_cat = st.selectbox("Κατηγορία Ασφάλισης", ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"])
+        cats = ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"]
+        c_idx = cats.index(st.session_state.client_data["insurance_cat"]) if st.session_state.client_data["insurance_cat"] in cats else 0
+        st.session_state.client_data["insurance_cat"] = st.selectbox("Κατηγορία Ασφάλισης", cats, index=c_idx)
     with col6:
-        first_work_date = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", placeholder="π.χ. Ιούνιος 1990")
+        st.session_state.client_data["first_work_date"] = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", value=st.session_state.client_data["first_work_date"], placeholder="π.χ. Ιούνιος 1990")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Προσωπικών Στοιχείων", type="primary"):
-        st.success("Τα προσωπικά στοιχεία αποθηκεύτηκαν με επιτυχία στο ασφαλές προφίλ σας!")
+        st.success("Τα προσωπικά στοιχεία καταχωρήθηκαν επιτυχώς στο προφίλ σας!")
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ (Ο ΚΟΡΜΟΣ ΜΕ ΤΙΣ ΠΕΡΙΟΔΟΥΣ) ---
@@ -279,6 +297,11 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 Συγκεντρωτικά Αποτελέσματα Υπολογισμού Συντάξεων</div>', unsafe_allow_html=True)
     
+    # Εμφάνιση των καταχωρημένων προσωπικών στοιχείων στην κορυφή των αποτελεσμάτων
+    c_info = st.session_state.client_data
+    if c_info["first_name"] or c_info["last_name"]:
+        st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
+
     tot_ensima = st.session_state.get('total_all_ensima', 12771)
     tot_years = tot_ensima / 300.0
     avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
