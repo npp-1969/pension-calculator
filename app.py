@@ -211,4 +211,84 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         st.markdown('<div class="panel-box">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
         
-        m1, m2, m3, m4 = st.columns(
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
+        m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
+        m3.metric("Σταθμισμένος Μισθός", f"{overall_avg_salary:,.2f} €")
+        m4.metric("Μηνιαίο Καθαρό Σύνολο", f"{(net_main + 329.00 + 94.55):,.2f} €", delta="Καθαρά")
+
+        st.markdown("---")
+        st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
+        
+        calc_table = pd.DataFrame([
+            {
+                "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+                "Μέσος Μισθός (€)": f"{overall_avg_salary:,.2f}",
+                "Χρόνια": f"{tot_years:.2f}",
+                "Ένσημα": f"{int(tot_ensima):,}",
+                "Μικτό Σύνολο (€)": f"{gross_main:,.2f}",
+                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
+                f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f}",
+                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
+                "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f}"
+            },
+            {
+                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+                "Μέσος Μισθός (€)": "-",
+                "Χρόνια": "-",
+                "Ένσημα": "-",
+                "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f}",
+                "ΕΑΣ (€)": "0,00",
+                f"Υγεία ({health_pct}%) (€)": "21,00",
+                "Φόρος Μην. (€)": "0,00",
+                "Καθαρό Πληρωτέο (€)": "329,00"
+            },
+            {
+                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+                "Μέσος Μισθός (€)": "-",
+                "Χρόνια": "-",
+                "Ένσημα": "-",
+                "Μικτό Σύνολο (€)": "100,58",
+                "ΕΑΣ (€)": "0,00",
+                f"Υγεία ({health_pct}%) (€)": "6,03",
+                "Φόρος Μην. (€)": "0,00",
+                "Καθαρό Πληρωτέο (€)": "94,55"
+            },
+            {
+                "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+                "Μέσος Μισθός (€)": "-",
+                "Χρόνια": f"{tot_years:.2f}",
+                "Ένσημα": f"{int(tot_ensima):,}",
+                "Μικτό Σύνολο (€)": "3.036,43",
+                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
+                f"Υγεία ({health_pct}%) (€)": "168,22",
+                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
+                "Καθαρό Πληρωτέο (€)": "🎯 2.307,18"
+            }
+        ])
+
+        st.dataframe(calc_table, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
+        e_col1, e_col2 = st.columns(2)
+        with e_col1:
+            st.metric(label="1. Τμήμα Α (Έτη έως 31/12/2013)", value="39.565,27 €")
+            st.metric(label="2. Τμήμα Β (Εισφορές 2014–2022)", value="15.478,35 €")
+        with e_col2:
+            st.metric(label="🌟 ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ", value=f"{total_ephapax:,.2f} €")
+            st.info("Τρόπος & Χρόνος Καταβολής: Με την έκδοση της Κύριας Σύνταξης")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+elif app_section == "📋 Δεδομένα & Αρχείο":
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
+    st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+else:
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
+    st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
+    st.markdown('</div>', unsafe_allow_html=True)
