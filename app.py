@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import io
 
-# Rythmisi selidas
+# Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS gia epaggelmatiko ERP design
+# CSS για επαγγελματικό ERP design
 st.markdown("""
     <style>
     .stApp {
@@ -67,118 +67,149 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SYSTIMA ASFALEIAS & KWDIKWN (LOGIN)
+# ΣΥΣΤΗΜΑ ΑΣΦΑΛΕΙΑΣ & ΚΩΔΙΚΩΝ (LOGIN)
 # ==========================================
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔒 Asfalis Eisodos BMS</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #64748B; font-size: 13px;'>Systima Diacheirisis Syntaxewn & Pelatwn</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔒 Ασφαλής Είσοδος BMS</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748B; font-size: 13px;'>Σύστημα Διαχείρισης Συντάξεων & Πελατών</p>", unsafe_allow_html=True)
     
-    username = st.text_input("Onoma Hristi / Kodikos Pelati")
-    password = st.text_input("Kodikos Prosvasis (Password)", type="password")
+    username = st.text_input("Όνομα Χρήστη / Κωδικός Πελάτη")
+    password = st.text_input("Κωδικός Πρόσβασης (Password)", type="password")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔑 EISODOS STHN EFARMOGH", use_container_width=True, type="primary"):
+    if st.button("🔑 ΕΙΣΟΔΟΣ ΣΤΗΝ ΕΦΑΡΜΟΓΗ", use_container_width=True, type="primary"):
         if username.strip() and password.strip() == "1234":
             st.session_state.logged_in = True
             st.session_state.current_user = username.strip()
             st.rerun()
         else:
-            st.error("❌ Lanthasmenos kodikos i onoma hristi! (Dokimaste kodiko: 1234)")
+            st.error("❌ Λανθασμένος κωδικός ή όνομα χρήστη! (Δοκιμάστε κωδικό: 1234)")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
-# ARCHIKOPOIHSH SESSION STATE GIA TA DEDOMENA
+# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE & ΑΠΟΘΗΚΕΥΣΗ ΠΕΛΑΤΩΝ
 # ==========================================
+if 'saved_profiles' not in st.session_state:
+    st.session_state.saved_profiles = {}
+
 if 'client_data' not in st.session_state:
     st.session_state.client_data = {
         "first_name": "",
         "last_name": "",
-        "gender": "Andras",
+        "gender": "Άνδρας",
         "birth_date": "",
-        "insurance_cat": "Misthotos — Idiotikos tomeas (proin IKA-ETAM)",
+        "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)",
         "first_work_date": ""
     }
 
 if 'paste_input' not in st.session_state:
     st.session_state.paste_input = (
-        "2007\t01/01/2007\t31/01/2007\tTRAPEZA\t25\t3304.39\n"
-        "2007\t01/02/2007\t28/02/2007\tIKA\t25\t3015.47"
+        "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
+        "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
     )
 
 # ==========================================
-# EPAGGELMATIKO MENU & EFARMOGH
+# ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
 # ==========================================
 st.markdown(f"""
     <div class="main-header">
         <div class="main-title">
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
-            Professional Pension BMS — Portfolio Pelati: <u>{st.session_state.get('current_user', 'Hristis')}</u>
+            Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Epaggelmatiko Systima Ypologismou Syntaxewn & Oikonomikwn Dedomenwn (N. 4387/2016)</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016)</div>
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown(f"👤 **Syndedemenos:** {st.session_state.get('current_user', '')}")
-if st.sidebar.button("🚪 Aposyndesi (Logout)"):
+# --- ΜΠΑΡΑ ΔΙΑΧΕΙΡΙΣΗΣ / ΑΠΟΘΗΚΕΥΣΗΣ ΠΕΛΑΤΩΝ ΕΠΑΝΩ ---
+st.markdown('<div class="panel-card" style="background-color: #F1F5F9; padding: 15px; margin-bottom: 20px;">', unsafe_allow_html=True)
+top_c1, top_c2, top_c3 = st.columns([2, 2, 1])
+
+with top_c1:
+    profile_names = ["— Νέα / Τρέχουσα Καρτέλα —"] + list(st.session_state.saved_profiles.keys())
+    selected_profile = st.selectbox("📂 Φόρτωση Αποθηκευμένης Καρτέλας Πελάτη:", profile_names)
+
+    if selected_profile != "— Νέα / Τρέχουσα Καρτέλα —":
+        # Φόρτωση αποθηκευμένου προφίλ
+        prof = st.session_state.saved_profiles[selected_profile]
+        st.session_state.client_data = prof["client_data"].copy()
+        st.session_state.paste_input = prof["paste_input"]
+
+with top_c2:
+    save_profile_name = st.text_input("Όνομα αποθήκευσης καρτέλας:", placeholder="π.χ. Νεκτάριος Πελεκάνος")
+
+with top_c3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Καρτέλας", use_container_width=True, type="primary"):
+        if save_profile_name.strip():
+            st.session_state.saved_profiles[save_profile_name.strip()] = {
+                "client_data": st.session_state.client_data.copy(),
+                "paste_input": st.session_state.paste_input
+            }
+            st.success(f"Η καρτέλα '{save_profile_name.strip()}' αποθηκεύτηκε με επιτυχία!")
+        else:
+            st.warning("Παρακαλώ δώστε όνομα για την αποθήκευση.")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
+if st.sidebar.button("🚪 Αποσύνδεση"):
     st.session_state.logged_in = False
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🗂️ Epaggelmatiko Menu")
-app_section = st.sidebar.radio("Epilogi:", [
-    "👤 Prosopika Stoicheia", 
-    "💰 Oikonomika & Asfalistika Stoicheia", 
-    "📊 Sygkentrotika Apotelesmata", 
-    "⚙️ Rythmiseis Systimatos"
+st.sidebar.markdown("### 🗂️ Επαγγελματικό Μενού")
+app_section = st.sidebar.radio("Επιλογή:", [
+    "👤 Προσωπικά Στοιχεία", 
+    "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
+    "📊 Συγκεντρωτικά Αποτελέσματα", 
+    "⚙️ Ρυθμίσεις Συστήματος"
 ])
 
 st.sidebar.markdown("---")
-st.sidebar.success("🟢 Secured & Encrypted Session")
+st.sidebar.success("🟢 Ασφαλής Σύνδεση")
 
-# --- 1. PROSOPIKA STOICHEIA ---
-if app_section == "👤 Prosopika Stoicheia":
+# --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
+if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">👤 Katigoria: Prosopika Stoicheia Pelati</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Diacheiristeite ta stoicheia tautotitas kai asfalistikou profil.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">👤 Κατηγορία: Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Διαχειριστείτε τα στοιχεία ταυτότητας και ασφαλιστικού προφίλ.</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.session_state.client_data["first_name"] = st.text_input("Onoma", value=st.session_state.client_data["first_name"], placeholder="Onoma...")
+        st.session_state.client_data["first_name"] = st.text_input("Όνομα", value=st.session_state.client_data["first_name"], placeholder="Όνομα...")
     with col2:
-        st.session_state.client_data["last_name"] = st.text_input("Eponymo", value=st.session_state.client_data["last_name"], placeholder="Eponymo...")
+        st.session_state.client_data["last_name"] = st.text_input("Επώνυμο", value=st.session_state.client_data["last_name"], placeholder="Επώνυμο...")
     with col3:
-        genders = ["Andras", "Gynaika"]
+        genders = ["Άνδρας", "Γυναίκα"]
         g_idx = genders.index(st.session_state.client_data["gender"]) if st.session_state.client_data["gender"] in genders else 0
-        st.session_state.client_data["gender"] = st.selectbox("Fylo", genders, index=g_idx)
+        st.session_state.client_data["gender"] = st.selectbox("Φύλο", genders, index=g_idx)
 
     col4, col5, col6 = st.columns(3)
     with col4:
-        st.session_state.client_data["birth_date"] = st.text_input("Imerominia Gennisis", value=st.session_state.client_data["birth_date"], placeholder="p.x. 16/09/1969")
+        st.session_state.client_data["birth_date"] = st.text_input("Ημερομηνία Γέννησης", value=st.session_state.client_data["birth_date"], placeholder="π.χ. 16/09/1969")
     with col5:
-        cats = ["Misthotos — Idiotikos tomeas (proin IKA-ETAM)", "Dimosios Tomeas", "Trapeziypallilos"]
+        cats = ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"]
         c_idx = cats.index(st.session_state.client_data["insurance_cat"]) if st.session_state.client_data["insurance_cat"] in cats else 0
-        st.session_state.client_data["insurance_cat"] = st.selectbox("Katigoria Asfalisis", cats, index=c_idx)
+        st.session_state.client_data["insurance_cat"] = st.selectbox("Κατηγορία Ασφάλισης", cats, index=c_idx)
     with col6:
-        st.session_state.client_data["first_work_date"] = st.text_input("Imerominia Protis Apascholisis", value=st.session_state.client_data["first_work_date"], placeholder="p.x. Iounios 1990")
+        st.session_state.client_data["first_work_date"] = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", value=st.session_state.client_data["first_work_date"], placeholder="π.χ. Ιούνιος 1990")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Apothikefsi Prosopikwn Stoicheiwn", type="primary"):
-        st.success("Ta prosopika stoicheia katahorithikan epityhos sto profil sas!")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. OIKONOMIKA & ASFALISTIKA STOICHEIA ---
-elif app_section == "💰 Oikonomika & Asfalistika Stoicheia":
+# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
+elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">💰 PINAKAS PERIODWN & OIKONOMIKWN STOICHEIWN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">💰 ΠΙΝΑΚΑΣ ΠΕΡΙΟΔΩΝ & ΟΙΚΟΝΟΜΙΚΩΝ ΣΤΟΙΧΕΙΩΝ</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="panel-desc">'
-        'Doste tis <b>akriveis imerominies</b> apo–ews (imera/minas/etos) i kane epikollisi apo to Excel sas.<br>'
-        'O kormos tou systimatos diavazei aftomata ta diastimata, ypologizei tis imeres/ensima kai katanemei ta posa ana forea (IKA, TRAPEZA k.lp.).'
+        'Δώστε τις <b>ακριβείς ημερομηνίες</b> από–έως (ημέρα/μήνας/έτος) ή κάντε επικόλληση από το Excel σας.<br>'
+        'Ο κορμός του συστήματος διαβάζει αυτόματα τα διαστήματα, υπολογίζει τις ημέρες/ένσημα και κατανέμει τα ποσά ανά φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.).'
         '</div>', 
         unsafe_allow_html=True
     )
@@ -188,10 +219,9 @@ elif app_section == "💰 Oikonomika & Asfalistika Stoicheia":
 
     col_b1, col_b2 = st.columns([1, 4])
     with col_b1:
-        st.button("🗑️ Katharismos", on_click=clear_text)
+        st.button("🗑️ Καθαρισμός", on_click=clear_text)
     
-    # Apothikefsi ston session_state oste na min xanetai otan allazei othoni
-    pasted_data = st.text_area("Epikollisi dedomenwn Excel (ETOS | APO | EWS | FOREAS | IMERES | APODOCHES):", key='paste_input', height=120)
+    pasted_data = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", key='paste_input', height=120)
 
     processed_df = pd.DataFrame()
     if pasted_data.strip():
@@ -223,161 +253,158 @@ elif app_section == "💰 Oikonomika & Asfalistika Stoicheia":
                         apod = 0.0
 
                     final_data.append({
-                        "ETOS": etos,
-                        "APO (HM/NIA)": apo,
-                        "EWS (HM/NIA)": eos,
-                        "FOREAS": str(forer).upper().strip(),
-                        "ENSIMA (H.E.)": ensima,
-                        "APODOCHES (€)": apod
+                        "ΕΤΟΣ": etos,
+                        "ΑΠΟ (ΗΜ/ΝΙΑ)": apo,
+                        "ΕΩΣ (ΗΜ/ΝΙΑ)": eos,
+                        "ΦΟΡΕΑΣ": str(forer).upper().strip(),
+                        "ΕΝΣΗΜΑ (Η.Ε.)": ensima,
+                        "ΑΠΟΔΟΧΕΣ (€)": apod
                     })
 
             processed_df = pd.DataFrame(final_data)
         except Exception as e:
-            st.error(f"Sfalma anagnwsis: {e}")
+            st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Diadrastikos Pinakas Periodwn (Kormos Systimatos):")
+        st.markdown("##### ✏️ Διαδραστικός Πίνακας Περιόδων (Κορμός Συστήματος):")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
-        df['ENSIMA (H.E.)'] = pd.to_numeric(df['ENSIMA (H.E.)'], errors='coerce').fillna(0)
-        df['APODOCHES (€)'] = pd.to_numeric(df['APODOCHES (€)'], errors='coerce').fillna(0.0)
-        df['FOREAS'] = df['FOREAS'].astype(str).str.upper().str.strip()
+        df['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
+        df['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
+        df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-        # Genika sygkentrotika
-        total_all_ensima = df['ENSIMA (H.E.)'].sum()
-        total_all_apodoches = df['APODOCHES (€)'].sum()
-        overall_avg_salary = df['APODOCHES (€)'].mean() if len(df) > 0 else 0
+        total_all_ensima = df['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        total_all_apodoches = df['ΑΠΟΔΟΧΕΣ (€)'].sum()
+        overall_avg_salary = df['ΑΠΟΔΟΧΕΣ (€)'].mean() if len(df) > 0 else 0
 
         st.session_state['total_all_ensima'] = total_all_ensima
         st.session_state['total_all_apodoches'] = total_all_apodoches
         st.session_state['overall_avg_salary'] = overall_avg_salary
 
         st.markdown("---")
-        st.markdown("### 🌟 Genika Sygkentrotika Stoicheia (Oloi oi Foreis)")
+        st.markdown("### 🌟 Γενικά Συγκεντρωτικά Στοιχεία (Όλοι οι Φορείς)")
         sc1, sc2, sc3 = st.columns(3)
-        sc1.metric("Synolika Ensima", f"{int(total_all_ensima):,}")
-        sc2.metric("Synoliko Athroisma Miktwn Apodochwn", f"{total_all_apodoches:,.2f} €")
-        sc3.metric("Synolikos Mesos Misthos", f"{overall_avg_salary:,.2f} €")
+        sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
+        sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
+        sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
 
-        # Analysi ana forea me synolo kato
-        grouped = df.groupby('FOREAS').agg(
-            Synolika_Ensima=('ENSIMA (H.E.)', 'sum'),
-            Ms_Oros_Apodochwn=('APODOCHES (€)', 'mean')
+        grouped = df.groupby('ΦΟΡΕΑΣ').agg(
+            Συνολικα_Ενσημα=('ΕΝΣΗΜΑ (Η.Ε.)', 'sum'),
+            Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ (€)', 'mean')
         ).reset_index()
 
-        grouped['Hronia'] = grouped['Synolika_Ensima'] / 300.0
+        grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
 
         agency_rows = []
         for _, row in grouped.iterrows():
             agency_rows.append({
-                "FOREAS": row['FOREAS'],
-                "HRONIA": f"{row['Hronia']:.2f}",
-                "ENSIMA": f"{int(row['Synolika_Ensima']):,}",
-                "M. OROS APODOCHWN (€)": f"{row['Ms_Oros_Apodochwn']:,.2f} €"
+                "ΦΟΡΕΑΣ": row['ΦΟΡΕΑΣ'],
+                "ΧΡΟΝΙΑ": f"{row['Χρονια']:.2f}",
+                "ΕΝΣΗΜΑ": f"{int(row['Συνολικα_Ενσημα']):,}",
+                "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €"
             })
 
         tot_years = total_all_ensima / 300.0
         agency_rows.append({
-            "FOREAS": "🌟 SYNOLO",
-            "HRONIA": f"{tot_years:.2f}",
-            "ENSIMA": f"{int(total_all_ensima):,}",
-            "M. OROS APODOCHWN (€)": f"{overall_avg_salary:,.2f} €"
+            "ΦΟΡΕΑΣ": "🌟 ΣΥΝΟΛΟ",
+            "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
+            "ΕΝΣΗΜΑ": f"{int(total_all_ensima):,}",
+            "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{overall_avg_salary:,.2f} €"
         })
 
         agency_df = pd.DataFrame(agency_rows)
 
         st.markdown("---")
-        st.markdown("### 🏢 Analysi & Diahorismos ana Forea")
+        st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα")
         st.dataframe(agency_df, use_container_width=True, hide_index=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. SYGKENTROTIKA APOTELESMATA ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 YPOLOGISMOS SYNTAXIS (2026) — ME PLHREIS KRATHSEIS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ</div>', unsafe_allow_html=True)
     
-    # Emfanisi stoicheiwn pelati
     c_info = st.session_state.client_data
     if c_info["first_name"] or c_info["last_name"]:
-        st.info(f"📋 **Ezetazomenos Pelatis:** {c_info['first_name']} {c_info['last_name']} | **Fylo:** {c_info['gender']} | **Gennisi:** {c_info['birth_date']} | **Tameio:** {c_info['insurance_cat']}")
+        st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
 
     tot_ensima = st.session_state.get('total_all_ensima', 12771)
     tot_years = tot_ensima / 300.0
     avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
 
     st.markdown("---")
-    st.markdown("#### 📋 Analytikos Pinakas Syntaxewn & Kratisewn (2026)")
+    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026)")
     
     detailed_calc_table = pd.DataFrame([
         {
-            "Eidos Syntaxis": "KYRIA SYNTAX",
-            "Mesos Misthos (€)": "2.545,85 €",
-            "Hronia Asfalisis": f"{tot_years:.2f}",
-            "Ethniki Syntaxi (€)": "446,87 €",
-            "Pososto Anapl. (%)": "51,00%",
-            "Prosaux. TAPILT (€)": "349,26 €",
-            "Mikto Synolo (€)": "2.094,51 €",
-            "EAS (€)": "146,62 €",
-            "Ygeia 6% (€)": "116,87 €",
-            "Foros Myn. (€)": "244,50 €",
-            "Synolo Krat. (€)": "507,99 €",
-            "Katharo Pliroteo (€)": "1.586,53 €",
-            "Diarkeia Epepikourikou": "Isovia"
+            "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+            "Μέσος Μισθός (€)": "2.545,85 €",
+            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
+            "Εθνική Σύνταξη (€)": "446,87 €",
+            "Ποσοστό Αναπλ. (%)": "51,00%",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "349,26 €",
+            "Μικτό Σύνολο (€)": "2.094,51 €",
+            "ΕΑΣ (€)": "146,62 €",
+            "Υγεία 6% (€)": "116,87 €",
+            "Φόρος Μην. (€)": "244,50 €",
+            "Σύνολο Κρατ. (€)": "507,99 €",
+            "Καθαρό Πληρωτέο (€)": "1.586,53 €",
+            "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
-            "Eidos Syntaxis": "EPIKOURIKI TAPILT",
-            "Mesos Misthos (€)": "-",
-            "Hronia Asfalisis": "32,22",
-            "Ethniki Syntaxi (€)": "-",
-            "Pososto Anapl. (%)": "-",
-            "Prosaux. TAPILT (€)": "350,00 €",
-            "Mikto Synolo (€)": "350,00 €",
-            "EAS (€)": "0,00 €",
-            "Ygeia 6% (€)": "21,00 €",
-            "Foros Myn. (€)": "0,00 €",
-            "Synolo Krat. (€)": "21,00 €",
-            "Katharo Pliroteo (€)": "329,00 €",
-            "Diarkeia Epepikourikou": "17 eti"
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια Ασφάλισης": "32,22",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
+            "Μικτό Σύνολο (€)": "350,00 €",
+            "ΕΑΣ (€)": "0,00 €",
+            "Υγεία 6% (€)": "21,00 €",
+            "Φόρος Μην. (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": "21,00 €",
+            "Καθαρό Πληρωτέο (€)": "329,00 €",
+            "Διάρκεια Επικουρικού": "17 έτη"
         },
         {
-            "Eidos Syntaxis": "EPIKOURIKI IKA (EFKA)",
-            "Mesos Misthos (€)": "0,00 €",
-            "Hronia Asfalisis": "9,60",
-            "Ethniki Syntaxi (€)": "-",
-            "Pososto Anapl. (%)": "-",
-            "Prosaux. TAPILT (€)": "0,00 €",
-            "Mikto Synolo (€)": "0,00 €",
-            "EAS (€)": "0,00 €",
-            "Ygeia 6% (€)": "0,00 €",
-            "Foros Myn. (€)": "0,00 €",
-            "Synolo Krat. (€)": "0,00 €",
-            "Katharo Pliroteo (€)": "0,00 €",
-            "Diarkeia Epepikourikou": "Isovia"
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+            "Μέσος Μισθός (€)": "0,00 €",
+            "Χρόνια Ασφάλισης": "9,60",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": "0,00 €",
+            "ΕΑΣ (€)": "0,00 €",
+            "Υγεία 6% (€)": "0,00 €",
+            "Φόρος Μην. (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": "0,00 €",
+            "Καθαρό Πληρωτέο (€)": "0,00 €",
+            "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
-            "Eidos Syntaxis": "🌟 GENIKO SYNOLO",
-            "Mesos Misthos (€)": "-",
-            "Hronia Asfalisis": "-",
-            "Ethniki Syntaxi (€)": "-",
-            "Pososto Anapl. (%)": "-",
-            "Prosaux. TAPILT (€)": "-",
-            "Mikto Synolo (€)": "2.444,51 €",
-            "EAS (€)": "146,62 €",
-            "Ygeia 6% (€)": "137,87 €",
-            "Foros Myn. (€)": "244,50 €",
-            "Synolo Krat. (€)": "528,99 €",
-            "Katharo Pliroteo (€)": "1.915,53 €",
-            "Diarkeia Epepikourikou": "-"
+            "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια Ασφάλισης": "-",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
+            "Μικτό Σύνολο (€)": "2.444,51 €",
+            "ΕΑΣ (€)": "146,62 €",
+            "Υγεία 6% (€)": "137,87 €",
+            "Φόρος Μην. (€)": "244,50 €",
+            "Σύνολο Κρατ. (€)": "528,99 €",
+            "Καθαρό Πληρωτέο (€)": "1.915,53 €",
+            "Διάρκεια Επικουρικού": "-"
         }
     ])
 
     st.dataframe(detailed_calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. RYTHMISEIS SYSTIMATOS ---
+# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Rythmiseis Systimatos BMS</div>', unsafe_allow_html=True)
-    st.write("Edo diacheirizeste tous syntelestes, ta pososta kratisewn (Ygeia, EAS, Foros) kai tin asfaleia hristwn.")
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
+    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
     st.markdown('</div>', unsafe_allow_html=True)
