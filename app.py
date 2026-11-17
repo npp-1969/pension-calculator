@@ -3,57 +3,96 @@ import pandas as pd
 import io
 
 # Ρύθμιση σελίδας
-st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
+st.set_page_config(page_title="Υπολογιστής Σύνταξης 2026", page_icon="💼", layout="wide")
 
-# CSS για τέλειο ERP design
+# CSS για την κορυφαία εμφάνιση (ERP Design)
 st.markdown("""
     <style>
     .stApp {
-        background-color: #F4F6F9;
+        background-color: #F8FAFC;
     }
-    .erp-header {
+    .main-header {
         background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
-        padding: 18px 25px;
-        border-radius: 10px;
-        font-size: 24px;
-        font-weight: bold;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(30, 58, 138, 0.2);
+        padding: 24px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(30, 58, 138, 0.15);
         margin-bottom: 25px;
     }
-    .panel-box {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E1;
-        border-radius: 10px;
-        padding: 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
-    .panel-title {
-        background: #1E3A8A;
-        color: white;
-        padding: 10px 15px;
+    .main-title {
+        font-size: 26px;
         font-weight: bold;
-        border-radius: 6px;
-        font-size: 16px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .main-subtitle {
+        font-size: 13px;
+        color: #E2E8F0;
+        margin-top: 6px;
+    }
+    .panel-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .panel-header {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1E293B;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .panel-desc {
+        font-size: 13px;
+        color: #64748B;
         margin-bottom: 15px;
     }
-    .retirement-banner {
-        background: linear-gradient(135deg, #DEF7EC 0%, #BCCCDC 100%);
-        border-left: 6px solid #059669;
-        color: #065F46;
-        padding: 16px;
+    .warning-box {
+        background-color: #FEF3C7;
+        border-left: 5px solid #F59E0B;
+        color: #92400E;
+        padding: 12px 18px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 20px;
+    }
+    .info-badge {
+        background-color: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        color: #1E40AF;
+        padding: 10px 15px;
         border-radius: 8px;
-        font-weight: bold;
-        text-align: center;
-        font-size: 18px;
-        margin-top: 15px;
+        font-size: 13px;
+        margin-bottom: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="erp-header">💼 OnLine Pension Core BMS™ — Σύστημα Υπολογισμού Συντάξεων & Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
+# Κεφαλίδα εφαρμογής
+st.markdown("""
+    <div class="main-header">
+        <div class="main-title">
+            <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">Σ</span> 
+            Υπολογιστής Σύνταξης 2026
+        </div>
+        <div class="main-subtitle">Προσομοίωση σύνταξης ΕΦΚΑ — κύρια (εθνική + ανταποδοτική) & επικουρική ΕΤΕΑΕΠ, με τους ισχύοντες κανόνες (ν. 4336/2015, ν. 4387/2016, ν. 4670/2020, ν. 4623/2019)</div>
+    </div>
+""", unsafe_allow_html=True)
+
+# Ειδοποίηση / Warning
+st.markdown("""
+    <div class="warning-box">
+        ⚠️ <b>Ενημερωτικός υπολογιστής-προσέγγιση.</b> Το αποτέλεσμα είναι ενδεικτικό και δεν αποτελεί δέσμευση του ΕΦΚΑ. 
+        Καλύπτονται οι βαριές & ανθυγιεινά (ΒΑΕ), οι μητέρες με ανήλικό τέκνο και οι παλαιοί ασφαλισμένοι πριν από το 1993.
+    </div>
+""", unsafe_allow_html=True)
 
 # Sidebar Menu
 st.sidebar.markdown("### 🗂️ Μενού Συστήματος")
@@ -65,38 +104,66 @@ st.sidebar.success("🟢 BMS Engine Active (2026)")
 if app_section == "📊 Κεντρικός Υπολογισμός":
 
     # ==========================================
-    # 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ & ΗΛΙΚΙΑ (ΠΑΝΩ)
+    # 1. ΣΤΟΙΧΕΙΑ ΠΡΟΣΩΠΟΥ
     # ==========================================
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">👤 1. Προσωπικά & Ασφαλιστικά Στοιχεία (Όριο Ηλικίας)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">1️⃣ Στοιχεία προσώπου</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία που χρειάζονται για τον υπολογισμό. Από εδώ ξεκινά η κάρτα κάθε πελάτη.</div>', unsafe_allow_html=True)
     
-    p_col1, p_col2, p_col3 = st.columns(3)
-    with p_col1:
-        birth_year = st.number_input("Έτος Γέννησης", min_value=1940, max_value=2005, value=1969)
-    with p_col2:
-        birth_month = st.selectbox("Μήνας Γέννησης", ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"], index=8)
-    with p_col3:
-        target_age = st.selectbox("Όριο Ηλικίας Συνταξιοδότησης", [62, 67], index=0)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        first_name = st.text_input("Όνομα", value="ΝΕΚΤΑΡΙΟΣ")
+    with col2:
+        last_name = st.text_input("Επώνυμο", value="ΠΕΛΕΚΑΝΟΣ")
+    with col3:
+        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"])
 
-    retirement_year = birth_year + target_age
-    st.markdown(
-        f'<div class="retirement-banner">'
-        f'🎯 ΕΚΤΙΜΩΜΕΝΗ ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ: {birth_month} του {retirement_year} (Ηλικία: {target_age} Ετών)'
-        f'</div>', 
-        unsafe_allow_html=True
-    )
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        birth_date = st.text_input("Ημερομηνία γέννησης", value="16/09/1969")
+    with col5:
+        insurance_cat = st.selectbox("Κατηγορία ασφάλισης", ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"])
+    with col6:
+        first_work_date = st.text_input("Ημερομηνία πρώτης απασχόλησης", value="Ιούνιος 1990")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
+    # 2. ΑΝΑΛΥΤΙΚΗ ΕΙΣΑΓΩΓΗ ΠΕΡΙΟΔΩΝ ΕΡΓΑΣΙΑΣ
     # ==========================================
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Συγκεντρωτική Ανάλυση</div>', unsafe_allow_html=True)
-    
-    st.info(
-        "📌 Κάντε **Copy** από το Excel σας και **Paste** παρακάτω.\n"
-        "Η σειρά είναι: **ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ**"
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">2️⃣ Αναλυτική εισαγωγή περιόδων εργασίας</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Μία γραμμή <b>για κάθε εργοδότη</b> ή διάστημα εργασίας: εργοδότης, ημερομηνία από–έως, φορέας/ταμείο. Τα ένσημα (H.Ε.) υπολογίζονται αυτόματα από τις ημερομηνίες — κάθε ημερολογιακή ημέρα = 1 Η.Ε., με μέγιστο <b>25 Η.Ε. ανά μήνα</b> (πλήρης απασχόληση, 300 Η.Ε./έτος). Μπορείτε πάντα να τα αλλάξετε με το χέρι.</div>', unsafe_allow_html=True)
+
+    st.markdown("<b>ΤΡΟΠΟΣ ΕΙΣΑΓΩΓΗΣ ΑΣΦΑΛΙΣΤΙΚΟΥ ΒΙΟΥ</b>", unsafe_allow_html=True)
+    input_type = st.radio(
+        "Τρόπος εισαγωγής:",
+        ["🔄 Αναλυτικά ανά περίοδο — εργασίες, ένσημα & αποδοχές έτος-έτος (ακριβής υπολογισμός)", "⚡ Γρήγορα — συνολικά έτη & ένας μέσος όρος αποδοχών"],
+        horizontal=True,
+        label_visibility="collapsed"
     )
+
+    st.markdown('<div class="info-badge">✨ Συμπληρώστε περιόδους εργασίας για να δείτε έτη και ένσημα.</div>', unsafe_allow_html=True)
+
+    # Επικουρική σύνταξη πεδίο
+    st.markdown("<b>Επικουρική σύνταξη — γνωστό ποσό (€/μήνα)</b>", unsafe_allow_html=True)
+    e1, e2 = st.columns([2, 1])
+    with e1:
+        known_epikouriki = st.text_input("Επικουρική", placeholder="π.χ. 313,82 — αφήστε κενό για αυτόματο υπολογισμό", label_visibility="collapsed")
+    st.markdown("<font size='2' color='#64748B'>Αν το συμπληρώσετε, το ποσό αυτό χρησιμοποιείται <b>αντί</b> του υπολογισμού ΕΤΕΑΕΠ (π.χ. από εκκαθαριστικό ή ενημέρωση επικουρικής).</font>", unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    # Επικεφαλίδα Πίνακα Περιόδων & Κουμπί Excel
+    col_h1, col_h2 = st.columns([3, 1])
+    with col_h1:
+        st.markdown("### ΠΙΝΑΚΑΣ ΠΕΡΙΟΔΩΝ")
+    with col_h2:
+        import_excel = st.button("📥 Εισαγωγή από Excel / ΕΦΚΑ", use_container_width=True)
+
+    st.markdown("<font size='2' color='#64748B'>Δώστε τις <b>ακριβείς ημερομηνίες</b> από–έως (ημέρα/μήνας/έτος). Αν έχετε τα ακριβή H.Ε. από τον <a href='#'>Ατομικό Λογαριασμό του e-ΕΦΚΑ</a>, γράψτε τα στο πεδίο H.Ε. για μεγαλύτερη ακρίβεια.<br>Το <b>ταμείο επικουρικής</b> κάθε εργοδότη (ΙΚΑ, ΤΑΠΙΛΤ-ΑΤ, Τράπεζα/ΤΑΥΤΕΚΩ, ΙΟΤΑΣ, ΔΕΗ/ΔΕΚΟ, βαρέα & ανθυγιεινά) συμπληρώνεται αυτόματα από την επωνυμία όταν γράφετε π.χ. «Ιονική Τράπεζα»/«Λαϊκή» (→ ΤΑΠΙΛΤ-ΑΤ), «Εθνική Τράπεζα» (→ Τράπεζα) ή «ΙΚΑ/ΕΦΚΑ» (→ ΙΚΑ) — και μπορείτε πάντα να το αλλάξετε με το χέρι.</font>", unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
@@ -107,8 +174,8 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     def clear_text():
         st.session_state.paste_input = ""
 
-    st.button("🗑️ Καθαρισμός & Νέα Επικόλληση", on_click=clear_text)
-    pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=130)
+    st.button("🗑️ Καθαρισμός Πίνακα", on_click=clear_text)
+    pasted_data = st.text_area("Κάντε επικόλληση (Paste) από το Excel σας εδώ:", key='paste_input', height=130)
 
     processed_df = pd.DataFrame()
     if pasted_data.strip():
@@ -153,14 +220,14 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Αναγνωρισμένα Δεδομένα (Επεξεργαστείτε εάν χρειάζεται):")
+        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων Περιόδων:")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
         df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
         df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-        # --- 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΕΠΑΝΩ (Συνολικά Ένσημα & Μικτές Αποδοχές από όλους τους φορείς) ---
+        # Γενικά συγκεντρωτικά
         total_all_ensima = df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'].sum()
         total_all_apodoches = df['ΑΠΟΔΟΧΕΣ'].sum()
         overall_avg_salary = df['ΑΠΟΔΟΧΕΣ'].mean() if len(df) > 0 else 0
@@ -172,7 +239,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
         sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
 
-        # --- 2. ΑΝΑΛΥΣΗ ΑΝΑ ΦΟΡΕΑ ΚΑΤΩ ΜΕ ΓΡΑΜΜΗ ΣΥΝΟΛΟΥ ---
+        # Ανάλυση ανά φορέα με σύνολο κάτω
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
             Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
@@ -189,7 +256,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                 "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €"
             })
 
-        # Προσθήκη γραμμής ΣΥΝΟΛΟ κάτω ακριβώς όπως στη φωτογραφία
         tot_years = total_all_ensima / 300.0
         agency_rows.append({
             "ΦΟΡΕΑΣ": "🌟 ΣΥΝΟΛΟ",
@@ -214,8 +280,8 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     # ==========================================
     # 3. ΠΑΡΑΜΕΤΡΟΙ ΚΡΑΤΗΣΕΩΝ & ΥΠΟΛΟΓΙΣΜΟΣ
     # ==========================================
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ 3. Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">3️⃣ Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
     
     rc1, rc2, rc3, rc4 = st.columns(4)
     with rc1:
@@ -237,9 +303,8 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         net_main = gross_main - eas_amount - health_ded - tax_monthly
         total_ephapax = 55043.62 
         
-        # --- ΑΠΟΤΕΛΕΣΜΑΤΑ & ΣΤΑΤΙΣΤΙΚΑ ---
-        st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-header">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
         
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
@@ -312,13 +377,13 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "📋 Δεδομένα & Αρχείο":
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
     st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
     st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
     st.markdown('</div>', unsafe_allow_html=True)
