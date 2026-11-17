@@ -664,26 +664,33 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΠΑΡΑΜΕΤΡΙΚΟΣ / ΕΠΕΞΕΡΓΑΣΙΜΟΣ ΠΙΝΑΚΑΣ) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΠΑΡΑΜΕΤΡΙΚΟΣ ΜΕ ΟΔΗΓΙΕΣ) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΠΑΡΑΜΕΤΡΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Μπορείτε να τροποποιήσετε τα πεδία παρακάτω για οποιονδήποτε πελάτη ή διαφορετικές εισφορές.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Τροποποιήστε τα πεδία παρακάτω ανάλογα με την ατομική καρτέλα του εκάστοτε ασφαλισμένου.</div>', unsafe_allow_html=True)
 
-    # Editable inputs για πλήρη παραμετροποίηση
+    # Αναλυτικές επεξηγήσεις για τον χρήστη
+    st.info("💡 **Οδηγίες συμπλήρωσης πεδίων:**\n"
+            "1. **Έτη έως 31/12/2013:** Τα συνολικά έτη υπηρεσίας/ασφάλισης από την πρόσληψη έως τις 31/12/2013 (π.χ. 22.90 για τον Νεκτάριο).\n"
+            "2. **Έτη από 2014:** Τα έτη ασφάλισης από 1/1/2014 έως το τέλος της υπηρεσίας (π.χ. 9.00).\n"
+            "3. **Συντ. Αναπλήρωσης Α (%):** 60% για εισφορά πρόνοιας 4% (ή αναλογικά αν υπήρχε άλλη εισφορά στο ταμείο).\n"
+            "4. **Μέσος Μισθός Πενταετίας 2009–2013:** Ο μέσος μηνιαίος μισθός από το άθροισμα αποδοχών της 5ετίας διαιρεμένο διά 60 (από την καρτέλα).\n"
+            "5. **Συνολικό Τμήμα Β:** Το άθροισμα των ετήσιων εισφορών από 2014 έως 2022 (από τη στήλη εισφορών της καρτέλας).")
+
     col_in1, col_in2, col_in3 = st.columns(3)
     with col_in1:
-        b_until_2013 = st.number_input("Έτη έως 31/12/2013 (Τμήμα Α)", value=float(st.session_state.bank_years_until_2013), step=0.1)
+        b_until_2013 = st.number_input("Έτη έως 31/12/2013 (Τμήμα Α)", value=float(st.session_state.bank_years_until_2013), step=0.1, help="Συνολικά έτη από πρόσληψη έως 31/12/2013")
     with col_in2:
-        b_from_2014 = st.number_input("Έτη από 2014 και μετά (Τμήμα Β)", value=float(st.session_state.bank_years_from_2014), step=0.1)
+        b_from_2014 = st.number_input("Έτη από 2014 και μετά (Τμήμα Β)", value=float(st.session_state.bank_years_from_2014), step=0.1, help="Έτη από 1/1/2014 έως την αποχώρηση")
     with col_in3:
-        st.session_state.efap_repl_rate = st.number_input("Συντελεστής Αναπλήρωσης Τμήματος Α (%)", value=float(st.session_state.efap_repl_rate), step=1.0)
+        st.session_state.efap_repl_rate = st.number_input("Συντελεστής Αναπλήρωσης Τμήματος Α (%)", value=float(st.session_state.efap_repl_rate), step=1.0, help="Συνήθως 60% για εισφορά 4%")
 
     col_in4, col_in5 = st.columns(2)
     with col_in4:
-        st.session_state.efap_avg_5y = st.number_input("Μέσος Μην. Μισθός Πενταετίας 2009–2013 (€)", value=float(st.session_state.efap_avg_5y), step=10.0)
+        st.session_state.efap_avg_5y = st.number_input("Μέσος Μην. Μισθός Πενταετίας 2009–2013 (€)", value=float(st.session_state.efap_avg_5y), step=10.0, help="Άθροισμα αποδοχών 2009-2013 διαιρεμένο διά 60")
     with col_in5:
-        st.session_state.efap_tmima_b = st.number_input("Συνολικό Ποσό Τμήματος Β (Εισφορές 2014–2022) (€)", value=float(st.session_state.efap_tmima_b), step=100.0)
+        st.session_state.efap_tmima_b = st.number_input("Συνολικό Ποσό Τμήματος Β (Εισφορές 2014–2022) (€)", value=float(st.session_state.efap_tmima_b), step=100.0, help="Άθροισμα ετήσιων εισφορών από την καρτέλα")
 
     # Υπολογισμοί με τα νέα παραμετρικά δεδομένα
     monthly_taktiko_tA = st.session_state.efap_avg_5y * (12.0 / 14.0)
@@ -746,7 +753,6 @@ else:
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
     
-    # Υπολογισμός εφάπαξ βάσει των παραμετρικών τιμών
     monthly_tak_fin = st.session_state.efap_avg_5y * (12.0 / 14.0)
     total_efapax_fin = (22.90 * monthly_tak_fin * (st.session_state.efap_repl_rate / 100.0)) + st.session_state.efap_tmima_b
 
