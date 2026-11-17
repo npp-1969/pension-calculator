@@ -5,14 +5,11 @@ import io
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS για τέλειο σχεδιασμό, χρώματα, κάρτες και σωστές στοιχίσεις στους πίνακες
+# CSS για τέλειο σχεδιασμό, χρώματα και απόλυτη στοίχιση στους πίνακες
 st.markdown("""
     <style>
-    .main-container {
-        background: #FFFFFF;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    .stApp {
+        background-color: #F8FAFC;
     }
     .erp-header {
         background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
@@ -26,12 +23,12 @@ st.markdown("""
         margin-bottom: 25px;
     }
     .panel-box {
-        background-color: #F8FAFC;
+        background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 10px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
     .panel-title {
         background: #3B82F6;
@@ -52,11 +49,10 @@ st.markdown("""
         text-align: center;
         font-size: 19px;
         margin-top: 15px;
-        box-shadow: 0 2px 5px rgba(5, 150, 105, 0.1);
     }
-    /* Στοιχίσεις και ομοιομορφία στους πίνακες */
-    dataframe, table {
-        width: 100% !important;
+    /* Στοιχίσεις κελιών πίνακα για να έρθουν όλα στα μέτρα τους */
+    [data-testid="stDataFrame"] div[data-testid="stTable"] {
+        text-align: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -136,8 +132,22 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             df.columns = [c.strip() for c in df.columns[:6]]
             col_names = df.columns.tolist()
             
+            # --- ΜΟΡΦΟΠΟΙΗΣΗ & ΣΤΟΙΧΙΣΗ ΠΙΝΑΚΑ ---
             st.markdown("##### 🔍 Αναγνωρισμένα Δεδομένα:")
-            st.dataframe(df, use_container_width=True)
+            
+            # Εφαρμογή καθαρής μορφοποίησης Pandas Styler για σωστή στοίχιση
+            def align_formatter(val):
+                return 'text-align: center;'
+
+            styled_df = df.style.set_properties(**{
+                'text-align': 'center',
+                'background-color': '#FFFFFF',
+                'border': '1px solid #E2E8F0'
+            }).set_table_styles([
+                {'selector': 'th', 'props': [('text-align', 'center'), ('background-color', '#1E3A8A'), ('color', 'white'), ('font-weight', 'bold')]}
+            ])
+
+            st.dataframe(styled_df, use_container_width=True)
 
             try:
                 total_ensima = pd.to_numeric(df[col_names[4]], errors='coerce').sum()
