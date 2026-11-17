@@ -24,7 +24,10 @@ def init_db():
             econ_mode TEXT,
             paste_input TEXT,
             summary_years REAL,
-            summary_avg_salary REAL
+            summary_avg_salary REAL,
+            merida_amount REAL,
+            tapilt_net REAL,
+            tapilt_after_expiry REAL
         )
     ''')
     conn.commit()
@@ -37,12 +40,16 @@ def save_to_db(data):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM client_profile')
     cursor.execute('''
-        INSERT INTO client_profile (first_name, last_name, gender, birth_date, insurance_cat, first_work_date, econ_mode, paste_input, summary_years, summary_avg_salary)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO client_profile (
+            first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
+            econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data["first_name"], data["last_name"], data["gender"], data["birth_date"],
         data["insurance_cat"], data["first_work_date"], data["econ_mode"],
-        data["paste_input"], data["summary_years"], data["summary_avg_salary"]
+        data["paste_input"], data["summary_years"], data["summary_avg_salary"],
+        data["merida_amount"], data["tapilt_net"], data["tapilt_after_expiry"]
     ))
     conn.commit()
     conn.close()
@@ -50,14 +57,21 @@ def save_to_db(data):
 def load_from_db():
     conn = sqlite3.connect('pension_bms.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT first_name, last_name, gender, birth_date, insurance_cat, first_work_date, econ_mode, paste_input, summary_years, summary_avg_salary FROM client_profile LIMIT 1')
+    cursor.execute('''
+        SELECT first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
+               econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry 
+        FROM client_profile LIMIT 1
+    ''')
     row = cursor.fetchone()
     conn.close()
     if row:
         return {
             "first_name": row[0], "last_name": row[1], "gender": row[2],
             "birth_date": row[3], "insurance_cat": row[4], "first_work_date": row[5],
-            "econ_mode": row[6], "paste_input": row[7], "summary_years": row[8], "summary_avg_salary": row[9]
+            "econ_mode": row[6], "paste_input": row[7], "summary_years": row[8], 
+            "summary_avg_salary": row[9], "merida_amount": row[10] if row[10] is not None else 71206.66,
+            "tapilt_net": row[11] if row[11] is not None else 329.00,
+            "tapilt_after_expiry": row[12] if row[12] is not None else 100.00
         }
     return None
 
@@ -198,6 +212,16 @@ if 'summary_years' not in st.session_state:
 if 'summary_avg_salary' not in st.session_state:
     st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3304.39
 
+# Ρυθμίσεις Μερίδας & ΤΑΠΙΛΤ (από βάση ή προεπιλογές)
+if 'merida_amount' not in st.session_state:
+    st.session_state.merida_amount = db_data["merida_amount"] if db_data else 71206.66
+
+if 'tapilt_net' not in st.session_state:
+    st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 329.00
+
+if 'tapilt_after_expiry' not in st.session_state:
+    st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 100.00
+
 def persist_all():
     full_data = {
         "first_name": st.session_state.client_data["first_name"],
@@ -209,7 +233,10 @@ def persist_all():
         "econ_mode": st.session_state.econ_mode,
         "paste_input": st.session_state.paste_input,
         "summary_years": float(st.session_state.summary_years),
-        "summary_avg_salary": float(st.session_state.summary_avg_salary)
+        "summary_avg_salary": float(st.session_state.summary_avg_salary),
+        "merida_amount": float(st.session_state.merida_amount),
+        "tapilt_net": float(st.session_state.tapilt_net),
+        "tapilt_after_expiry": float(st.session_state.tapilt_after_expiry)
     }
     save_to_db(full_data)
 
@@ -222,7 +249,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Δυναμικός Υπολογισμός Κύριας & Επικουρικών</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Δυναμική Διαχείριση ΤΑΠΙΛΤ & Μερίδας</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -401,7 +428,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (100% ΔΥΝΑΜΙΚΟΙ ΥΠΟΛΟΓΙΣΜΟΙ ΕΠΙΚΟΥΡΙΚΩΝ) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
@@ -470,21 +497,25 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             </tr>
             <tr><td><b>Ταμείο Κύριας/Επικ.</b></td><td style="color: blue; text-align: center;"><b>ΤΑΠΙΛΤ</b></td></tr>
             <tr><td><b>Μηνιαίο Ποσό ΤΑΠΙΛΤ (€)</b></td><td style="text-align: center;">350,00 €</td></tr>
-            <tr><td><b>Επικ. ΤΑΠΙΛΤ μετά εξάντληση</b></td><td style="text-align: center;">100,00 €</td></tr>
+            <tr><td><b>Επικ. ΤΑΠΙΛΤ μετά εξάντληση</b></td><td style="text-align: center;">{:.2f} €</td></tr>
             <tr><td><b>Εκτ. Ετήσια Απόδοση (%)</b></td><td style="text-align: center;">0,0%</td></tr>
             <tr><td><b>Καθεστώς Ασφάλισης</b></td><td style="text-align: center;">Παλαιός (<1993)</td></tr>
         </table>
-        """, unsafe_allow_html=True)
+        """.format(st.session_state.tapilt_after_expiry), unsafe_allow_html=True)
+
+    # Υπολογισμός διάρκειας (ετών) για την εξάντληση της Μερίδας με βάση το καθαρό ποσό ΤΑΠΙΛΤ
+    annual_tapilt_total = st.session_state.tapilt_net * 12
+    years_to_expiry = (st.session_state.merida_amount / annual_tapilt_total) if annual_tapilt_total > 0 else 0.0
 
     with top_col3:
-        st.markdown("""
+        st.markdown(f"""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
             <tr class="excel-table-header">
-                <th colspan="2">ΤΑΠΙΛΤΑΤ & ΕΠΙΚ. ΕΦΚΑ</th>
+                <th colspan="2">ΤΑΠΙΛΤΑΤ & ΜΕΡΙΔΑ (ΡΥΘΜΙΣΜΕΝΑ)</th>
             </tr>
-            <tr><td><b>ΕΙΣΦΟΡΕΣ ΜΕΡΙΔΑ</b></td><td style="color: blue; text-align: right;"><b>71.206,66 €</b></td></tr>
-            <tr><td><b>Συντ. Ράντας ΕΦΚΑ</b></td><td style="text-align: right;">289,20</td></tr>
-            <tr><td><b>Εσφορές ΙΚΑ Επικ. (6%)</b></td><td style="text-align: right;">1.859,75 €</td></tr>
+            <tr><td><b>ΕΙΣΦΟΡΕΣ ΜΕΡΙΔΑ</b></td><td style="color: blue; text-align: right;"><b>{st.session_state.merida_amount:,.2f} €</b></td></tr>
+            <tr><td><b>Αρχικό Καθαρό ΤΑΠΙΛΤ</b></td><td style="color: blue; text-align: right;"><b>{st.session_state.tapilt_net:,.2f} € / μήνα</b></td></tr>
+            <tr><td><b>Διάρκεια Αρχικού Ποσού</b></td><td style="text-align: right; color: #1E3A8A; font-weight: bold;"><b>{years_to_expiry:.1f} έτη</b></td></tr>
         </table>
         """, unsafe_allow_html=True)
 
@@ -503,9 +534,8 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΔΥΝΑΜΙΚΕΣ ΕΠΙΚΟΥΡΙΚΕΣ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΡΥΘΜΙΣΜΕΝΕΣ ΕΠΙΚΟΥΡΙΚΕΣ</div>', unsafe_allow_html=True)
 
-    # Υπολογισμοί Κύριας Σύνταξης
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
@@ -517,16 +547,15 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     synolo_krat = eas_val + ygeia_val + foros_val
     katharo_main = max(kria_mikto - synolo_krat, 0.0)
 
-    # ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΕΠΙΚΟΥΡΙΚΩΝ
-    # 1. Επικουρική ΤΑΠΙΛΤ (Υπολογίζεται δυναμικά από τα χρόνια και το κεφάλι/εισφορές)
-    tapilt_mikto = tot_years * 35.0 if tot_years > 0 else 350.0
-    tapilt_krat = tapilt_mikto * 0.06 # Κράτηση υγείας 6% επικουρικής
-    tapilt_katharo = tapilt_mikto - tapilt_krat
+    # Χρήση των ρυθμισμένων ποσών από τις ρυθμίσεις
+    tapilt_katharo = st.session_state.tapilt_net
+    tapilt_krat = tapilt_katharo * 0.06 / 0.94  # Αντίστροφη εκτίμηση μικτού από καθαρό με 6% κράτηση
+    tapilt_mikto = tapilt_katharo + tapilt_krat
+    tapilt_duration_str = f"Πρώτα {years_to_expiry:.1f} έτη (μετά {st.session_state.tapilt_after_expiry:.2f} € ισόβια)"
 
-    # 2. Επικουρική ΙΚΑ (ΕΦΚΑ) (Υπολογίζεται δυναμικά από τα έτη ΙΚΑ και τον μέσο όρο αποδοχών)
-    ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    # Επικουρική ΙΚΑ (ΕΦΚΑ)
+    ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if 'df_res' in locals() else 0
     ika_years = ika_ensima / 300.0
-    # Συντελεστής επικουρικής e-EFKA: 0.45% ανά έτος επί του μέσου μισθού
     ika_mikto = avg_sal * ika_years * 0.0045 if ika_years > 0 else 0.00
     ika_krat = ika_mikto * 0.06
     ika_katharo = max(ika_mikto - ika_krat, 0.0)
@@ -548,7 +577,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
-            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ (ΡΥΘΜΙΣΜΕΝΗ)",
             "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
@@ -560,7 +589,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Φόρος Μην. (€)": "0,00 €",
             "Σύνολο Κρατ. (€)": f"{tapilt_krat:,.2f} €",
             "Καθαρό Πληρωτέο (€)": f"{tapilt_katharo:,.2f} €",
-            "Διάρκεια Επικουρικού": "17 έτη"
+            "Διάρκεια Επικουρικού": tapilt_duration_str
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
@@ -629,6 +658,44 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
 # --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
-    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα υπολογίζει αυτόματα τη διάρκεια εξάντλησης!</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    col_set1, col_set2 = st.columns(2)
+    
+    with col_set1:
+        st.session_state.merida_amount = st.number_input(
+            "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
+            value=float(st.session_state.merida_amount), 
+            step=100.0,
+            format="%.2f"
+        )
+        
+        st.session_state.tapilt_net = st.number_input(
+            "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
+            value=float(st.session_state.tapilt_net), 
+            step=10.0,
+            format="%.2f"
+        )
+
+    with col_set2:
+        st.session_state.tapilt_after_expiry = st.number_input(
+            "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
+            value=float(st.session_state.tapilt_after_expiry), 
+            step=10.0,
+            format="%.2f"
+        )
+        
+        # Ζωντανός υπολογισμός διάρκειας για άμεση πληροφόρηση στις ρυθμίσεις
+        calc_annual = st.session_state.tapilt_net * 12
+        calc_years = (st.session_state.merida_amount / calc_annual) if calc_annual > 0 else 0
+        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
+        persist_all()
+        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν επιτυχώς και εφαρμόστηκαν στα αποτελέσματα!")
+
     st.markdown('</div>', unsafe_allow_html=True)
