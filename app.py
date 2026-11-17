@@ -82,15 +82,14 @@ st.markdown("""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">Σ</span> 
             Υπολογιστής Σύνταξης 2026
         </div>
-        <div class="main-subtitle">Προσομοίωση σύνταξης ΕΦΚΑ — κύρια (εθνική + ανταποδοτική) & επικουρική ΕΤΕΑΕΠ, με τους ισχύοντες κανόνες (ν. 4336/2015, ν. 4387/2016, ν. 4670/2020, ν. 4623/2019)</div>
+        <div class="main-subtitle">Προσομοίωση σύνταξης ΕΦΚΑ — κύρια (εθνική + ανταποδοτική) & επικουρική ΕΤΕΑΕΠ, με τους ισχύοντες κανόνες</div>
     </div>
 """, unsafe_allow_html=True)
 
 # Ειδοποίηση / Warning
 st.markdown("""
     <div class="warning-box">
-        ⚠️ <b>Ενημερωτικός υπολογιστής-προσέγγιση.</b> Το αποτέλεσμα είναι ενδεικτικό και δεν αποτελεί δέσμευση του ΕΦΚΑ. 
-        Καλύπτονται οι βαριές & ανθυγιεινά (ΒΑΕ), οι μητέρες με ανήλικό τέκνο και οι παλαιοί ασφαλισμένοι πριν από το 1993.
+        ⚠️ <b>Ενημερωτικός υπολογιστής-προσέγγιση.</b> Το αποτέλεσμα είναι ενδεικτικό και δεν αποτελεί δέσμευση του ΕΦΚΑ.
     </div>
 """, unsafe_allow_html=True)
 
@@ -101,30 +100,92 @@ app_section = st.sidebar.radio("Επιλογή:", ["📊 Κεντρικός Υπ
 st.sidebar.markdown("---")
 st.sidebar.success("🟢 BMS Engine Active (2026)")
 
+# Session state για αποθήκευση προσώπων
+if 'saved_profiles' not in st.session_state:
+    st.session_state.saved_profiles = {}
+
+if 'clear_form' not in st.session_state:
+    st.session_state.clear_form = False
+
 if app_section == "📊 Κεντρικός Υπολογισμός":
+
+    # ==========================================
+    # 0. ΜΠΑΡΑ ΕΠΙΛΟΓΗΣ / ΑΠΟΘΗΚΕΥΣΗΣ ΠΡΟΣΩΠΟΥ
+    # ==========================================
+    st.markdown('<div class="panel-card" style="background-color: #F1F5F9; padding: 15px;">', unsafe_allow_html=True)
+    top_c1, top_c2, top_c3 = st.columns([2, 2, 1])
+    
+    with top_c1:
+        profile_names = ["— Νέα / Καθαρή Καρτέλα —"] + list(st.session_state.saved_profiles.keys())
+        selected_profile = st.selectbox("📂 Επιλογή αποθηκευμένης καρτέλας:", profile_names)
+    
+    # Αν ο χρήστης επιλέξει αποθηκευμένο προφίλ, φορτώνουμε τα στοιχεία του
+    if selected_profile != "— Νέα / Καθαρή Καρτέλα —":
+        p_data = st.session_state.saved_profiles[selected_profile]
+        def_name = p_data.get("first_name", "")
+        def_surname = p_data.get("last_name", "")
+        def_gender = p_data.get("gender", "Άνδρας")
+        def_bdate = p_data.get("birth_date", "")
+        def_cat = p_data.get("insurance_cat", "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)")
+        def_wdate = p_data.get("first_work_date", "")
+    else:
+        def_name = "" if st.session_state.clear_form else "ΝΕΚΤΑΡΙΟΣ"
+        def_surname = "" if st.session_state.clear_form else "ΠΕΛΕΚΑΝΟΣ"
+        def_gender = "Άνδρας"
+        def_bdate = "" if st.session_state.clear_form else "16/09/1969"
+        def_cat = "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)"
+        def_wdate = "" if st.session_state.clear_form else "Ιούνιος 1990"
+
+    with top_c2:
+        save_name_input = st.text_input("Όνομα αποθήκευσης καρτέλας:", placeholder="π.χ. Νεκτάριος Πελεκάνος")
+
+    with top_c3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        save_btn = st.button("💾 Αποθήκευση", use_container_width=True)
+        if save_btn and save_name_input.strip():
+            st.session_state.saved_profiles[save_name_input.strip()] = {
+                "first_name": def_name,
+                "last_name": def_surname,
+                "gender": def_gender,
+                "birth_date": def_bdate,
+                "insurance_cat": def_cat,
+                "first_work_date": def_wdate
+            }
+            st.success(f"Αποθηκεύτηκε: {save_name_input.strip()}")
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
     # 1. ΣΤΟΙΧΕΙΑ ΠΡΟΣΩΠΟΥ
     # ==========================================
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">1️⃣ Στοιχεία προσώπου</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία που χρειάζονται για τον υπολογισμό. Από εδώ ξεκινά η κάρτα κάθε πελάτη.</div>', unsafe_allow_html=True)
+    
+    col_h_p1, col_h_p2 = st.columns([4, 1])
+    with col_h_p1:
+        st.markdown('<div class="panel-header">1️⃣ Στοιχεία προσώπου</div>', unsafe_allow_html=True)
+    with col_h_p2:
+        def clear_fields():
+            st.session_state.clear_form = True
+        st.button("🗑️ Καθαρισμός Στοιχείων", on_click=clear_fields, use_container_width=True)
+
+    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία που χρειάζονται για τον υπολογισμό.</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        first_name = st.text_input("Όνομα", value="ΝΕΚΤΑΡΙΟΣ")
+        first_name = st.text_input("Όνομα", value=def_name)
     with col2:
-        last_name = st.text_input("Επώνυμο", value="ΠΕΛΕΚΑΝΟΣ")
+        last_name = st.text_input("Επώνυμο", value=def_surname)
     with col3:
-        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"])
+        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"], index=0 if def_gender=="Άνδρας" else 1)
 
     col4, col5, col6 = st.columns(3)
     with col4:
-        birth_date = st.text_input("Ημερομηνία γέννησης", value="16/09/1969")
+        birth_date = st.text_input("Ημερομηνία γέννησης", value=def_bdate)
     with col5:
         insurance_cat = st.selectbox("Κατηγορία ασφάλισης", ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"])
     with col6:
-        first_work_date = st.text_input("Ημερομηνία πρώτης απασχόλησης", value="Ιούνιος 1990")
+        first_work_date = st.text_input("Ημερομηνία πρώτης απασχόλησης", value=def_wdate)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -133,49 +194,20 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     # ==========================================
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">2️⃣ Αναλυτική εισαγωγή περιόδων εργασίας</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Μία γραμμή <b>για κάθε εργοδότη</b> ή διάστημα εργασίας: εργοδότης, ημερομηνία από–έως, φορέας/ταμείο. Τα ένσημα (H.Ε.) υπολογίζονται αυτόματα από τις ημερομηνίες — κάθε ημερολογιακή ημέρα = 1 Η.Ε., με μέγιστο <b>25 Η.Ε. ανά μήνα</b> (πλήρης απασχόληση, 300 Η.Ε./έτος). Μπορείτε πάντα να τα αλλάξετε με το χέρι.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Κάντε επικόλληση (Paste) τον πίνακα από το Excel σας με τη σειρά: <b>ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ</b></div>', unsafe_allow_html=True)
 
-    st.markdown("<b>ΤΡΟΠΟΣ ΕΙΣΑΓΩΓΗΣ ΑΣΦΑΛΙΣΤΙΚΟΥ ΒΙΟΥ</b>", unsafe_allow_html=True)
-    input_type = st.radio(
-        "Τρόπος εισαγωγής:",
-        ["🔄 Αναλυτικά ανά περίοδο — εργασίες, ένσημα & αποδοχές έτος-έτος (ακριβής υπολογισμός)", "⚡ Γρήγορα — συνολικά έτη & ένας μέσος όρος αποδοχών"],
-        horizontal=True,
-        label_visibility="collapsed"
-    )
-
-    st.markdown('<div class="info-badge">✨ Συμπληρώστε περιόδους εργασίας για να δείτε έτη και ένσημα.</div>', unsafe_allow_html=True)
-
-    # Επικουρική σύνταξη πεδίο
-    st.markdown("<b>Επικουρική σύνταξη — γνωστό ποσό (€/μήνα)</b>", unsafe_allow_html=True)
-    e1, e2 = st.columns([2, 1])
-    with e1:
-        known_epikouriki = st.text_input("Επικουρική", placeholder="π.χ. 313,82 — αφήστε κενό για αυτόματο υπολογισμό", label_visibility="collapsed")
-    st.markdown("<font size='2' color='#64748B'>Αν το συμπληρώσετε, το ποσό αυτό χρησιμοποιείται <b>αντί</b> του υπολογισμού ΕΤΕΑΕΠ (π.χ. από εκκαθαριστικό ή ενημέρωση επικουρικής).</font>", unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    # Επικεφαλίδα Πίνακα Περιόδων & Κουμπί Excel
-    col_h1, col_h2 = st.columns([3, 1])
-    with col_h1:
-        st.markdown("### ΠΙΝΑΚΑΣ ΠΕΡΙΟΔΩΝ")
-    with col_h2:
-        import_excel = st.button("📥 Εισαγωγή από Excel / ΕΦΚΑ", use_container_width=True)
-
-    st.markdown("<font size='2' color='#64748B'>Δώστε τις <b>ακριβείς ημερομηνίες</b> από–έως (ημέρα/μήνας/έτος). Αν έχετε τα ακριβή H.Ε. από τον <a href='#'>Ατομικό Λογαριασμό του e-ΕΦΚΑ</a>, γράψτε τα στο πεδίο H.Ε. για μεγαλύτερη ακρίβεια.<br>Το <b>ταμείο επικουρικής</b> κάθε εργοδότη (ΙΚΑ, ΤΑΠΙΛΤ-ΑΤ, Τράπεζα/ΤΑΥΤΕΚΩ, ΙΟΤΑΣ, ΔΕΗ/ΔΕΚΟ, βαρέα & ανθυγιεινά) συμπληρώνεται αυτόματα από την επωνυμία όταν γράφετε π.χ. «Ιονική Τράπεζα»/«Λαϊκή» (→ ΤΑΠΙΛΤ-ΑΤ), «Εθνική Τράπεζα» (→ Τράπεζα) ή «ΙΚΑ/ΕΦΚΑ» (→ ΙΚΑ) — και μπορείτε πάντα να το αλλάξετε με το χέρι.</font>", unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    if 'paste_input' not in st.session_state:
+    if 'paste_input' not in st.session_state or st.session_state.clear_form:
         st.session_state.paste_input = (
             "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
             "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
         )
+        st.session_state.clear_form = False
 
     def clear_text():
         st.session_state.paste_input = ""
 
-    st.button("🗑️ Καθαρισμός Πίνακα", on_click=clear_text)
-    pasted_data = st.text_area("Κάντε επικόλληση (Paste) από το Excel σας εδώ:", key='paste_input', height=130)
+    st.button("🗑️ Καθαρισμός Πίνακα Δεδομένων", on_click=clear_text)
+    pasted_data = st.text_area("Επικόλληση δεδομένων Excel εδώ:", key='paste_input', height=130)
 
     processed_df = pd.DataFrame()
     if pasted_data.strip():
@@ -220,7 +252,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων Περιόδων:")
+        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων:")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
