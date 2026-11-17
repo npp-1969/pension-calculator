@@ -666,4 +666,117 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
             <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
             <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
         </table>
-        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal *
+        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 5. ΤΕΛΙΚΗ ΕΙΚΟΝΑ & ΕΚΤΥΠΩΣΗ ---
+elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📋 ΣΥΝΟΨΗ & ΤΕΛΙΚΗ ΕΙΚΟΝΑ ΣΥΝΤΑΞΙΟΔΟΤΙΚΟΥ ΠΡΟΦΙΛ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Η συνολική εικόνα του πελάτη με όλα τα βασικά στοιχεία, τις ημερομηνίες και τα τελικά ποσά σύνταξης & εφάπαξ.</div>', unsafe_allow_html=True)
+
+    # Υπολογισμοί για την τελική εικόνα
+    ethniki = 446.87
+    pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
+    antapodotiki = avg_sal * pososto_anapl
+    kria_mikto = ethniki + antapodotiki + 350.0  
+    eas_val = 232.73 if kria_mikto > 1400 else 0.00
+    ygeia_val = kria_mikto * 0.06
+    foros_val = 328.30
+    synolo_krat = eas_val + ygeia_val + foros_val
+    katharo_main = max(kria_mikto - synolo_krat, 0.0)
+
+    annual_tapilt_total = st.session_state.tapilt_net * 12
+    years_to_expiry = (st.session_state.merida_amount / annual_tapilt_total) if annual_tapilt_total > 0 else 0.0
+    tapilt_katharo = st.session_state.tapilt_net
+    tapilt_krat = tapilt_katharo * 0.06 / 0.94
+    tapilt_mikto = tapilt_katharo + tapilt_krat
+
+    ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if 'df_res' in locals() else 0
+    ika_years = ika_ensima / 300.0
+    ika_mikto = avg_sal * ika_years * 0.0045 if ika_years > 0 else 0.00
+    ika_krat = ika_mikto * 0.06
+    ika_katharo = max(ika_mikto - ika_krat, 0.0)
+
+    total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
+    total_efapax = tot_years * avg_sal * 0.7
+
+    c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
+    c_birth = st.session_state.client_data['birth_date']
+    c_work = st.session_state.client_data['first_work_date']
+
+    st.markdown(f"""
+    <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 20px; border-radius: 10px; font-size: 14px;">
+        <h3 style="color: #1E3A8A; margin-top: 0;">📄 ΕΠΙΣΗΜΗ ΣΥΝΟΨΗ ΠΕΛΑΤΗ</h3>
+        <hr style="margin: 10px 0;">
+        <p><b>Ονοματεπώνυμο Πελάτη:</b> <span style="color: #2563EB;">{c_name}</span></p>
+        <p><b>Ημερομηνία Γέννησης:</b> {c_birth}</p>
+        <p><b>Ημερομηνία Έναρξης Εργασίας:</b> <span style="color: #16A34A; font-weight: bold;">{c_work}</span></p>
+        <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη ({int(tot_ensima):,} ένσημα)</p>
+        <p><b>Προβλεπόμενη Ημερομηνία / Όριο Συνταξιοδότησης:</b> <span style="color: #D97706; font-weight: bold;">16/09/2031 (Στα 62 έτη με 40ετία)</span></p>
+        <br>
+        <h4 style="color: #1E3A8A;">💰 ΤΕΛΙΚΑ ΟΙΚΟΝΟΜΙΚΑ ΠΟΣΑ</h4>
+        <ul>
+            <li><b>Καθαρή Κύρια Σύνταξη:</b> {katharo_main:,.2f} € / μήνα</li>
+            <li><b>Καθαρή Επικουρική ΤΑΠΙΛΤ:</b> {tapilt_katharo:,.2f} € / μήνα (για {years_to_expiry:.1f} έτη, μετά {st.session_state.tapilt_after_expiry:,.2f} €)</li>
+            <li><b>Καθαρή Επικουρική ΙΚΑ:</b> {ika_katharo:,.2f} € / μήνα</li>
+            <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
+        </ul>
+        <hr style="margin: 10px 0;">
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο):</b> <b>{total_efapax:,.2f} €</b></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🖨️ Εκτύπωση / Αποθήκευση Αναφοράς", type="primary"):
+        st.info("💡 Μπορείτε να πατήσετε **Ctrl + P** στον περιηγητή σας (Browser) για να εκτυπώσετε ή να αποθηκεύσετε αυτή τη σελίδα ως PDF.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 6. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
+else:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα ενημερώνει άμεσα τους υπολογισμούς!</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    col_set1, col_set2 = st.columns(2)
+    
+    with col_set1:
+        new_merida = st.number_input(
+            "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
+            value=float(st.session_state.merida_amount), 
+            step=100.0,
+            format="%.2f"
+        )
+        
+        new_tapilt = st.number_input(
+            "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
+            value=float(st.session_state.tapilt_net), 
+            step=10.0,
+            format="%.2f"
+        )
+
+    with col_set2:
+        new_expiry = st.number_input(
+            "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
+            value=float(st.session_state.tapilt_after_expiry), 
+            step=10.0,
+            format="%.2f"
+        )
+        
+        calc_annual = new_tapilt * 12
+        calc_years = (new_merida / calc_annual) if calc_annual > 0 else 0
+        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
+        st.session_state.merida_amount = new_merida
+        st.session_state.tapilt_net = new_tapilt
+        st.session_state.tapilt_after_expiry = new_expiry
+        persist_all()
+        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν και ενημερώθηκαν άμεσα σε όλους τους υπολογισμούς!")
+
+    st.markdown('</div>', unsafe_allow_html=True)
