@@ -222,7 +222,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - 100% Δυναμικός Υπολογισμός Πίνακα</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Διορθωμένες Προσθέσεις & Ένσημα</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -280,7 +280,7 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Καταχωρήστε τα δεδομένα σας. Μπορείτε να επικολλήσετε τις γραμμές σας ή να διορθώσετε τις αποδοχές απευθείας στον πίνακα κάτω.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Καταχωρήστε τα δεδομένα σας. Ο πίνακας διαβάζει τα ένσημα και τις αποδοχές γραμμή-γραμμή και κάνει αυτόματα τις προσθέσεις.</div>', unsafe_allow_html=True)
 
     modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά (Συνολικά Έτη & Μέσος Όρος)"]
     m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
@@ -315,6 +315,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
                 for _, row in temp_df.iterrows():
                     row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
                     if len(row_vals) >= 6:
+                        # Καθαρισμός αποδοχών
                         raw_apod = row_vals[5].replace('€', '').strip()
                         if ',' in raw_apod and '.' in raw_apod:
                             if raw_apod.find('.') < raw_apod.find(','):
@@ -329,6 +330,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
                         except:
                             val_apod = 0.0
 
+                        # Καθαρισμός ενσήμων
                         raw_ens = row_vals[4].replace(',', '.').strip()
                         try:
                             val_ens = float(raw_ens)
@@ -356,14 +358,14 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             ])
 
         if not df_parsed.empty:
-            st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων (Διορθώστε τις αποδοχές ελεύθερα εδώ):")
+            st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων:")
             df_edited = st.data_editor(df_parsed, num_rows="dynamic", use_container_width=True, hide_index=True)
             
             df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_edited['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
             df_edited['ΦΟΡΕΑΣ'] = df_edited['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-            # ΑΠΟΘΗΚΕΥΣΗ ΤΟΥ ΕΠΕΞΕΡΓΑΣΜΕΝΟΥ ΠΙΝΑΚΑ ΣΤΗ SESSION
+            # ΑΠΟΘΗΚΕΥΣΗ ΤΟΥ ΠΙΝΑΚΑ ΣΤΗ SESSION
             st.session_state['df_economic'] = df_edited
 
             tot_ensima = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
@@ -397,12 +399,12 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (100% ΔΥΝΑΜΙΚΗ ΑΝΤΛΗΣΗ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (100% ΔΥΝΑΜΙΚΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
 
-    # ΔΥΝΑΜΙΚΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ ΧΡΗΣΤΗ
+    # Ακριβής ομαδοποίηση ανά φορέα από τον πίνακα του χρήστη
     if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
         df_res = st.session_state['df_economic']
         grouped = df_res.groupby('ΦΟΡΕΑΣ').agg(
@@ -425,9 +427,9 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     agency_rows_html = ""
     for _, r in grouped.iterrows():
         f_name = r['ΦΟΡΕΑΣ']
-        f_yr = r['Ensima'] / 300.0
-        f_avg = r['AvgSal']
         f_ens = int(r['Ensima'])
+        f_yr = f_ens / 300.0
+        f_avg = r['AvgSal']
         agency_rows_html += f"<tr><td><b>{f_yr:.2f}</b></td><td>{f_name}</td><td>{f_avg:,.2f} €</td><td>{f_ens:,}</td></tr>"
 
     top_col1, top_col2, top_col3 = st.columns([3, 3, 2.5])
