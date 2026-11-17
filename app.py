@@ -27,7 +27,9 @@ def init_db():
             summary_avg_salary REAL,
             merida_amount REAL,
             tapilt_net REAL,
-            tapilt_after_expiry REAL
+            tapilt_after_expiry REAL,
+            bank_years_until_2013 REAL,
+            bank_years_from_2014 REAL
         )
     ''')
     cursor.execute("PRAGMA table_info(client_profile)")
@@ -38,6 +40,10 @@ def init_db():
         cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_net REAL")
     if 'tapilt_after_expiry' not in columns:
         cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_after_expiry REAL")
+    if 'bank_years_until_2013' not in columns:
+        cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_until_2013 REAL")
+    if 'bank_years_from_2014' not in columns:
+        cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_from_2014 REAL")
         
     conn.commit()
     conn.close()
@@ -51,14 +57,16 @@ def save_to_db(data):
     cursor.execute('''
         INSERT INTO client_profile (
             first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
-            econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry
+            econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry,
+            bank_years_until_2013, bank_years_from_2014
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data["first_name"], data["last_name"], data["gender"], data["birth_date"],
         data["insurance_cat"], data["first_work_date"], data["econ_mode"],
         data["paste_input"], data["summary_years"], data["summary_avg_salary"],
-        data["merida_amount"], data["tapilt_net"], data["tapilt_after_expiry"]
+        data["merida_amount"], data["tapilt_net"], data["tapilt_after_expiry"],
+        data["bank_years_until_2013"], data["bank_years_from_2014"]
     ))
     conn.commit()
     conn.close()
@@ -68,7 +76,8 @@ def load_from_db():
     cursor = conn.cursor()
     cursor.execute('''
         SELECT first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
-               econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry 
+               econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry,
+               bank_years_until_2013, bank_years_from_2014 
         FROM client_profile LIMIT 1
     ''')
     row = cursor.fetchone()
@@ -81,7 +90,9 @@ def load_from_db():
             "summary_avg_salary": row[9], 
             "merida_amount": row[10] if row[10] is not None else 71206.66,
             "tapilt_net": row[11] if row[11] is not None else 329.00,
-            "tapilt_after_expiry": row[12] if row[12] is not None else 100.00
+            "tapilt_after_expiry": row[12] if row[12] is not None else 100.00,
+            "bank_years_until_2013": row[13] if row[13] is not None else 23.0, # π.χ. 1991-2013
+            "bank_years_from_2014": row[14] if row[14] is not None else 9.0    # π.χ. 2014-2022
         }
     return None
 
@@ -231,6 +242,12 @@ if 'tapilt_net' not in st.session_state:
 if 'tapilt_after_expiry' not in st.session_state:
     st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 100.00
 
+if 'bank_years_until_2013' not in st.session_state:
+    st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 23.0
+
+if 'bank_years_from_2014' not in st.session_state:
+    st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 9.0
+
 def persist_all():
     full_data = {
         "first_name": st.session_state.client_data["first_name"],
@@ -245,7 +262,9 @@ def persist_all():
         "summary_avg_salary": float(st.session_state.summary_avg_salary),
         "merida_amount": float(st.session_state.merida_amount),
         "tapilt_net": float(st.session_state.tapilt_net),
-        "tapilt_after_expiry": float(st.session_state.tapilt_after_expiry)
+        "tapilt_after_expiry": float(st.session_state.tapilt_after_expiry),
+        "bank_years_until_2013": float(st.session_state.bank_years_until_2013),
+        "bank_years_from_2014": float(st.session_state.bank_years_from_2014)
     }
     save_to_db(full_data)
 
@@ -258,7 +277,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Διορθωμένοι Υπολογισμοί Εφάπαξ</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Διορθωμένα Έτη Τράπεζας</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -637,33 +656,34 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΟΙ ΤΥΠΟΙ Ν. 4387/2016) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΜΕ ΤΑ ΑΚΡΙΒΗ ΕΤΗ ΤΡΑΠΕΖΑΣ) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Ορθός υπολογισμός εφάπαξ παροχής με αναγωγή σε μηνιαίο τακτικό μισθό για το Τμήμα Α και κεφαλαιοποιητικές εισφορές για το Τμήμα Β.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Υπολογισμός με βάση τα πραγματικά έτη τραπεζικής υπηρεσίας (έως 31/12/2013 και από 2014-2022). Μπορείτε να τα αλλάξετε στις Ρυθμίσεις.</div>', unsafe_allow_html=True)
 
-    # ΔΙΟΡΘΩΜΕΝΟΙ ΜΑΘΗΜΑΤΙΚΟΙ ΥΠΟΛΟΓΙΣΜΟΙ ΕΦΑΠΑΞ
     monthly_taktiko = avg_sal * 0.85
-    # Τμήμα Α: Έτη έως 2013 επί τον μηνιαίο τακτικό μισθό με συντελεστή αναπλήρωσης 60% κατανεμημένο
-    tmima_a = tot_years * monthly_taktiko * 0.35  # Ορθός συντελεστής αναλογικότητας ΤΑΠΙΛΤ ανά έτος
-    # Τμήμα Β: Κεφαλαιοποιητικό (εισφορές 4% επί των αποδοχών με συντελεστή 1.015)
-    tmima_b = tot_years * avg_sal * 12 * 0.04 * 0.35 * 1.015
+    b_until_2013 = st.session_state.bank_years_until_2013
+    b_from_2014 = st.session_state.bank_years_from_2014
+
+    # Ορθός υπολογισμός Τμήματος Α και Β με τα σωστά τραπεζικά έτη
+    tmima_a = b_until_2013 * monthly_taktiko * 0.35
+    tmima_b = b_from_2014 * avg_sal * 12 * 0.04 * 0.35 * 1.015
     total_efapax_correct = tmima_a + tmima_b
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΕΣ)</th></tr>
-            <tr><td>Συνολικά Έτη Ασφάλισης</td><td style="text-align: center;">{:.2f}</td></tr>
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΡΑΠΕΖΙΚΑ ΕΤΗ)</th></tr>
+            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
+            <tr><td>Έτη Τράπεζας από 2014 έως 2022</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
             <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (85%)</td><td style="text-align: center; color: blue;">{:,.2f} €</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (85%)</td><td style="text-align: center;">{:,.2f} €</td></tr>
             <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center;">60,00% (Αναλογικό)</td></tr>
-            <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
             <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
         </table>
-        """.format(tot_years, avg_sal, monthly_taktiko), unsafe_allow_html=True)
+        """.format(b_until_2013, b_from_2014, avg_sal, monthly_taktiko), unsafe_allow_html=True)
 
     with efap_col2:
         st.markdown("""
@@ -706,7 +726,7 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
     monthly_taktiko_fin = avg_sal * 0.85
-    total_efapax = (tot_years * monthly_taktiko_fin * 0.35) + (tot_years * avg_sal * 12 * 0.04 * 0.35 * 1.015)
+    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 0.35) + (st.session_state.bank_years_from_2014 * avg_sal * 12 * 0.04 * 0.35 * 1.015)
 
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
     c_birth = st.session_state.client_data['birth_date']
@@ -730,7 +750,7 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
             <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
         </ul>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Διορθωμένο):</b> <b>{total_efapax:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Βάσει Τραπεζικών Ετών):</b> <b>{total_efapax:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -743,8 +763,8 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
 # --- 6. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα ενημερώνει άμεσα τους υπολογισμούς!</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ / Εφάπαξ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Ορίστε τα ακριβή ποσά μερίδας, επικουρικής και τα χρόνια υπηρεσίας στην Τράπεζα για τον ορθό υπολογισμό του εφάπαξ.</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     
@@ -765,6 +785,13 @@ else:
             format="%.2f"
         )
 
+        new_bank_u2013 = st.number_input(
+            "🏛️ Έτη Τράπεζας έως 31/12/2013 (για Εφάπαξ):", 
+            value=float(st.session_state.bank_years_until_2013), 
+            step=0.5,
+            format="%.2f"
+        )
+
     with col_set2:
         new_expiry = st.number_input(
             "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
@@ -772,16 +799,25 @@ else:
             step=10.0,
             format="%.2f"
         )
+
+        new_bank_f2014 = st.number_input(
+            "🏛️ Έτη Τράπεζας από 2014 έως 2022 (για Εφάπαξ):", 
+            value=float(st.session_state.bank_years_from_2014), 
+            step=0.5,
+            format="%.2f"
+        )
         
         calc_annual = new_tapilt * 12
         calc_years = (new_merida / calc_annual) if calc_annual > 0 else 0
-        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
+        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
         st.session_state.merida_amount = new_merida
         st.session_state.tapilt_net = new_tapilt
         st.session_state.tapilt_after_expiry = new_expiry
+        st.session_state.bank_years_until_2013 = new_bank_u2013
+        st.session_state.bank_years_from_2014 = new_bank_f2014
         persist_all()
         st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν και ενημερώθηκαν άμεσα σε όλους τους υπολογισμούς!")
 
