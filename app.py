@@ -91,17 +91,17 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Έξυπνος Εντοπισμός</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Συγκεντρωτική Ανάλυση</div>', unsafe_allow_html=True)
     
     st.info(
         "📌 Κάντε **Copy** από το Excel σας και **Paste** παρακάτω.\n"
-        "Το σύστημα εντοπίζει αυτόνομα ποια στήλη έχει τις ημέρες και ποια έχει τις αποδοχές, ανεξάρτητα από τη θέση τους!"
+        "Το σύστημα διαβάζει κανονικά τις αποδοχές σε ευρώ (€), βγάζει τα συνολικά ένσημα και τις μικτές αποδοχές συνολικά, και στη συνέχεια αναλύει χωριστά κάθε φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.)!"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
-            "2012\t01/01/2012\t31/01/2012\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
-            "2012\t01/02/2012\t29/02/2012\tΤΡΑΠΕΖΑ\t25\t3304.39"
+            "2012\t01/01/2012\t31/01/2012\tΤΡΑΠΕΖΑ\t25\t3304.39 €\n"
+            "2012\t01/02/2012\t29/02/2012\tΙΚΑ\t25\t1200.00 €"
         )
 
     def clear_text():
@@ -113,16 +113,13 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     processed_df = pd.DataFrame()
     if pasted_data.strip():
         try:
-            # Διάβαστηκε με tab (Excel)
             temp_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
             if len(temp_df.columns) < 3:
                 temp_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
             
-            # Αν η πρώτη γραμμή είναι επικεφαλίδες, την αφαιρούμε
             if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "YEAR", "HΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
                 temp_df = temp_df.iloc[1:].reset_index(drop=True)
 
-            # Δημιουργία καθαρού DataFrame 6 βασικών στηλών
             final_data = []
             for _, row in temp_df.iterrows():
                 row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
@@ -132,7 +129,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                     eos = row_vals[2]
                     forer = row_vals[3]
                     
-                    # Αναζήτηση μέσα στα υπόλοιπα στοιχεία της γραμμής για ημέρες (ακέραιοι 1-31) και αποδοχές (μεγαλύτεροι αριθμοί / δεκαδικοί)
                     ensima = 25.0
                     apod = 0.0
                     
@@ -146,7 +142,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                             pass
                     
                     if len(nums) >= 2:
-                        # Συνήθως ο μικρότερος αριθμός (1-31) είναι οι ημέρες και ο μεγαλύτερος είναι οι αποδοχές
                         for n in nums:
                             if 1 <= n <= 31 and ensima == 25.0:
                                 ensima = n
@@ -169,50 +164,53 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων (Μπορείτε να επεξεργαστείτε απευθείας τα κελιά):")
+        st.markdown("##### ✏️ Αναγνωρισμένα Δεδομένα (Επεξεργαστείτε εάν χρειάζεται):")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
-        # --- ΑΥΤΟΜΑΤΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΦΟΡΕΑ (ΣΥΓΚΕΝΤΡΩΤΙΚΟΣ ΠΙΝΑΚΑΣ) ---
         df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
         df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
         df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
+        # --- 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΕΠΑΝΩ (Συνολικά Ένσημα & Μικτές Αποδοχές από όλους τους φορείς) ---
+        total_all_ensima = df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'].sum()
+        total_all_apodoches = (df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] * df['ΑΠΟΔΟΧΕΣ']).sum()
+        overall_avg_salary = total_all_apodoches / total_all_ensima if total_all_ensima > 0 else 0
+
+        st.markdown("---")
+        st.markdown("### 🌟 Γενικά Συγκεντρωτικά Στοιχεία (Όλοι οι Φορείς)")
+        sc1, sc2, sc3 = st.columns(3)
+        sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
+        sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
+        sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
+
+        # --- 2. ΑΝΑΛΥΣΗ ΑΝΑ ΦΟΡΕΑ ΚΑΤΩ (Χρόνια, Ένσημα, Μ. Ορος) ---
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
             Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
         ).reset_index()
 
-        grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
+        grouped['Χρονια'] = grouped['Συνολικα_ΕνΣημα'] / 300.0 if 'Συνολικα_ΕνΣημα' in grouped.columns else grouped['Συνολικα_Ενσημα'] / 300.0
 
-        summary_rows = []
+        agency_rows = []
         for _, row in grouped.iterrows():
-            summary_rows.append({
-                "ΧΡΟΝΙΑ": f"{row['Χρονια']:.2f}",
+            agency_rows.append({
                 "ΦΟΡΕΑΣ": row['ΦΟΡΕΑΣ'],
-                "Μ. ΟΡΟΣ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €",
-                "ΕΝΣΗΜΑ": f"{int(row['Συνολικα_Ενσημα']):,}"
+                "ΧΡΟΝΙΑ": f"{row['Χρονια']:.2f}",
+                "ΕΝΣΗΜΑ": f"{int(row['Συνολικα_Ενσημα']):,}",
+                "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €"
             })
 
-        tot_ensima = grouped['Συνολικα_Ενσημα'].sum()
-        tot_years = tot_ensima / 300.0
-        overall_avg_salary = (df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] * df['ΑΠΟΔΟΧΕΣ']).sum() / tot_ensima if tot_ensima > 0 else 0
-
-        summary_rows.append({
-            "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
-            "ΦΟΡΕΑΣ": "-",
-            "Μ. ΟΡΟΣ (€)": f"{overall_avg_salary:,.2f} €",
-            "ΕΝΣΗΜΑ": f"{int(tot_ensima):,}"
-        })
-
-        summary_df = pd.DataFrame(summary_rows)
+        agency_df = pd.DataFrame(agency_rows)
 
         st.markdown("---")
-        st.markdown("### 📊 Συγκεντρωτικός Πίνακας Ανά Φορέα (BMS Output)")
-        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+        st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.)")
+        st.dataframe(agency_df, use_container_width=True, hide_index=True)
+
+        tot_years = total_all_ensima / 300.0
 
     else:
         tot_years = 42.57
-        tot_ensima = 12771
+        total_all_ensima = 12771
         overall_avg_salary = 3290.54
 
     st.markdown('</div>', unsafe_allow_html=True)
@@ -249,82 +247,9 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
-        m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
+        m2.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
         m3.metric("Σταθμισμένος Μισθός", f"{overall_avg_salary:,.2f} €")
         m4.metric("Μηνιαίο Καθαρό Σύνολο", f"{(net_main + 329.00 + 94.55):,.2f} €", delta="Καθαρά")
 
         st.markdown("---")
         st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
-        
-        calc_table = pd.DataFrame([
-            {
-                "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-                "Μέσος Μισθός (€)": f"{overall_avg_salary:,.2f}",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(tot_ensima):,}",
-                "Μικτό Σύνολο (€)": f"{gross_main:,.2f}",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
-                f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f}",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
-                "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f}"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f}",
-                "ΕΑΣ (€)": "0,00",
-                f"Υγεία ({health_pct}%) (€)": "21,00",
-                "Φόρος Μην. (€)": "0,00",
-                "Καθαρό Πληρωτέο (€)": "329,00"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": "100,58",
-                "ΕΑΣ (€)": "0,00",
-                f"Υγεία ({health_pct}%) (€)": "6,03",
-                "Φόρος Μην. (€)": "0,00",
-                "Καθαρό Πληρωτέο (€)": "94,55"
-            },
-            {
-                "Είδος Σής": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(tot_ensima):,}",
-                "Μικτό Σύνολο (€)": "3.036,43",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
-                f"Υγεία ({health_pct}%) (€)": "168,22",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
-                "Καθαρό Πληρωτέο (€)": "🎯 2.307,18"
-            }
-        ])
-
-        st.dataframe(calc_table, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            st.metric(label="1. Τμήμα Α (Έτη έως 31/12/2013)", value="39.565,27 €")
-            st.metric(label="2. Τμήμα Β (Εισφορές 2014–2022)", value="15.478,35 €")
-        with e_col2:
-            st.metric(label="🌟 ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ", value=f"{total_ephapax:,.2f} €")
-            st.info("Τρόπος & Χρόνος Καταβολής: Με την έκδοση της Κύριας Σύνταξης")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "📋 Δεδομένα & Αρχείο":
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
-    st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
-    st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
-    st.markdown('</div>', unsafe_allow_html=True)
