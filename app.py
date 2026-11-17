@@ -258,7 +258,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Διαχείριση Μενού</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Άμεση Ενημέρωση Ρυθμίσεων</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -636,14 +636,11 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΑΥΤΟΝΟΜΗ ΚΑΡΤΕΛΑ ΣΤΟ ΜΕΝΟΥ) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-desc">Αυτόνομη καρτέλα αναλυτικού υπολογισμού εφάπαξ παροχής με βάση τα συνολικά έτη ασφάλισης και τον μέσο μισθό.</div>', unsafe_allow_html=True)
-
-    annual_tapilt_total = st.session_state.tapilt_net * 12
-    years_to_expiry = (st.session_state.merida_amount / annual_tapilt_total) if annual_tapilt_total > 0 else 0.0
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
@@ -676,21 +673,21 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα υπολογίζει αυτόματα τη διάρκεια εξάντλησης!</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα ενημερώνει άμεσα τους υπολογισμούς!</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     
     col_set1, col_set2 = st.columns(2)
     
     with col_set1:
-        st.session_state.merida_amount = st.number_input(
+        new_merida = st.number_input(
             "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
             value=float(st.session_state.merida_amount), 
             step=100.0,
             format="%.2f"
         )
         
-        st.session_state.tapilt_net = st.number_input(
+        new_tapilt = st.number_input(
             "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
             value=float(st.session_state.tapilt_net), 
             step=10.0,
@@ -698,20 +695,24 @@ else:
         )
 
     with col_set2:
-        st.session_state.tapilt_after_expiry = st.number_input(
+        new_expiry = st.number_input(
             "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
             value=float(st.session_state.tapilt_after_expiry), 
             step=10.0,
             format="%.2f"
         )
         
-        calc_annual = st.session_state.tapilt_net * 12
-        calc_years = (st.session_state.merida_amount / calc_annual) if calc_annual > 0 else 0
+        calc_annual = new_tapilt * 12
+        calc_years = (new_merida / calc_annual) if calc_annual > 0 else 0
         st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
+        # Ενημέρωση άμεσα στη session state και στη βάση
+        st.session_state.merida_amount = new_merida
+        st.session_state.tapilt_net = new_tapilt
+        st.session_state.tapilt_after_expiry = new_expiry
         persist_all()
-        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν επιτυχώς και εφαρμόστηκαν στα αποτελέσματα!")
+        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν και ενημερώθηκαν άμεσα σε όλους τους υπολογισμούς!")
 
     st.markdown('</div>', unsafe_allow_html=True)
