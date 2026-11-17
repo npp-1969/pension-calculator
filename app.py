@@ -82,13 +82,12 @@ if not st.session_state.logged_in:
     
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔑 ΕΙΣΟΔΟΣ ΣΤΗΝ ΕΦΑΡΜΟΓΗ", use_container_width=True, type="primary"):
-        # Εδώ ορίζεις ποιοι χρήστες έχουν πρόσβαση και τι βλέπουν
-        if username.strip() and password.strip() == "1234": # Παράδειγμα κωδικού
+        if username.strip() and password.strip() == "1234":
             st.session_state.logged_in = True
             st.session_state.current_user = username.strip()
             st.rerun()
         else:
-            st.error("❌ Λανθασμένος κωδικός ή όνομα χρήστη!")
+            st.error("❌ Λανθασμένος κωδικός ή όνομα χρήστη! (Δοκιμάστε κωδικό: 1234)")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
@@ -105,7 +104,6 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Sidebar Menu με τις νέες κατηγορίες που ζήτησες
 st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
 if st.sidebar.button("🚪 Αποσύνδεση (Logout)"):
     st.session_state.logged_in = False
@@ -150,11 +148,17 @@ if app_section == "👤 Προσωπικά Στοιχεία":
         st.success("Τα προσωπικά στοιχεία αποθηκεύτηκαν με επιτυχία στο ασφαλές προφίλ σας!")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
+# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ (Ο ΚΟΡΜΟΣ ΜΕ ΤΙΣ ΠΕΡΙΟΔΟΥΣ) ---
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">💰 Κατηγορία: Οικονομικά & Ασφαλιστικά Στοιχεία (Excel Paste)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Κάντε επικόλληση (Paste) τον πίνακα εργασίας σας με σειρά: <b>ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ</b></div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">💰 ΠΙΝΑΚΑΣ ΠΕΡΙΟΔΩΝ & ΟΙΚΟΝΟΜΙΚΩΝ ΣΤΟΙΧΕΙΩΝ</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="panel-desc">'
+        'Δώστε τις <b>ακριβείς ημερομηνίες</b> από–έως (ημέρα/μήνας/έτος) ή κάντε επικόλληση από το Excel σας.<br>'
+        'Ο κορμός του συστήματος διαβάζει αυτόματα τα διαστήματα, υπολογίζει τις ημέρες/ένσημα και κατανέμει τα ποσά ανά φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.).'
+        '</div>', 
+        unsafe_allow_html=True
+    )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
@@ -165,8 +169,11 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
     def clear_text():
         st.session_state.paste_input = ""
 
-    st.button("🗑️ Καθαρισμός Πίνακα", on_click=clear_text)
-    pasted_data = st.text_area("Επικόλληση δεδομένων Excel εδώ:", key='paste_input', height=130)
+    col_b1, col_b2 = st.columns([1, 4])
+    with col_b1:
+        st.button("🗑️ Καθαρισμός", on_click=clear_text)
+    
+    pasted_data = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", key='paste_input', height=120)
 
     processed_df = pd.DataFrame()
     if pasted_data.strip():
@@ -199,11 +206,11 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
                     final_data.append({
                         "ΕΤΟΣ": etos,
-                        "ΑΠΟ": apo,
-                        "ΕΩΣ": eos,
+                        "ΑΠΟ (ΗΜ/ΝΙΑ)": apo,
+                        "ΕΩΣ (ΗΜ/ΝΙΑ)": eos,
                         "ΦΟΡΕΑΣ": str(forer).upper().strip(),
-                        "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ": ensima,
-                        "ΑΠΟΔΟΧΕΣ": apod
+                        "ΕΝΣΗΜΑ (Η.Ε.)": ensima,
+                        "ΑΠΟΔΟΧΕΣ (€)": apod
                     })
 
             processed_df = pd.DataFrame(final_data)
@@ -211,17 +218,17 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Οικονομικών Δεδομένων:")
+        st.markdown("##### ✏️ Διαδραστικός Πίνακας Περιόδων (Κορμός Συστήματος):")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
-        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
-        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
+        df['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
+        df['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
         df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
         # Γενικά συγκεντρωτικά
-        total_all_ensima = df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'].sum()
-        total_all_apodoches = df['ΑΠΟΔΟΧΕΣ'].sum()
-        overall_avg_salary = df['ΑΠΟΔΟΧΕΣ'].mean() if len(df) > 0 else 0
+        total_all_ensima = df['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        total_all_apodoches = df['ΑΠΟΔΟΧΕΣ (€)'].sum()
+        overall_avg_salary = df['ΑΠΟΔΟΧΕΣ (€)'].mean() if len(df) > 0 else 0
 
         st.session_state['total_all_ensima'] = total_all_ensima
         st.session_state['total_all_apodoches'] = total_all_apodoches
@@ -236,8 +243,8 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
         # Ανάλυση ανά φορέα με σύνολο κάτω
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
-            Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
-            Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
+            Συνολικα_Ενσημα=('ΕΝΣΗΜΑ (Η.Ε.)', 'sum'),
+            Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ (€)', 'mean')
         ).reset_index()
 
         grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
@@ -269,63 +276,4 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
 # --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 Συγκεντρωτικά Αποτελέσματα Υπολογισμού Συντάξεων</div>', unsafe_allow_html=True)
-    
-    tot_ensima = st.session_state.get('total_all_ensima', 12771)
-    tot_years = tot_ensima / 300.0
-    avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
-    m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
-    m3.metric("Σταθμισμένος Μισθός", f"{avg_sal:,.2f} €")
-    m4.metric("Μηνιαίο Καθαρό Σύνολο", "2.307,18 €", delta="Καθαρά")
-
-    st.markdown("---")
-    st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
-    
-    calc_table = pd.DataFrame([
-        {
-            "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
-            "Χρόνια": f"{tot_years:.2f}",
-            "Ένσημα": f"{int(tot_ensima):,}",
-            "Μικτό Σύνολο (€)": "2.585,85 €",
-            "Καθαρό Πληρωτέο (€)": "1.883,90 €"
-        },
-        {
-            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-            "Μέσος Μισθός (€)": "-",
-            "Χρόνια": "-",
-            "Ένσημα": "-",
-            "Μικτό Σύνολο (€)": "350,00 €",
-            "Καθαρό Πληρωτέο (€)": "329,00 €"
-        },
-        {
-            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-            "Μέσος Μισθός (€)": "-",
-            "Χρόνια": "-",
-            "Ένσημα": "-",
-            "Μικτό Σύνολο (€)": "100,58 €",
-            "Καθαρό Πληρωτέο (€)": "94,55 €"
-        },
-        {
-            "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-            "Μέσος Μισθός (€)": "-",
-            "Χρόνια": f"{tot_years:.2f}",
-            "Ένσημα": f"{int(tot_ensima):,}",
-            "Μικτό Σύνολο (€)": "3.036,43 €",
-            "Καθαρό Πληρωτέο (€)": "🎯 2.307,18 €"
-        }
-    ])
-
-    st.dataframe(calc_table, use_container_width=True, hide_index=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
-else:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
-    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card">', unsafe
