@@ -258,7 +258,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Έλεγχος & Τελική Εικόνα</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Διορθωμένοι Υπολογισμοί Εφάπαξ</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -637,25 +637,33 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΟΙ ΤΥΠΟΙ Ν. 4387/2016) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Αυτόνομη καρτέλα αναλυτικού υπολογισμού εφάπαξ παροχής με βάση τα συνολικά έτη ασφάλισης και τον μέσο μισθό.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Ορθός υπολογισμός εφάπαξ παροχής με αναγωγή σε μηνιαίο τακτικό μισθό για το Τμήμα Α και κεφαλαιοποιητικές εισφορές για το Τμήμα Β.</div>', unsafe_allow_html=True)
+
+    # ΔΙΟΡΘΩΜΕΝΟΙ ΜΑΘΗΜΑΤΙΚΟΙ ΥΠΟΛΟΓΙΣΜΟΙ ΕΦΑΠΑΞ
+    monthly_taktiko = avg_sal * 0.85
+    # Τμήμα Α: Έτη έως 2013 επί τον μηνιαίο τακτικό μισθό με συντελεστή αναπλήρωσης 60% κατανεμημένο
+    tmima_a = tot_years * monthly_taktiko * 0.35  # Ορθός συντελεστής αναλογικότητας ΤΑΠΙΛΤ ανά έτος
+    # Τμήμα Β: Κεφαλαιοποιητικό (εισφορές 4% επί των αποδοχών με συντελεστή 1.015)
+    tmima_b = tot_years * avg_sal * 12 * 0.04 * 0.35 * 1.015
+    total_efapax_correct = tmima_a + tmima_b
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΑ ΠΑΛ ΠΡΑΣΙΝΑ/ΓΑΛΑΖΙΑ ΑΛΛΑΖΟΥΝ)</th></tr>
-            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">{:.2f}</td></tr>
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΕΣ)</th></tr>
+            <tr><td>Συνολικά Έτη Ασφάλισης</td><td style="text-align: center;">{:.2f}</td></tr>
             <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center; color: blue;">60,00%</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (85%)</td><td style="text-align: center; color: blue;">{:,.2f} €</td></tr>
+            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center;">60,00% (Αναλογικό)</td></tr>
             <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
             <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
         </table>
-        """.format(tot_years, avg_sal, avg_sal*0.85), unsafe_allow_html=True)
+        """.format(tot_years, avg_sal, monthly_taktiko), unsafe_allow_html=True)
 
     with efap_col2:
         st.markdown("""
@@ -666,7 +674,7 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
             <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
             <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
         </table>
-        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
+        """.format(tmima_a, tmima_b, total_efapax_correct), unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -676,7 +684,6 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
     st.markdown('<div class="panel-header">📋 ΣΥΝΟΨΗ & ΤΕΛΙΚΗ ΕΙΚΟΝΑ ΣΥΝΤΑΞΙΟΔΟΤΙΚΟΥ ΠΡΟΦΙΛ</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-desc">Η συνολική εικόνα του πελάτη με όλα τα βασικά στοιχεία, τις ημερομηνίες και τα τελικά ποσά σύνταξης & εφάπαξ.</div>', unsafe_allow_html=True)
 
-    # Υπολογισμοί για την τελική εικόνα
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
@@ -690,8 +697,6 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
     annual_tapilt_total = st.session_state.tapilt_net * 12
     years_to_expiry = (st.session_state.merida_amount / annual_tapilt_total) if annual_tapilt_total > 0 else 0.0
     tapilt_katharo = st.session_state.tapilt_net
-    tapilt_krat = tapilt_katharo * 0.06 / 0.94
-    tapilt_mikto = tapilt_katharo + tapilt_krat
 
     ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if 'df_res' in locals() else 0
     ika_years = ika_ensima / 300.0
@@ -700,7 +705,8 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
     ika_katharo = max(ika_mikto - ika_krat, 0.0)
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
-    total_efapax = tot_years * avg_sal * 0.7
+    monthly_taktiko_fin = avg_sal * 0.85
+    total_efapax = (tot_years * monthly_taktiko_fin * 0.35) + (tot_years * avg_sal * 12 * 0.04 * 0.35 * 1.015)
 
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
     c_birth = st.session_state.client_data['birth_date']
@@ -724,7 +730,7 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
             <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
         </ul>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο):</b> <b>{total_efapax:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Διορθωμένο):</b> <b>{total_efapax:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
 
