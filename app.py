@@ -194,10 +194,10 @@ if 'paste_input' not in st.session_state:
     )
 
 if 'summary_years' not in st.session_state:
-    st.session_state.summary_years = db_data["summary_years"] if db_data else 42.57
+    st.session_state.summary_years = db_data["summary_years"] if db_data else 2.00
 
 if 'summary_avg_salary' not in st.session_state:
-    st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3290.54
+    st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3000.00
 
 def persist_all():
     full_data = {
@@ -223,7 +223,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - 100% Δυναμική Ανάγνωση</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Δυναμική Ανάγνωση Αποδοχών</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -277,11 +277,11 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ (ΔΥΝΑΜΙΚΗ ΑΝΑΓΝΩΣΗ) ---
+# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ (ΔΥΝΑΜΙΚΗ ΑΝΑΓΝΩΣΗ ΑΠΟΔΟΧΩΝ) ---
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Καταχωρήστε τα δεδομένα σας. Το σύστημα διαβάζει αυτόματα τους φορείς, τα ένσημα και τους μέσους όρους.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Καταχωρήστε τα δεδομένα σας. Το σύστημα διαβάζει αυτόματα τους φορείς, τα ένσημα και τους μέσους όρους αποδοχών.</div>', unsafe_allow_html=True)
 
     modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά (Συνολικά Έτη & Μέσος Όρος)"]
     m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
@@ -289,7 +289,6 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown("---")
 
-    # Επεξεργασία και αποθήκευση δεδομένων πίνακα
     df_parsed = pd.DataFrame()
     if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
         st.markdown("#### 📋 Πίνακας Περιόδων & Επικόλλησης Excel")
@@ -317,13 +316,33 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
                 for _, row in temp_df.iterrows():
                     row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
                     if len(row_vals) >= 6:
+                        # Ασφαλής μετατροπή αποδοχών (καθαρισμός συμβόλων και τελειών/κομμάτων)
+                        raw_apod = row_vals[5].replace('€', '').strip()
+                        # Αν έχει μορφή 3.304,39 ή 3304,39
+                        if ',' in raw_apod and '.' in raw_apod:
+                            raw_apod = raw_apod.replace('.', '').replace(',', '.')
+                        elif ',' in raw_apod:
+                            raw_apod = raw_apod.replace(',', '.')
+                        
+                        try:
+                            val_apod = float(raw_apod)
+                        except:
+                            val_apod = 0.0
+
+                        # Ασφαλής μετατροπή ενσήμων
+                        raw_ens = row_vals[4].replace(',', '.').strip()
+                        try:
+                            val_ens = float(raw_ens)
+                        except:
+                            val_ens = 25.0
+
                         final_data.append({
                             "ΕΤΟΣ": row_vals[0],
                             "ΑΠΟ (ΗΜ/ΝΙΑ)": row_vals[1],
                             "ΕΩΣ (ΗΜ/ΝΙΑ)": row_vals[2],
                             "ΦΟΡΕΑΣ": str(row_vals[3]).upper().strip(),
-                            "ΕΝΣΗΜΑ (Η.Ε.)": float(row_vals[4].replace(',', '.')) if row_vals[4].replace(',', '.').replace('.', '', 1).isdigit() else 25.0,
-                            "ΑΠΟΔΟΧΕΣ (€)": float(row_vals[5].replace('€', '').replace('.', '').replace(',', '.')) if row_vals[5].replace('€', '').replace('.', '').replace(',', '').isdigit() else 0.0
+                            "ΕΝΣΗΜΑ (Η.Ε.)": val_ens,
+                            "ΑΠΟΔΟΧΕΣ (€)": val_apod
                         })
                 df_parsed = pd.DataFrame(final_data)
             except Exception as e:
@@ -333,12 +352,10 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων:")
             df_edited = st.data_editor(df_parsed, num_rows="dynamic", use_container_width=True, hide_index=True)
             
-            # Υπολογισμός αυτόματα ανά φορέα από τον πίνακα
             df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_edited['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
             df_edited['ΦΟΡΕΑΣ'] = df_edited['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-            # Αποθήκευση στη session για χρήση στα αποτελέσματα
             st.session_state['df_economic'] = df_edited
 
             tot_ensima = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
@@ -377,33 +394,25 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
 
-    # ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ Ή ΤΗ ΜΝΗΜΗ
     if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
         df_res = st.session_state['df_economic']
-        
-        # Ομαδοποίηση ανά Φορέα δυναμικά
         grouped = df_res.groupby('ΦΟΡΕΑΣ').agg(
             Ensima=('ΕΝΣΗΜΑ (Η.Ε.)', 'sum'),
             AvgSal=('ΑΠΟΔΟΧΕΣ (€)', 'mean')
         ).reset_index()
     else:
-        # Fallback δεδομένα αν δεν έχει γίνει επεξεργασία πίνακα
         grouped = pd.DataFrame([
-            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "Ensima": 9666, "AvgSal": 3304.39},
-            {"ΦΟΡΕΑΣ": "ΙΚΑ", "Ensima": 3105, "AvgSal": 3247.43}
+            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "Ensima": 600, "AvgSal": 2500.00}
         ])
 
-    # Υπολογισμός συνολικών ετών και σταθμισμένου μέσου όρου αυτόματα
     tot_ensima = grouped['Ensima'].sum()
-    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 42.57
+    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 2.00
     
-    # Σταθμισμένος μέσος όρος αποδοχών
     if tot_ensima > 0:
         avg_sal = (grouped['Ensima'] * grouped['AvgSal']).sum() / tot_ensima
     else:
-        avg_sal = 3290.54
+        avg_sal = 0.00
 
-    # Δημιουργία γραμμών πίνακα φορέων δυναμικά
     agency_rows_html = ""
     for _, r in grouped.iterrows():
         f_name = r['ΦΟΡΕΑΣ']
@@ -500,7 +509,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
             "Μέσος Μισθός (€ απο 2002)": "-",
-            "Χρόνια Ασφάλισης": f"{tot_years*0.75:.2f}",
+            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
@@ -515,16 +524,16 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
             "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
-            "Χρόνια Ασφάλισης": f"{tot_years*0.25:.2f}",
+            "Χρόνια Ασφάλισης": "0,00",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "100,58 €",
-            "Μικτό Σύνολο (€)": "100,58 €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": "0,00 €",
             "ΕΑΣ (€)": "0,00 €",
             "Υγεία 6% (€)": "0,00 €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": "6,03 €",
-            "Καθαρό Πληρωτέο (€)": "94,55 €",
+            "Σύνολο Κρατ. (€)": "0,00 €",
+            "Καθαρό Πληρωτέο (€)": "0,00 €",
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
@@ -534,12 +543,12 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0 + 100.58:,.2f} €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0:,.2f} €",
             "ΕΑΣ (€)": f"{eas_val:,.2f} €",
             "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
             "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
-            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0 + 6.03:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0 + 94.55:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0:,.2f} €",
             "Διάρκεια Επικουρικού": "-"
         }
     ])
@@ -554,25 +563,25 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
             <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΑ ΠΑΛ ΠΡΑΣΙΝΑ/ΓΑΛΑΖΙΑ ΑΛΛΑΖΟΥΝ)</th></tr>
-            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">22,90</td></tr>
-            <tr><td>Μέσος Μισθός 2009–2013 (12μηνο)</td><td style="text-align: center;">3.358,78 €</td></tr>
-            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (14μηνο)</td><td style="text-align: center;">2.878,96 €</td></tr>
+            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">2,00</td></tr>
+            <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό</td><td style="text-align: center;">{:,.2f} €</td></tr>
             <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center; color: blue;">60,00%</td></tr>
             <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
             <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
         </table>
-        """, unsafe_allow_html=True)
+        """.format(avg_sal, avg_sal*0.85), unsafe_allow_html=True)
 
     with efap_col2:
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
             <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
-            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013: 22,90 έτη × 60%)</td><td style="text-align: right;">39.565,27 €</td></tr>
-            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022 × 4% × 1,015)</td><td style="text-align: right;">15.478,35 €</td></tr>
-            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">55.043,62 €</td></tr>
+            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013)</td><td style="text-align: right;">{:,.2f} €</td></tr>
+            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022)</td><td style="text-align: right;">{:,.2f} €</td></tr>
+            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
             <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
         </table>
-        """, unsafe_allow_html=True)
+        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
