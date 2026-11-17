@@ -3,81 +3,80 @@ import pandas as pd
 import io
 
 # Ρύθμιση σελίδας
-st.set_page_config(page_title="OnLine Pension Core - Υπολογιστής Συντάξεων", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS για να μοιάζει με επαγγελματικό ERP / Business Software (όπως το OnLine Data Core)
+# CSS για τέλειο σχεδιασμό, χρώματα, κάρτες και σωστές στοιχίσεις στους πίνακες
 st.markdown("""
     <style>
-    /* Γενικό φόντο και στυλ */
-    .stApp {
-        background-color: #F0F2F5;
+    .main-container {
+        background: #FFFFFF;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
     }
-    
-    /* Επαγγελματική Μπάρα / Header */
     .erp-header {
-        background: linear-gradient(90deg, #1A365D 0%, #2B6CB0 100%);
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
         color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        font-size: 22px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    
-    /* ERP Panel / Κουτιά */
-    .erp-panel {
-        background-color: #FFFFFF;
-        border: 1px solid #CBD5E0;
-        border-radius: 6px;
-        padding: 18px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    .erp-panel-title {
-        background-color: #2B6CB0;
-        color: white;
-        padding: 8px 12px;
-        font-weight: bold;
-        border-radius: 4px;
-        font-size: 15px;
-        margin-bottom: 15px;
-    }
-    
-    .retirement-box {
-        background-color: #C6F6D5;
-        border: 1px solid #38A169;
-        color: #22543D;
-        padding: 15px;
-        border-radius: 6px;
+        padding: 18px 25px;
+        border-radius: 10px;
+        font-size: 24px;
         font-weight: bold;
         text-align: center;
-        font-size: 18px;
-        margin-top: 10px;
+        box-shadow: 0 4px 10px rgba(30, 58, 138, 0.2);
+        margin-bottom: 25px;
+    }
+    .panel-box {
+        background-color: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .panel-title {
+        background: #3B82F6;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        border-radius: 6px;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    .retirement-banner {
+        background: linear-gradient(135deg, #DEF7EC 0%, #BCCCDC 100%);
+        border-left: 6px solid #059669;
+        color: #065F46;
+        padding: 18px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 19px;
+        margin-top: 15px;
+        box-shadow: 0 2px 5px rgba(5, 150, 105, 0.1);
+    }
+    /* Στοιχίσεις και ομοιομορφία στους πίνακες */
+    dataframe, table {
+        width: 100% !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ERP Header
-st.markdown('<div class="erp-header">🏢 OnLine Pension Core BMS™ &nbsp;|&nbsp; Υπολογιστής Συντάξεων & Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
+st.markdown('<div class="erp-header">💼 OnLine Pension Core BMS™ — Σύστημα Υπολογισμού Συντάξεων & Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
 
-# Sidebar για γρήγορη πλοήγηση (στυλ ERP menu)
-st.sidebar.markdown("### 🗂️ Μενού Εφαρμογής")
-app_section = st.sidebar.radio("Επιλογή Ενότητας:", ["📊 Κεντρικός Υπολογισμός", "📋 Δεδομένα & Ιστορικό", "⚙️ Παράμετροι & Κλίμακες"])
+# Sidebar (Μενού)
+st.sidebar.markdown("### 🗂️ Μενού Συστήματος")
+app_section = st.sidebar.radio("Επιλογή:", ["📊 Κεντρικός Υπολογισμός", "📋 Δεδομένα & Αρχείο", "⚙️ Ρυθμίσεις & Κλίμακες"])
 
 st.sidebar.markdown("---")
-st.sidebar.info("📌 **Status:** Συνδεδεμένο με βάση κανόνων e-ΕΦΚΑ / ΤΑΠΙΛΤ (2026)")
+st.sidebar.success("🟢 Σύστημα σε κατάσταση λειτουργίας (2026)")
 
 if app_section == "📊 Κεντρικός Υπολογισμός":
 
     # ==========================================
-    # 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ & ΗΛΙΚΙΑ (PANEL 1)
+    # 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ & ΗΛΙΚΙΑ (ΠΑΝΩ)
     # ==========================================
-    st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="erp-panel-title">👤 1. Προσωπικά & Ασφαλιστικά Στοιχεία (Όριο Ηλικίας)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">👤 1. Προσωπικά & Ασφαλιστικά Στοιχεία (Όριο Ηλικίας)</div>', unsafe_allow_html=True)
     
     p_col1, p_col2, p_col3 = st.columns(3)
     with p_col1:
@@ -89,7 +88,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
 
     retirement_year = birth_year + target_age
     st.markdown(
-        f'<div class="retirement-box">'
+        f'<div class="retirement-banner">'
         f'🎯 ΕΚΤΙΜΩΜΕΝΗ ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ: {birth_month} του {retirement_year} (Ηλικία: {target_age} Ετών)'
         f'</div>', 
         unsafe_allow_html=True
@@ -97,10 +96,10 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΙΣΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ (PANEL 2)
+    # 2. ΕΙΣΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ (COPY-PASTE)
     # ==========================================
-    st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="erp-panel-title">📊 2. Δεδομένα & Επικόλληση από Excel</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Δεδομένα & Επικόλληση από Excel</div>', unsafe_allow_html=True)
     
     input_mode = st.radio(
         "Τρόπος Εισαγωγής:",
@@ -109,8 +108,8 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     )
     
     if input_mode == "📊 Αναλυτικά (Paste 6 στηλών)":
-        st.markdown(
-            "📌 **Σειρά στηλών στο Excel:** "
+        st.info(
+            "📌 **Σειρά στηλών στο Excel σας:**\n"
             "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`"
         )
 
@@ -165,10 +164,10 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 3. ΠΑΡΑΜΕΤΡΟΙ & ΥΠΟΛΟΓΙΣΜΟΣ (PANEL 3)
+    # 3. ΠΑΡΑΜΕΤΡΟΙ & ΥΠΟΛΟΓΙΣΜΟΣ
     # ==========================================
-    st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="erp-panel-title">⚙️ 3. Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">⚙️ 3. Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
     
     rc1, rc2, rc3, rc4 = st.columns(4)
     with rc1:
@@ -190,9 +189,9 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         net_main = gross_main - eas_amount - health_ded - tax_monthly
         total_ephapax = 55043.62 
         
-        # --- ΑΠΟΤΕΛΕΣΜΑΤΑ ΣΤΥΛ ERP ---
-        st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="erp-panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
+        # --- ΑΠΟΤΕΛΕΣΜΑΤΑ & ΣΤΑΤΙΣΤΙΚΑ ---
+        st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
         
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Συνολικά Έτη", f"{total_years:.2f}")
@@ -264,14 +263,14 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         
         st.markdown('</div>', unsafe_allow_html=True)
 
-elif app_section == "📋 Δεδομένα & Ιστορικό":
-    st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="erp-panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
+elif app_section == "📋 Δεδομένα & Αρχείο":
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
     st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    st.markdown('<div class="erp-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="erp-panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
     st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
     st.markdown('</div>', unsafe_allow_html=True)
