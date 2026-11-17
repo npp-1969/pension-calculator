@@ -1,42 +1,44 @@
 import streamlit as st
 
-# Ρύθμιση σελίδας
-st.set_page_config(page_title="Επαγγελματικός Υπολογιστής Συντάξεων & Εφάπαξ", page_icon="🧮", layout="centered")
+# Rithmisi selidas
+st.set_page_config(page_title="Epaggelmatikos Ypologistis Syntaxewn & Efapax", page_icon="🧮", layout="centered")
 
-st.title("🧮 Υπολογιστής Συντάξεων & Εφάπαξ (Ν. 4387/2016)")
+st.title("🧮 Ypologistis Syntaxewn & Efapax (N. 4387/2016)")
 st.markdown("---")
-st.write("Συμπληρώστε τα στοιχεία σας για να υπολογίσετε την Κύρια Σύνταξη, την Επικουρική και το Εφάπαξ.")
+st.write("Symplirwste ta stoicheia sas gia na ypologisete tin Kyria Syntaxi, tin Epikouriki kai to Efapax me dynatotita pollaplwn tameiwn.")
 
-# --- ΕΝΟΤΗΤΑ 1: ΠΡΟΣΩΠΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
-st.header("1. Προσωπικά & Ασφαλιστικά Στοιχεία")
+# --- ENOTYTA 1: PROSWPIKA & ASFALISTIKA STOICHEIA ---
+st.header("1. Prosopika & Asfalistika Stoicheia")
 
 col1, col2 = st.columns(2)
 with col1:
-    gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"])
-    birth_year = st.number_input("Έτος Γέννησης", min_value=1940, max_value=2005, value=1975)
+    gender = st.selectbox("Fylo", ["Andras", "Gynaika"])
+    birth_year = st.number_input("Etos Gennisis", min_value=1940, max_value=2005, value=1975)
 with col2:
-    insurance_type = st.selectbox("Πρώτη Ασφάλιση", ["Παλαιός (έως 31/12/1992)", "Νέος (από 1/1/1993 και μετά)"])
-    fund = st.selectbox("Ταμείο Κύριας Ασφάλισης", ["ΙΚΑ / e-ΕΦΚΑ Μισθωτών", "Δημόσιο", "Τράπεζες (π.χ. Ιονική/Alpha)", "ΟΑΕΕ / Ελευθεροι Επαγγελματίες"])
+    insurance_type = st.selectbox("Proti Asfalisi", ["Palaios (ews 31/12/1992)", "Neos (apo 1/1/1993 kai meta)"])
+    funds = st.multiselect("Tameia Asfalisis (Epilexte ola ta tameia pou exete ensima)", 
+                           ["IKA / e-EFKA Misthwtwn", "Dimosio", "Trapezes (p.x. Ioniaki/Alpha)", "OAEE / Eleftheroi Epangelmaties"],
+                           default=["IKA / e-EFKA Misthwtwn"])
 
-# --- ΕΝΟΤΗΤΑ 2: ΧΡΟΝΟΣ & ΑΠΟΔΟΧΕΣ ---
-st.header("2. Χρόνος Ασφάλισης & Αποδοχές")
+# --- ENOTYTA 2: CHRONOS & APODOCHES ---
+st.header("2. Chronos Asfalisis & Apodoches")
 
 col3, col4 = st.columns(2)
 with col3:
-    total_years = st.number_input("Συνολικά Έτη Ασφάλισης", min_value=1, max_value=50, value=30)
+    total_years = st.number_input("Synolika Eti Asfalisis", min_value=1, max_value=50, value=30)
 with col4:
-    avg_salary = st.number_input("Μέσος Όρος Μηνιαίων Αποδοχών (από 2002)", min_value=500.0, max_value=10000.0, value=1500.0, step=50.0)
+    avg_salary = st.number_input("Mesos Oros Miniaiwn Apodochwn (apo 2002)", min_value=500.0, max_value=10000.0, value=1500.0, step=50.0)
 
-has_child = st.checkbox("Ύπαρξη ανήλικου τέκνου ή άλλες ειδικές προϋποθέσεις θεμελίωσης")
+has_child = st.checkbox("Yparxi anilikou teknou i alles eidikes proypotheseis themeliwsis")
 
-# --- ΚΟΥΜΠΙ ΥΠΟΛΟΓΙΣΜΟΥ ---
+# --- KOUMPI YPOLOGISMOY ---
 st.markdown("---")
-if st.button("🚀 Υπολογισμός Σύνταξης & Εφάπαξ", type="primary"):
+if st.button("🚀 Ypologismos Syntaxis & Efapax", type="primary"):
     
-    # 1. Εθνική Σύνταξη
+    # 1. Ethniki Syntaxi
     national_pension = 426.17 if total_years >= 20 else 426.17 * (total_years / 20)
     
-    # 2. Ανταποδοτική Σύνταξη
+    # 2. Antapodotiki Syntaxi
     if total_years <= 15:
         rehab_rate = 0.0771
     elif total_years <= 20:
@@ -54,29 +56,30 @@ if st.button("🚀 Υπολογισμός Σύνταξης & Εφάπαξ", type
         
     contributory_pension = avg_salary * total_years * (rehab_rate / 10.0)
     
-    # Ακαθάριστη Κύρια Σύνταξη
+    # Akatharisti Kyria Syntaxi
     gross_main_pension = national_pension + contributory_pension
     
-    # Κρατήσεις (Υγεία 6%)
+    # Kratiseis (Ygeia 6%)
     health_deduction = gross_main_pension * 0.06
     net_main_pension = gross_main_pension - health_deduction
     
-    # Εφάπαξ
-    estimated_ephapax = avg_salary * (total_years * 0.5) if fund in ["Τράπεζες (π.χ. Ιονική/Alpha)", "Δημόσιο"] else 0.0
+    # Efapax (An yparchei Trapeza i Dimosio sta epilegmena tameia)
+    has_bank_or_public = any(f in funds for f in ["Trapezes (p.x. Ioniaki/Alpha)", "Dimosio"])
+    estimated_ephapax = avg_salary * (total_years * 0.5) if has_bank_or_public else 0.0
 
-    # --- ΕΜΦΑΝΙΣΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ---
-    st.success("Ο υπολογισμός ολοκληρώθηκε επιτυχώς!")
+    # --- EMFANISI APOTELESMATWN ---
+    st.success("O ypologismos oloklirothike epitychws!")
     
     res_col1, res_col2 = st.columns(2)
     
     with res_col1:
-        st.subheader("📊 Κύρια Σύνταξη")
-        st.metric(label="Ακαθάριστη Κύρια Σύνταξη", value=f"{gross_main_pension:.2f} €")
-        st.metric(label="Καθαρή Σύνταξη (μετά κρατήσεων υγείας)", value=f"{net_main_pension:.2f} €")
+        st.subheader("📊 Kyria Syntaxi")
+        st.metric(label="Akatharisti Kyria Syntaxi", value=f"{gross_main_pension:.2f} €")
+        st.metric(label="Kathari Syntaxi (meta kratiseon ygeias)", value=f"{net_main_pension:.2f} €")
         
     with res_col2:
-        st.subheader("💰 Εφάπαξ & Επικουρική")
-        st.metric(label="Εκτιμώμενο Εφάπαξ", value=f"{estimated_ephapax:.2f} €" if estimated_ephapax > 0 else "Δεν προβλέπεται / Μη διαθέσιμο")
-        st.metric(label="Εκτιμώμενη Επικουρική", value=f"{(avg_salary * 0.20):.2f} €" if "Τράπεζες" in fund or "Δημόσιο" in fund else "Εξαρτάται από ΤΕΑ/ΕΤΕΑΕΠ")
+        st.subheader("💰 Efapax & Epikouriki")
+        st.metric(label="Ektimwmeno Efapax", value=f"{estimated_ephapax:.2f} €" if estimated_ephapax > 0 else "Den provlepetai / Mi diathesimo")
+        st.metric(label="Ektimwmeni Epikouriki", value=f"{(avg_salary * 0.20):.2f} €" if has_bank_or_public else "Exartatai apo TEA/ETEAEp")
 
-    st.info("⚠️ **Σημείωση:** Ο υπολογισμός αυτός αποτελεί προσομοίωση βάσει των γενικών διατάξεων του Ν. 4387/2016 για λόγους εκτίμησης και δεν αντικαθιστά την επίσημη πράξη απονομής σύνταξης από τον e-ΕΦΚΑ.")
+    st.info("⚠️ **Simeiosei:** O ypologismos autos apotelei prosomoiosei vasei ton genikwn diataxeon tou N. 4387/2016 gia logous ektimiseos kai den antikatista tin episimi praxi aponomis syntaxis apo ton e-EFKA.")
