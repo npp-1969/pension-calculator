@@ -91,7 +91,7 @@ def load_from_db():
             "merida_amount": row[10] if row[10] is not None else 71206.66,
             "tapilt_net": row[11] if row[11] is not None else 329.00,
             "tapilt_after_expiry": row[12] if row[12] is not None else 100.00,
-            "bank_years_until_2013": row[13] if row[13] is not None else 23.0,
+            "bank_years_until_2013": row[13] if row[13] is not None else 22.90,
             "bank_years_from_2014": row[14] if row[14] is not None else 9.0
         }
     return None
@@ -243,7 +243,7 @@ if 'tapilt_after_expiry' not in st.session_state:
     st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 100.00
 
 if 'bank_years_until_2013' not in st.session_state:
-    st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 23.0
+    st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 22.90
 
 if 'bank_years_from_2014' not in st.session_state:
     st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 9.0
@@ -277,7 +277,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Ορθοί Τραπεζικοί Υπολογισμοί Εφάπαξ</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Ορθός Τύπος Εφάπαξ</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -310,11 +310,11 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     else:
-        avg_sal = 3304.39
+        avg_sal = 3358.78
 else:
     tot_ensima = 25
     tot_years = 0.08
-    avg_sal = 3304.39
+    avg_sal = 3358.78
 
 # --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
 if app_section == "👤 Προσωπικά Στοιχεία":
@@ -424,7 +424,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_parsed = st.session_state['df_economic']
         elif df_parsed.empty:
             df_parsed = pd.DataFrame([
-                {"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/07/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/07/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3304.39}
+                {"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/07/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/07/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3358.78}
             ])
 
         if not df_parsed.empty:
@@ -496,7 +496,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             grouped['AvgSal'] = 0.00
     else:
         grouped = pd.DataFrame([
-            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25, "AvgSal": 3304.39}
+            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25, "AvgSal": 3358.78}
         ])
 
     agency_rows_html = ""
@@ -656,36 +656,35 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΟΙ ΤΡΑΠΕΖΙΚΟΙ ΣΥΝΤΕΛΕΣΤΕΣ ΤΑΠΙΛΤ-ΑΤ) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΟΡΘΟΣ Ν. 4387/2016) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Ορθός υπολογισμός με βάση τους καταστατικούς συντελεστές πρόνοιας τραπεζοϋπαλλήλων για τα πραγματικά έτη υπηρεσίας.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Ακριβής υπολογισμός βάσει του Ν. 4387/2016 (60% επί του μηνιαίου τακτικού μισθού για το Τμήμα Α).</div>', unsafe_allow_html=True)
 
-    monthly_taktiko = avg_sal * 0.85
     b_until_2013 = st.session_state.bank_years_until_2013
     b_from_2014 = st.session_state.bank_years_from_2014
+    
+    monthly_taktiko = avg_sal * (12.0 / 14.0) # Αναγωγή σε 12μηνο τακτικό
 
-    # ΔΙΟΡΘΩΜΕΝΟΙ ΟΡΘΟΙ ΣΥΝΤΕΛΕΣΤΕΣ ΓΙΑ ΤΡΑΠΕΖΙΚΟ ΕΦΑΠΑΞ (ΤΑΠΙΛΤ-ΑΤ)
-    # Τμήμα Α: Έτη έως 2013 με καταστατικό συντελεστή τραπεζών (αναλογία ~1.2 μηνιαίοι μισθοί ανά έτος υπηρεσίας)
-    tmima_a = b_until_2013 * monthly_taktiko * 1.15
-    # Τμήμα Β: Κεφαλαιοποιητικό από 2014-2022 (εισφορές 4% προσαυξημένες)
-    tmima_b = b_from_2014 * avg_sal * 12 * 0.04 * 1.015 * 1.1
+    # ΟΡΘΟΣ ΤΥΠΟΣ Ν. 4387/2016
+    tmima_a = b_until_2013 * monthly_taktiko * 0.60
+    tmima_b = b_from_2014 * avg_sal * 12 * 0.04 * 1.015
     total_efapax_correct = tmima_a + tmima_b
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΡΑΠΕΖΙΚΑ ΕΤΗ & ΣΥΝΤΕΛΕΣΤΕΣ)</th></tr>
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (Ν. 4387/2016)</th></tr>
             <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
-            <tr><td>Έτη Τράπεζας από 2014 έως 2022</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
             <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (85%)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Συντελεστής Τραπεζικής Πρόνοιας (έως 2013)</td><td style="text-align: center;">1.15 (Καταστατικό ΤΑΠΙΛΤ)</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό</td><td style="text-align: center;">{:,.2f} €</td></tr>
+            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center;">60,00%</td></tr>
+            <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
             <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
         </table>
-        """.format(b_until_2013, b_from_2014, avg_sal, monthly_taktiko), unsafe_allow_html=True)
+        """.format(b_until_2013, avg_sal, monthly_taktiko), unsafe_allow_html=True)
 
     with efap_col2:
         st.markdown("""
@@ -701,11 +700,10 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 5. ΤΕΛΙΚΗ ΕΙΚΟΝΑ & ΕΚΤΥΠΩΣΗ ---
-elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
+else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📋 ΣΥΝΟΨΗ & ΤΕΛΙΚΗ ΕΙΚΟΝΑ ΣΥΝΤΑΞΙΟΔΟΤΙΚΟΥ ΠΡΟΦΙΛ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Η συνολική εικόνα του πελάτη με όλα τα βασικά στοιχεία, τις ημερομηνίες και τα τελικά ποσά σύνταξης & εφάπαξ.</div>', unsafe_allow_html=True)
-
+    
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
@@ -727,8 +725,8 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
     ika_katharo = max(ika_mikto - ika_krat, 0.0)
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
-    monthly_taktiko_fin = avg_sal * 0.85
-    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 1.15) + (st.session_state.bank_years_from_2014 * avg_sal * 12 * 0.04 * 1.015 * 1.1)
+    monthly_taktiko_fin = avg_sal * (12.0 / 14.0)
+    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 0.60) + (st.session_state.bank_years_from_2014 * avg_sal * 12 * 0.04 * 1.015)
 
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
     c_birth = st.session_state.client_data['birth_date']
@@ -747,80 +745,17 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
         <h4 style="color: #1E3A8A;">💰 ΤΕΛΙΚΑ ΟΙΚΟΝΟΜΙΚΑ ΠΟΣΑ</h4>
         <ul>
             <li><b>Καθαρή Κύρια Σύνταξη:</b> {katharo_main:,.2f} € / μήνα</li>
-            <li><b>Καθαρή Επικουρική ΤΑΠΙΛΤ:</b> {tapilt_katharo:,.2f} € / μήνα (για {years_to_expiry:.1f} έτη, μετά {st.session_state.tapilt_after_expiry:,.2f} €)</li>
+            <li><b>Καθαρή Επικουρική ΤΑΠΙΛΤ:</b> {tapilt_katharo:,.2f} € / μήνα</li>
             <li><b>Καθαρή Επικουρική ΙΚΑ:</b> {ika_katharo:,.2f} € / μήνα</li>
             <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
         </ul>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Ορθός Υπολογισμός ΤΑΠΙΛΤ):</b> <b>{total_efapax:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Ορθός Τύπος Ν. 4387/2016):</b> <b>{total_efapax:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🖨️ Εκτύπωση / Αποθήκευση Αναφοράς", type="primary"):
-        st.info("💡 Μπορείτε να πατήσετε **Ctrl + P** στον περιηγητή σας (Browser) για να εκτυπώσετε ή να αποθηκεύσετε αυτή τη σελίδα ως PDF.")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 6. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
-else:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ / Εφάπαξ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Ορίστε τα ακριβή ποσά μερίδας, επικουρικής και τα χρόνια υπηρεσίας στην Τράπεζα για τον ορθό υπολογισμό του εφάπαξ.</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    col_set1, col_set2 = st.columns(2)
-    
-    with col_set1:
-        new_merida = st.number_input(
-            "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
-            value=float(st.session_state.merida_amount), 
-            step=100.0,
-            format="%.2f"
-        )
-        
-        new_tapilt = st.number_input(
-            "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
-            value=float(st.session_state.tapilt_net), 
-            step=10.0,
-            format="%.2f"
-        )
-
-        new_bank_u2013 = st.number_input(
-            "🏛️ Έτη Τράπεζας έως 31/12/2013 (για Εφάπαξ):", 
-            value=float(st.session_state.bank_years_until_2013), 
-            step=0.5,
-            format="%.2f"
-        )
-
-    with col_set2:
-        new_expiry = st.number_input(
-            "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
-            value=float(st.session_state.tapilt_after_expiry), 
-            step=10.0,
-            format="%.2f"
-        )
-
-        new_bank_f2014 = st.number_input(
-            "🏛️ Έτη Τράπεζας από 2014 έως 2022 (για Εφάπαξ):", 
-            value=float(st.session_state.bank_years_from_2014), 
-            step=0.5,
-            format="%.2f"
-        )
-        
-        calc_annual = new_tapilt * 12
-        calc_years = (new_merida / calc_annual) if calc_annual > 0 else 0
-        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
-        st.session_state.merida_amount = new_merida
-        st.session_state.tapilt_net = new_tapilt
-        st.session_state.tapilt_after_expiry = new_expiry
-        st.session_state.bank_years_until_2013 = new_bank_u2013
-        st.session_state.bank_years_from_2014 = new_bank_f2014
-        persist_all()
-        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν και ενημερώθηκαν άμεσα σε όλους τους υπολογισμούς!")
+        st.info("💡 Πατήστε **Ctrl + P** στον περιηγητή σας για εκτύπωση ή αποθήκευση ως PDF.")
 
     st.markdown('</div>', unsafe_allow_html=True)
