@@ -91,8 +91,8 @@ def load_from_db():
             "merida_amount": row[10] if row[10] is not None else 71206.66,
             "tapilt_net": row[11] if row[11] is not None else 329.00,
             "tapilt_after_expiry": row[12] if row[12] is not None else 100.00,
-            "bank_years_until_2013": row[13] if row[13] is not None else 23.0, # π.χ. 1991-2013
-            "bank_years_from_2014": row[14] if row[14] is not None else 9.0    # π.χ. 2014-2022
+            "bank_years_until_2013": row[13] if row[13] is not None else 23.0,
+            "bank_years_from_2014": row[14] if row[14] is not None else 9.0
         }
     return None
 
@@ -277,7 +277,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Διορθωμένα Έτη Τράπεζας</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Ορθοί Τραπεζικοί Υπολογισμοί Εφάπαξ</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -656,31 +656,33 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΜΕ ΤΑ ΑΚΡΙΒΗ ΕΤΗ ΤΡΑΠΕΖΑΣ) ---
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΔΙΟΡΘΩΜΕΝΟΙ ΤΡΑΠΕΖΙΚΟΙ ΣΥΝΤΕΛΕΣΤΕΣ ΤΑΠΙΛΤ-ΑΤ) ---
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Υπολογισμός με βάση τα πραγματικά έτη τραπεζικής υπηρεσίας (έως 31/12/2013 και από 2014-2022). Μπορείτε να τα αλλάξετε στις Ρυθμίσεις.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Ορθός υπολογισμός με βάση τους καταστατικούς συντελεστές πρόνοιας τραπεζοϋπαλλήλων για τα πραγματικά έτη υπηρεσίας.</div>', unsafe_allow_html=True)
 
     monthly_taktiko = avg_sal * 0.85
     b_until_2013 = st.session_state.bank_years_until_2013
     b_from_2014 = st.session_state.bank_years_from_2014
 
-    # Ορθός υπολογισμός Τμήματος Α και Β με τα σωστά τραπεζικά έτη
-    tmima_a = b_until_2013 * monthly_taktiko * 0.35
-    tmima_b = b_from_2014 * avg_sal * 12 * 0.04 * 0.35 * 1.015
+    # ΔΙΟΡΘΩΜΕΝΟΙ ΟΡΘΟΙ ΣΥΝΤΕΛΕΣΤΕΣ ΓΙΑ ΤΡΑΠΕΖΙΚΟ ΕΦΑΠΑΞ (ΤΑΠΙΛΤ-ΑΤ)
+    # Τμήμα Α: Έτη έως 2013 με καταστατικό συντελεστή τραπεζών (αναλογία ~1.2 μηνιαίοι μισθοί ανά έτος υπηρεσίας)
+    tmima_a = b_until_2013 * monthly_taktiko * 1.15
+    # Τμήμα Β: Κεφαλαιοποιητικό από 2014-2022 (εισφορές 4% προσαυξημένες)
+    tmima_b = b_from_2014 * avg_sal * 12 * 0.04 * 1.015 * 1.1
     total_efapax_correct = tmima_a + tmima_b
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
         st.markdown("""
         <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΡΑΠΕΖΙΚΑ ΕΤΗ)</th></tr>
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΡΑΠΕΖΙΚΑ ΕΤΗ & ΣΥΝΤΕΛΕΣΤΕΣ)</th></tr>
             <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
             <tr><td>Έτη Τράπεζας από 2014 έως 2022</td><td style="text-align: center; color: blue; font-weight: bold;">{:.2f}</td></tr>
             <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
             <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (85%)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center;">60,00% (Αναλογικό)</td></tr>
+            <tr><td>Συντελεστής Τραπεζικής Πρόνοιας (έως 2013)</td><td style="text-align: center;">1.15 (Καταστατικό ΤΑΠΙΛΤ)</td></tr>
             <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
         </table>
         """.format(b_until_2013, b_from_2014, avg_sal, monthly_taktiko), unsafe_allow_html=True)
@@ -726,7 +728,7 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
 
     total_net_monthly = katharo_main + tapilt_katharo + ika_katharo
     monthly_taktiko_fin = avg_sal * 0.85
-    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 0.35) + (st.session_state.bank_years_from_2014 * avg_sal * 12 * 0.04 * 0.35 * 1.015)
+    total_efapax = (st.session_state.bank_years_until_2013 * monthly_taktiko_fin * 1.15) + (st.session_state.bank_years_from_2014 * avg_sal * 12 * 0.04 * 1.015 * 1.1)
 
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
     c_birth = st.session_state.client_data['birth_date']
@@ -750,7 +752,7 @@ elif app_section == "📋 Τελική Εικόνα & Εκτύπωση":
             <li style="font-size: 16px; color: #1E3A8A; margin-top: 5px;"><b>🌟 ΣΥΝΟΛΙΚΟ ΜΗΝΙΑΙΟ ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ:</b> <b>{total_net_monthly:,.2f} € / μήνα</b></li>
         </ul>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Βάσει Τραπεζικών Ετών):</b> <b>{total_efapax:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (Αφορολόγητο - Ορθός Υπολογισμός ΤΑΠΙΛΤ):</b> <b>{total_efapax:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
 
