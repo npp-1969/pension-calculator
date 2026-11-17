@@ -119,9 +119,6 @@ if 'summary_years' not in st.session_state:
 if 'summary_avg_salary' not in st.session_state:
     st.session_state.summary_avg_salary = 3290.54
 
-if 'saved_profiles' not in st.session_state:
-    st.session_state.saved_profiles = {}
-
 # ==========================================
 # ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
 # ==========================================
@@ -134,42 +131,6 @@ st.markdown(f"""
         <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016)</div>
     </div>
 """, unsafe_allow_html=True)
-
-# --- ΜΠΑΡΑ ΔΙΑΧΕΙΡΙΣΗΣ / ΑΠΟΘΗΚΕΥΣΗΣ ΠΕΛΑΤΩΝ ΕΠΑΝΩ ---
-st.markdown('<div class="panel-card" style="background-color: #F1F5F9; padding: 15px; margin-bottom: 20px;">', unsafe_allow_html=True)
-top_c1, top_c2, top_c3 = st.columns([2, 2, 1])
-
-with top_c1:
-    profile_names = ["— Νέα / Τρέχουσα Καρτέλα —"] + list(st.session_state.saved_profiles.keys())
-    selected_profile = st.selectbox("📂 Φόρτωση Αποθηκευμένης Καρτέλας Πελάτη:", profile_names)
-
-    if selected_profile != "— Νέα / Τρέχουσα Καρτέλα —":
-        prof = st.session_state.saved_profiles[selected_profile]
-        st.session_state.client_data = prof["client_data"].copy()
-        st.session_state.econ_mode = prof["econ_mode"]
-        st.session_state.paste_input = prof["paste_input"]
-        st.session_state.summary_years = prof["summary_years"]
-        st.session_state.summary_avg_salary = prof["summary_avg_salary"]
-
-with top_c2:
-    save_profile_name = st.text_input("Όνομα αποθήκευσης καρτέλας:", placeholder="π.χ. Νεκτάριος Πελεκάνος")
-
-with top_c3:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Αποθήκευση Καρτέλας", use_container_width=True, type="primary"):
-        if save_profile_name.strip():
-            st.session_state.saved_profiles[save_profile_name.strip()] = {
-                "client_data": st.session_state.client_data.copy(),
-                "econ_mode": st.session_state.econ_mode,
-                "paste_input": st.session_state.paste_input,
-                "summary_years": st.session_state.summary_years,
-                "summary_avg_salary": st.session_state.summary_avg_salary
-            }
-            st.success(f"Η καρτέλα '{save_profile_name.strip()}' αποθηκεύτηκε επιτυχώς!")
-        else:
-            st.warning("Παρακαλώ δώστε όνομα.")
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
 if st.sidebar.button("🚪 Αποσύνδεση"):
@@ -192,7 +153,7 @@ st.sidebar.success("🟢 Ασφαλής Σύνδεση")
 if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">👤 Κατηγορία: 1. Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία ταυτότητας και πατήστε αποθήκευση κάτω.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία ταυτότητας και πατήστε αποθήκευση.</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -226,7 +187,6 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
     st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
     st.markdown('<div class="panel-desc">Επιλέξτε τρόπο καταχώρησης (Αναλυτικά με πίνακα ή Συγκεντρωτικά) και αποθηκεύστε τα.</div>', unsafe_allow_html=True)
 
-    # Επιλογή τρόπου καταχώρησης
     modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά (Συνολικά Έτη & Μέσος Όρος)"]
     m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
     st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης οικονομικών στοιχείων:", modes, index=m_idx, horizontal=True)
@@ -330,7 +290,6 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
     
-    # Εμφάνιση στοιχείων πελάτη
     c_info = st.session_state.client_data
     if c_info["first_name"] or c_info["last_name"]:
         st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
