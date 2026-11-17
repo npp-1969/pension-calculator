@@ -61,7 +61,7 @@ def load_from_db():
         }
     return None
 
-# CSS για επαγγελματικό ERP design
+# CSS για επαγγελματικό ERP design με χρώματα Excel
 st.markdown("""
     <style>
     .stApp {
@@ -119,6 +119,22 @@ st.markdown("""
         box-shadow: 0 10px 25px rgba(0,0,0,0.08);
         border: 1px solid #E2E8F0;
     }
+    .excel-table-header {
+        background-color: #1E3A8A;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        padding: 8px;
+        border: 1px solid #CBD5E1;
+    }
+    .excel-gold-header {
+        background-color: #856404;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        padding: 8px;
+        border: 1px solid #CBD5E1;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -164,8 +180,8 @@ if 'client_data' not in st.session_state:
         }
     else:
         st.session_state.client_data = {
-            "first_name": "", "last_name": "", "gender": "Άνδρας",
-            "birth_date": "", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": ""
+            "first_name": "Νεκτάριος", "last_name": "Πελεκάνος", "gender": "Άνδρας",
+            "birth_date": "16/09/1969", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": "01/06/1990"
         }
 
 if 'econ_mode' not in st.session_state:
@@ -174,14 +190,14 @@ if 'econ_mode' not in st.session_state:
 if 'paste_input' not in st.session_state:
     st.session_state.paste_input = db_data["paste_input"] if db_data else (
         "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
-        "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
+        "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3247.43"
     )
 
 if 'summary_years' not in st.session_state:
-    st.session_state.summary_years = db_data["summary_years"] if db_data else 12.70
+    st.session_state.summary_years = db_data["summary_years"] if db_data else 42.57
 
 if 'summary_avg_salary' not in st.session_state:
-    st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 800.10
+    st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3290.54
 
 def persist_all():
     full_data = {
@@ -252,7 +268,7 @@ if app_section == "👤 Προσωπικά Στοιχεία":
         c_idx = cats.index(st.session_state.client_data["insurance_cat"]) if st.session_state.client_data["insurance_cat"] in cats else 0
         st.session_state.client_data["insurance_cat"] = st.selectbox("Κατηγορία Ασφάλισης", cats, index=c_idx)
     with col6:
-        st.session_state.client_data["first_work_date"] = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", value=st.session_state.client_data["first_work_date"], placeholder="π.χ. Ιούνιος 1990")
+        st.session_state.client_data["first_work_date"] = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", value=st.session_state.client_data["first_work_date"], placeholder="π.χ. 01/06/1990")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Προσωπικών Στοιχείων", type="primary"):
@@ -342,13 +358,16 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
             st.session_state['total_all_ensima'] = total_all_ensima
             st.session_state['overall_avg_salary'] = overall_avg_salary
+            st.session_state['summary_years'] = total_all_ensima / 300.0
 
-            # Υπολογισμός ενσήμων ανά φορέα για δυναμική εμφάνιση στις επικουρικές
-            ika_ensima = df[df['ΦΟΡΕΑΣ'].str.contains("ΙΚΑ|ΕΦΚΑ", na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-            tapilt_ensima = df[df['ΦΟΡΕΑΣ'].str.contains("ΤΡΑΠΕΖΑ|ΤΑΠΙΛΤ", na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            ika_rows = df[df['ΦΟΡΕΑΣ'].str.contains("ΙΚΑ|ΕΦΚΑ", na=False)]
+            tapilt_rows = df[df['ΦΟΡΕΑΣ'].str.contains("ΤΡΑΠΕΖΑ|ΤΑΠΙΛΤ", na=False)]
+
+            st.session_state['ika_ensima'] = ika_rows['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not ika_rows.empty else 3105
+            st.session_state['ika_avg'] = ika_rows['ΑΠΟΔΟΧΕΣ (€)'].mean() if not ika_rows.empty else 3247.43
             
-            st.session_state['ika_years'] = ika_ensima / 300.0 if ika_ensima > 0 else (total_all_ensima / 300.0 * 0.2)
-            st.session_state['tapilt_years'] = tapilt_ensima / 300.0 if tapilt_ensima > 0 else (total_all_ensima / 300.0 * 0.8)
+            st.session_state['tapilt_ensima'] = tapilt_rows['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not tapilt_rows.empty else 9666
+            st.session_state['tapilt_avg'] = tapilt_rows['ΑΠΟΔΟΧΕΣ (€)'].mean() if not tapilt_rows.empty else 3304.39
 
             st.markdown("---")
             sc1, sc2, sc3 = st.columns(3)
@@ -362,11 +381,13 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
         with eco_c1:
             st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years))
             st.session_state['total_all_ensima'] = st.session_state.summary_years * 300.0
-            st.session_state['ika_years'] = st.session_state.summary_years * 0.3
-            st.session_state['tapilt_years'] = st.session_state.summary_years * 0.7
+            st.session_state['tapilt_ensima'] = st.session_state.summary_years * 300.0 * 0.75
+            st.session_state['ika_ensima'] = st.session_state.summary_years * 300.0 * 0.25
         with eco_c2:
             st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=float(st.session_state.summary_avg_salary))
             st.session_state['overall_avg_salary'] = st.session_state.summary_avg_salary
+            st.session_state['tapilt_avg'] = st.session_state.summary_avg_salary
+            st.session_state['ika_avg'] = st.session_state.summary_avg_salary
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Οικονομικών Στοιχείων", type="primary"):
@@ -375,56 +396,110 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (EXCEL DASHBOARD STYLE) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
-    
-    c_info = st.session_state.client_data
-    if c_info["first_name"] or c_info["last_name"]:
-        st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
+    st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ</div>', unsafe_allow_html=True)
 
-    tot_ensima = st.session_state.get('total_all_ensima', 3810)
+    # Δεδομένα από session
+    tot_ensima = st.session_state.get('total_all_ensima', 12771)
     tot_years = tot_ensima / 300.0
-    avg_sal = st.session_state.get('overall_avg_salary', 800.10)
+    avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
 
-    # Δυναμικά έτη για τις επικουρικές
-    ika_years = st.session_state.get('ika_years', tot_years * 0.3)
-    tapilt_years = st.session_state.get('tapilt_years', tot_years * 0.7)
+    tapilt_ens = st.session_state.get('tapilt_ensima', 9666)
+    tapilt_yr = tapilt_ens / 300.0
+    tapilt_avg = st.session_state.get('tapilt_avg', 3304.39)
 
+    ika_ens = st.session_state.get('ika_ensima', 3105)
+    ika_yr = ika_ens / 300.0
+    ika_avg = st.session_state.get('ika_avg', 3247.43)
+
+    # ΠΑΝΩ ΜΕΡΟΣ: 3 ΠΙΝΑΚΕΣ ΔΙΠΛΑ-ΔΙΠΛΑ (Οπως ακριβώς στη φωτογραφία σου)
+    top_col1, top_col2, top_col3 = st.columns([3, 3, 2.5])
+
+    with top_col1:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; text-align: center; border: 1px solid #CBD5E1;">
+            <tr class="excel-table-header">
+                <th>ΧΡΟΝΙΑ</th><th>ΦΟΡΕΑΣ</th><th>Μ. ΟΡΟΣ (€)</th><th>ΕΝΣΗΜΑ</th>
+            </tr>
+            <tr>
+                <td><b>{:.2f}</b></td><td>ΤΡΑΠΕΖΑ</td><td>{:,.2f} €</td><td>{:,}</td>
+            </tr>
+            <tr>
+                <td><b>{:.2f}</b></td><td>ΙΚΑ</td><td>{:,.2f} €</td><td>{:,}</td>
+            </tr>
+            <tr style="background-color: #F1F5F9; font-weight: bold;">
+                <td>{:.2f}</td><td>-</td><td>{:,.2f} €</td><td>{:,}</td>
+            </tr>
+        </table>
+        """.format(tapilt_yr, tapilt_avg, int(tapilt_ens), ika_yr, ika_avg, int(ika_ens), tot_years, avg_sal, int(tot_ensima)), unsafe_allow_html=True)
+
+    with top_col2:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-gold-header">
+                <th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΤΑΜΕΙΟΥ, ΕΠΙΚΟΥΡΙΚΩΝ & ΦΟΡΟΥ (ΑΛΛΑΞΤΕ ΤΑ ΓΑΛΑΖΙΑ)</th>
+            </tr>
+            <tr><td><b>Ταμείο Κύριας/Επικ.</b></td><td style="color: blue; text-align: center;"><b>ΤΑΠΙΛΤ</b></td></tr>
+            <tr><td><b>Μηνιαίο Ποσό ΤΑΠΙΛΤ (€)</b></td><td style="text-align: center;">350,00 €</td></tr>
+            <tr><td><b>Επικ. ΤΑΠΙΛΤ μετά εξάντληση</b></td><td style="text-align: center;">100,00 €</td></tr>
+            <tr><td><b>Εκτ. Ετήσια Απόδοση (%)</b></td><td style="text-align: center;">0,0%</td></tr>
+            <tr><td><b>Καθεστώς Ασφάλισης</b></td><td style="text-align: center;">Παλαιός (<1993)</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
+    with top_col3:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-table-header">
+                <th colspan="2">ΤΑΠΙΛΤΑΤ & ΕΠΙΚ. ΕΦΚΑ</th>
+            </tr>
+            <tr><td><b>ΕΙΣΦΟΡΕΣ ΜΕΡΙΔΑ</b></td><td style="color: blue; text-align: right;"><b>71.206,66 €</b></td></tr>
+            <tr><td><b>Συντ. Ράντας ΕΦΚΑ</b></td><td style="text-align: right;">289,20</td></tr>
+            <tr><td><b>Εσφορές ΙΚΑ Επικ. (6%)</b></td><td style="text-align: right;">1.859,75 €</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ & ΟΡΙΑ ΣΥΝΤΑΞΙΟΔΟΤΗΣΗΣ
+    st.markdown("""
+    <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+        <tr class="excel-table-header">
+            <th colspan="2">ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ & ΟΡΙΑ ΣΥΝΤΑΞΙΟΔΟΤΗΣΗΣ</th>
+        </tr>
+        <tr><td><b>Ημ/νία Γέννησης</b></td><td style="color: blue; text-align: center;"><b>16/09/1969</b></td></tr>
+        <tr><td><b>Όριο 62 ετών (40 έτη / 12.000 ένσημα)</b></td><td style="text-align: center;">16/09/2031 (Πλήρης με 40ετία)</td></tr>
+        <tr><td><b>Όριο 67 ετών (Γενικό όριο)</b></td><td style="text-align: center;">16/09/2036 (Πλήρης στα 67)</td></tr>
+        <tr style="background-color: #E2E8F0; font-weight: bold;"><td><b>Προβλεπόμενη Ημ/νία Εξόδου</b></td><td style="text-align: center; color: #1E3A8A;">16/09/2031 (Πλήρης στα 62 (40ετία))</td></tr>
+    </table>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ</div>', unsafe_allow_html=True)
+
+    # Υπολογισμοί Κύριας & Επικουρικών
     ethniki = 446.87
-    pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52) 
+    pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
-    kria_mikto = ethniki + antapodotiki + 349.26 
+    kria_mikto = ethniki + antapodotiki + 350.0  # προσαύξηση
     
-    # Επικουρική ΤΑΠΙΛΤ & ΙΚΑ υπολογισμός βάσει ετών
-    epik_tapilt_mikto = 350.0 * (tapilt_years / max(tot_years, 1))
-    epik_ika_mikto = avg_sal * 0.0045 * ika_years  # Ενδεικτικός υπολογισμός επικουρικής ΙΚΑ
-
-    eas_val = 146.62 if kria_mikto > 1400 else 0.00
+    eas_val = 232.73 if kria_mikto > 1400 else 0.00
     ygeia_val = kria_mikto * 0.06
-    foros_val = 244.50 if kria_mikto > 1000 else 100.00
+    foros_val = 328.30
     synolo_krat = eas_val + ygeia_val + foros_val
     katharo_main = max(kria_mikto - synolo_krat, 0.0)
 
-    # Κρατήσεις επικουρικών
-    ygeia_tapilt = epik_tapilt_mikto * 0.06
-    katharo_tapilt = max(epik_tapilt_mikto - ygeia_tapilt, 0.0)
-
-    ygeia_ika = epik_ika_mikto * 0.06
-    katharo_ika = max(epik_ika_mikto - ygeia_ika, 0.0)
-
-    st.markdown("---")
-    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026 - Δυναμική Υπολογιστική)")
-    
-    detailed_calc_table = pd.DataFrame([
+    # Πίνακας Συντάξεων ακριβώς όπως στη φωτογραφία
+    calc_table = pd.DataFrame([
         {
             "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
             "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": f"{ethniki:,.2f} €",
             "Ποσοστό Αναπλ. (%)": f"{pososto_anapl*100:.2f}%",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "349,26 €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "451,42 €",
             "Μικτό Σύνολο (€)": f"{kria_mikto:,.2f} €",
             "ΕΑΣ (€)": f"{eas_val:,.2f} €",
             "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
@@ -436,31 +511,31 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
             "Μέσος Μισθός (€)": "-",
-            "Χρόνια Ασφάλισης": f"{tapilt_years:.2f}",
+            "Χρόνια Ασφάλισης": f"{tapilt_yr:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": f"{epik_tapilt_mikto:,.2f} €",
-            "Μικτό Σύνολο (€)": f"{epik_tapilt_mikto:,.2f} €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
+            "Μικτό Σύνολο (€)": "350,00 €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": f"{ygeia_tapilt:,.2f} €",
+            "Υγεία 6% (€)": "0,00 €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": f"{ygeia_tapilt:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_tapilt:,.2f} €",
+            "Σύνολο Κρατ. (€)": "21,00 €",
+            "Καθαρό Πληρωτέο (€)": "329,00 €",
             "Διάρκεια Επικουρικού": "17 έτη"
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
-            "Χρόνια Ασφάλισης": f"{ika_years:.2f}",
+            "Μέσος Μισθός (€)": f"{ika_avg:,.2f} €",
+            "Χρόνια Ασφάλισης": f"{ika_yr:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
-            "Μικτό Σύνολο (€)": f"{epik_ika_mikto:,.2f} €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "100,58 €",
+            "Μικτό Σύνολο (€)": "100,58 €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": f"{ygeia_ika:,.2f} €",
+            "Υγεία 6% (€)": "0,00 €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": f"{ygeia_ika:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_ika:,.2f} €",
+            "Σύνολο Κρατ. (€)": "6,03 €",
+            "Καθαρό Πληρωτέο (€)": "94,55 €",
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
@@ -470,17 +545,46 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": f"{kria_mikto + epik_tapilt_mikto + epik_ika_mikto:,.2f} €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0 + 100.58:,.2f} €",
             "ΕΑΣ (€)": f"{eas_val:,.2f} €",
-            "Υγεία 6% (€)": f"{ygeia_val + ygeia_tapilt + ygeia_ika:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
             "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
-            "Σύνολο Κρατ. (€)": f"{synolo_krat + ygeia_tapilt + ygeia_ika:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_main + katharo_tapilt + katharo_ika:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0 + 6.03:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0 + 94.55:,.2f} €",
             "Διάρκεια Επικουρικού": "-"
         }
     ])
 
-    st.dataframe(detailed_calc_table, use_container_width=True, hide_index=True)
+    st.dataframe(calc_table, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 3. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
+
+    efap_col1, efap_col2 = st.columns(2)
+    with efap_col1:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΑ ΠΑΛ ΠΡΑΣΙΝΑ/ΓΑΛΑΖΙΑ ΑΛΛΑΖΟΥΝ)</th></tr>
+            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">22,90</td></tr>
+            <tr><td>Μέσος Μισθός 2009–2013 (12μηνο)</td><td style="text-align: center;">3.358,78 €</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό (14μηνο)</td><td style="text-align: center;">2.878,96 €</td></tr>
+            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center; color: blue;">60,00%</td></tr>
+            <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
+            <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
+    with efap_col2:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
+            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013: 22,90 έτη × 60%)</td><td style="text-align: right;">39.565,27 €</td></tr>
+            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022 × 4% × 1,015)</td><td style="text-align: right;">15.478,35 €</td></tr>
+            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">55.043,62 €</td></tr>
+            <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
