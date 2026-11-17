@@ -223,7 +223,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Δυναμική Ανάγνωση Αποδοχών</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Διορθωμένη Ανάγνωση Αποδοχών</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -277,7 +277,7 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ (ΔΥΝΑΜΙΚΗ ΑΝΑΓΝΩΣΗ ΑΠΟΔΟΧΩΝ) ---
+# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
@@ -316,20 +316,24 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
                 for _, row in temp_df.iterrows():
                     row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
                     if len(row_vals) >= 6:
-                        # Ασφαλής μετατροπή αποδοχών (καθαρισμός συμβόλων και τελειών/κομμάτων)
+                        # Επαγγελματικός καθαρισμός αποδοχών (διαχείριση τελειών χιλιάδων και κομμάτων)
                         raw_apod = row_vals[5].replace('€', '').strip()
-                        # Αν έχει μορφή 3.304,39 ή 3304,39
                         if ',' in raw_apod and '.' in raw_apod:
-                            raw_apod = raw_apod.replace('.', '').replace(',', '.')
+                            # Αν έχει και τελεια και κόμμα (π.χ. 3.304,39)
+                            if raw_apod.find('.') < raw_apod.find(','):
+                                raw_apod = raw_apod.replace('.', '').replace(',', '.')
+                            else:
+                                raw_apod = raw_apod.replace(',', '')
                         elif ',' in raw_apod:
                             raw_apod = raw_apod.replace(',', '.')
+                        elif raw_apod.count('.') > 1:
+                            raw_apod = raw_apod.replace('.', '', raw_apod.count('.') - 1)
                         
                         try:
                             val_apod = float(raw_apod)
                         except:
                             val_apod = 0.0
 
-                        # Ασφαλής μετατροπή ενσήμων
                         raw_ens = row_vals[4].replace(',', '.').strip()
                         try:
                             val_ens = float(raw_ens)
@@ -542,52 +546,4 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Χρόνια Ασφάλισης": "-",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0:,.2f} €",
-            "ΕΑΣ (€)": f"{eas_val:,.2f} €",
-            "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
-            "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
-            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0:,.2f} €",
-            "Διάρκεια Επικουρικού": "-"
-        }
-    ])
-
-    st.dataframe(calc_table, use_container_width=True, hide_index=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 3. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
-
-    efap_col1, efap_col2 = st.columns(2)
-    with efap_col1:
-        st.markdown("""
-        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΑ ΠΑΛ ΠΡΑΣΙΝΑ/ΓΑΛΑΖΙΑ ΑΛΛΑΖΟΥΝ)</th></tr>
-            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">2,00</td></tr>
-            <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό</td><td style="text-align: center;">{:,.2f} €</td></tr>
-            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center; color: blue;">60,00%</td></tr>
-            <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
-            <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
-        </table>
-        """.format(avg_sal, avg_sal*0.85), unsafe_allow_html=True)
-
-    with efap_col2:
-        st.markdown("""
-        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
-            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013)</td><td style="text-align: right;">{:,.2f} €</td></tr>
-            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022)</td><td style="text-align: right;">{:,.2f} €</td></tr>
-            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
-            <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
-        </table>
-        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
-else:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
-    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
-    st.markdown('</div>', unsafe_allow_html=True)
+            "Προσαύξ. ΤΑΠΙΛΤ (€)
