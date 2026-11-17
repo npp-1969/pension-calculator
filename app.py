@@ -5,7 +5,7 @@ import io
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS για τέλειο ERP design, χρώματα και στοιχίσεις
+# CSS για τέλειο ERP design
 st.markdown("""
     <style>
     .stApp {
@@ -94,16 +94,15 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Αυτόματος Υπολογισμός Φορέων</div>', unsafe_allow_html=True)
     
     st.info(
-        "📌 **Σειρά 6 στηλών στο Excel σας για Copy-Paste:**\n"
+        "📌 **Σειρά 6 στηλών στο Excel σας (με ή χωρίς τίτλους):**\n"
         "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
-            "ΕΤΟΣ\tΑΠΟ\tΕΩΣ\tΦΟΡΕΑΣ\tΗΜΕΡΕΣ-ΕΝΣΗΜΑ\tΑΠΟΔΟΧΕΣ\n"
             "2022\t01/01/2022\t31/12/2022\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
             "2021\t01/01/2021\t31/12/2021\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
-            "2020\t01/01/2020\t31/12/2020\tΙΚΑ\t300\t3247.43"
+            "1990\t15/06/1990\t31/12/1990\tΙΚΑ\t200\t3247.43"
         )
 
     def clear_text():
@@ -115,21 +114,26 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     df = pd.DataFrame()
     if pasted_data.strip():
         try:
-            df = pd.read_csv(io.StringIO(pasted_data), sep="\t")
-        except:
-            try:
-                df = pd.read_csv(io.StringIO(pasted_data), sep=",")
-            except:
-                pass
+            # Διαβάζουμε χωρίς header και δίνουμε σταθερά τα 6 ονόματα στηλών που θέλουμε
+            df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
+            if len(df.columns) < 6:
+                df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
+            
+            # Αν η πρώτη γραμμή τυχαία έχει κείμενο (επικεφαλίδες), την αφαιρούμε έξυπνα
+            if len(df) > 0 and str(df.iloc[0, 0]).strip().upper() in ["ΕΤΟΣ", "YEAR"]:
+                df = df.iloc[1:].reset_index(drop=True)
 
-    if not df.empty and len(df.columns) >= 6:
-        df.columns = [c.strip() for c in df.columns[:6]]
-        col_names = df.columns.tolist()
-        
-        # Καθαρισμός δεδομένων
-        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df[col_names[4]], errors='coerce').fillna(0)
-        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df[col_names[5]], errors='coerce').fillna(0)
-        df['ΦΟΡΕΑΣ'] = df[col_names[3]].astype(str).str.upper().str.strip()
+            # Κρατάμε ακριβώς τις 6 πρώτες στήλες και τους δίνουμε τα σωστά ονόματα
+            df = df.iloc[:, :6]
+            df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
+        except Exception as e:
+            st.error(f"Σφάλμα ανάγνωσης δεδομένων: {e}")
+
+    if not df.empty:
+        # Καθαρισμός τύπων δεδομένων
+        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
+        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0)
+        df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
         st.markdown("##### 🔍 Αναγνωρισμένα Αναλυτικά Δεδομένα:")
         st.dataframe(df, use_container_width=True, hide_index=True)
@@ -140,7 +144,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
         ).reset_index()
 
-        # Υπολογισμός ετών ακριβώς δια 300 ημέρες ανά φορέα
+        # Υπολογισμός ετών διά 300 ημέρες ανά φορέα
         grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
 
         summary_rows = []
@@ -207,84 +211,4 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         st.markdown('<div class="panel-box">', unsafe_allow_html=True)
         st.markdown('<div class="panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
         
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
-        m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
-        m3.metric("Σταθμισμένος Μισθός", f"{overall_avg_salary:,.2f} €")
-        m4.metric("Μηνιαίο Καθαρό Σύνολο", f"{(net_main + 329.00 + 94.55):,.2f} €", delta="Καθαρά")
-
-        st.markdown("---")
-        st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
-        
-        calc_table = pd.DataFrame([
-            {
-                "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-                "Μέσος Μισθός (€)": f"{overall_avg_salary:,.2f}",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(tot_ensima):,}",
-                "Μικτό Σύνολο (€)": f"{gross_main:,.2f}",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
-                f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f}",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
-                "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f}"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f}",
-                "ΕΑΣ (€)": "0,00",
-                f"Υγεία ({health_pct}%) (€)": "21,00",
-                "Φόρος Μην. (€)": "0,00",
-                "Καθαρό Πληρωτέο (€)": "329,00"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": "100,58",
-                "ΕΑΣ (€)": "0,00",
-                f"Υγεία ({health_pct}%) (€)": "6,03",
-                "Φόρος Μην. (€)": "0,00",
-                "Καθαρό Πληρωτέο (€)": "94,55"
-            },
-            {
-                "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(tot_ensima):,}",
-                "Μικτό Σύνολο (€)": "3.036,43",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f}",
-                f"Υγεία ({health_pct}%) (€)": "168,22",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
-                "Καθαρό Πληρωτέο (€)": "🎯 2.307,18"
-            }
-        ])
-
-        st.dataframe(calc_table, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            st.metric(label="1. Τμήμα Α (Έτη έως 31/12/2013)", value="39.565,27 €")
-            st.metric(label="2. Τμήμα Β (Εισφορές 2014–2022)", value="15.478,35 €")
-        with e_col2:
-            st.metric(label="🌟 ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ", value=f"{total_ephapax:,.2f} €")
-            st.info("Τρόπος & Χρόνος Καταβολής: Με την έκδοση της Κύριας Σύνταξης")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "📋 Δεδομένα & Αρχείο":
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
-    st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
-    st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
-    st.markdown('</div>', unsafe_allow_html=True)
+        m1, m2, m3, m4 = st.columns(
