@@ -126,7 +126,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         df.columns = [c.strip() for c in df.columns[:6]]
         col_names = df.columns.tolist()
         
-        # Καθαρισμός δεδομένων για ομαδοποίηση
+        # Καθαρισμός δεδομένων
         df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df[col_names[4]], errors='coerce').fillna(0)
         df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df[col_names[5]], errors='coerce').fillna(0)
         df['ΦΟΡΕΑΣ'] = df[col_names[3]].astype(str).str.upper().str.strip()
@@ -140,6 +140,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
         ).reset_index()
 
+        # Υπολογισμός ετών ακριβώς δια 300 ημέρες ανά φορέα
         grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
 
         summary_rows = []
@@ -155,6 +156,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         tot_years = tot_ensima / 300.0
         overall_avg_salary = (df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] * df['ΑΠΟΔΟΧΕΣ']).sum() / tot_ensima if tot_ensima > 0 else 0
 
+        # Γενικό σύνολο κάτω
         summary_rows.append({
             "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
             "ΦΟΡΕΑΣ": "-",
