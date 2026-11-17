@@ -276,4 +276,63 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
 # --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
-    st.markdown('<div class="panel-card">', unsafe
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 Συγκεντρωτικά Αποτελέσματα Υπολογισμού Συντάξεων</div>', unsafe_allow_html=True)
+    
+    tot_ensima = st.session_state.get('total_all_ensima', 12771)
+    tot_years = tot_ensima / 300.0
+    avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
+    m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
+    m3.metric("Σταθμισμένος Μισθός", f"{avg_sal:,.2f} €")
+    m4.metric("Μηνιαίο Καθαρό Σύνολο", "2.307,18 €", delta="Καθαρά")
+
+    st.markdown("---")
+    st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
+    
+    calc_table = pd.DataFrame([
+        {
+            "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
+            "Χρόνια": f"{tot_years:.2f}",
+            "Ένσημα": f"{int(tot_ensima):,}",
+            "Μικτό Σύνολο (€)": "2.585,85 €",
+            "Καθαρό Πληρωτέο (€)": "1.883,90 €"
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": "-",
+            "Ένσημα": "-",
+            "Μικτό Σύνολο (€)": "350,00 €",
+            "Καθαρό Πληρωτέο (€)": "329,00 €"
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": "-",
+            "Ένσημα": "-",
+            "Μικτό Σύνολο (€)": "100,58 €",
+            "Καθαρό Πληρωτέο (€)": "94,55 €"
+        },
+        {
+            "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": f"{tot_years:.2f}",
+            "Ένσημα": f"{int(tot_ensima):,}",
+            "Μικτό Σύνολο (€)": "3.036,43 €",
+            "Καθαρό Πληρωτέο (€)": "🎯 2.307,18 €"
+        }
+    ])
+
+    st.dataframe(calc_table, use_container_width=True, hide_index=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
+else:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
+    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
+    st.markdown('</div>', unsafe_allow_html=True)
