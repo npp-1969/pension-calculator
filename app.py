@@ -88,20 +88,20 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL (ΣΥΜΦΩΝΑ ΜΕ ΤΗ ΦΩΤΟΓΡΑΦΙΑ)
+    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Συγκεντρωτική Ανάλυση</div>', unsafe_allow_html=True)
     
     st.info(
         "📌 Κάντε **Copy** από το Excel σας και **Paste** παρακάτω.\n"
-        "Η σειρά είναι ακριβώς: **ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ**"
+        "Η σειρά είναι: **ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ**"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
             "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
-            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t25\t3304.39"
+            "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
         )
 
     def clear_text():
@@ -117,7 +117,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             if len(temp_df.columns) < 3:
                 temp_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
             
-            # Αν η πρώτη γραμμή περιέχει επικεφαλίδες, την αφαιρούμε
             if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "ΑΠΌ", "ΈΩΣ", "ΗΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
                 temp_df = temp_df.iloc[1:].reset_index(drop=True)
 
@@ -125,8 +124,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             for _, row in temp_df.iterrows():
                 row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
                 if len(row_vals) >= 6:
-                    # Αντιστοίχιση ακριβώς σύμφωνα με τη φωτογραφία σου:
-                    # 0: ΕΤΟΣ, 1: Από, 2: Έως, 3: ΦΟΡΕΑΣ, 4: Ημέρες, 5: ΑΠΟΔΟΧΕΣ
                     etos = row_vals[0]
                     apo = row_vals[1]
                     eos = row_vals[2]
@@ -175,7 +172,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
         sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
 
-        # --- 2. ΑΝΑΛΥΣΗ ΑΝΑ ΦΟΡΕΑ ΚΑΤΩ (Χρόνια, Ένσημα, Μ. Ορος) ---
+        # --- 2. ΑΝΑΛΥΣΗ ΑΝΑ ΦΟΡΕΑ ΚΑΤΩ ΜΕ ΓΡΑΜΜΗ ΣΥΝΟΛΟΥ ---
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
             Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
@@ -192,13 +189,20 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                 "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €"
             })
 
+        # Προσθήκη γραμμής ΣΥΝΟΛΟ κάτω ακριβώς όπως στη φωτογραφία
+        tot_years = total_all_ensima / 300.0
+        agency_rows.append({
+            "ΦΟΡΕΑΣ": "🌟 ΣΥΝΟΛΟ",
+            "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
+            "ΕΝΣΗΜΑ": f"{int(total_all_ensima):,}",
+            "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{overall_avg_salary:,.2f} €"
+        })
+
         agency_df = pd.DataFrame(agency_rows)
 
         st.markdown("---")
         st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.)")
         st.dataframe(agency_df, use_container_width=True, hide_index=True)
-
-        tot_years = total_all_ensima / 300.0
 
     else:
         tot_years = 42.57
