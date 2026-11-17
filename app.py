@@ -5,52 +5,55 @@ import io
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Επαγγελματικός Υπολογιστής Συντάξεων & Εφάπαξ", page_icon="🧮", layout="wide")
 
-# CSS για επαγγελματικά χρώματα, κάρτες και πίνακες
+# CSS για επαγγελματικό design, χρώματα, κάρτες και πίνακες υψηλής αισθητικής
 st.markdown("""
     <style>
     .main-title {
-        font-size: 30px;
+        font-size: 32px;
         color: #1F4E78;
         font-weight: bold;
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
+    }
+    .sub-title {
+        text-align: center;
+        color: #595959;
+        font-size: 15px;
+        margin-bottom: 25px;
     }
     .section-card {
-        background-color: #F2F4F8;
-        padding: 20px;
+        background-color: #F8F9FA;
+        padding: 22px;
         border-radius: 12px;
         border-left: 6px solid #1F4E78;
         margin-bottom: 20px;
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.04);
     }
     .retirement-banner {
-        background-color: #D9EAD3;
-        padding: 15px;
+        background-color: #E2EFDA;
+        padding: 16px;
         border-radius: 10px;
-        border-left: 6px solid #38761D;
-        font-size: 20px;
+        border-left: 6px solid #375623;
+        font-size: 19px;
         font-weight: bold;
         color: #274E13;
         text-align: center;
         margin-top: 15px;
+        box-shadow: 1px 1px 5px rgba(0,0,0,0.03);
     }
-    .metric-card {
-        background-color: #FFFFFF;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #D9D9D9;
-        text-align: center;
-        box-shadow: 1px 1px 4px rgba(0,0,0,0.03);
+    /* Στυλ για τους πίνακες */
+    dataframe, table {
+        width: 100% !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">🧮 ΕΠΑΓΓΕΛΜΑΤΙΚΟΣ ΥΠΟΛΟΓΙΣΤΗΣ ΣΥΝΤΑΞΕΩΝ & ΕΦΑΠΑΞ</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #595959;'>Προσομοίωση βάσει του Ν. 4387/2016 & Δεδομένων Excel</p>", unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Προσομοίωση βάσει του Ν. 4387/2016 & Δεδομένων Excel</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
-# 1. ΠΡΩΤΑ ΕΠΑΝΩ: ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ & ΗΛΙΚΙΑ
+# 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ & ΗΛΙΚΙΑ ΣΥΝΤΑΞΗΣ (ΕΠΑΝΩ)
 # ==========================================
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 st.subheader("👤 1. Προσωπικά & Ασφαλιστικά Στοιχεία (Εξόδου σε Σύνταξη)")
@@ -74,7 +77,7 @@ st.markdown(
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. ΣΤΗ ΣΥΝΕΧΕΙΑ: ΕΠΙΛΟΓΗ ΤΡΟΠΟΥ (ΑΝΑΛΥΤΙΚΑ / ΣΥΓΚΕΝΤΡΩΤΙΚΑ)
+# 2. ΕΠΙΛΟΓΗ ΤΡΟΠΟΥ ΥΠΟΛΟΓΙΣΜΟΥ (ΑΝΑΛΥΤΙΚΑ / ΣΥΓΚΕΝΤΡΩΤΙΚΑ)
 # ==========================================
 st.markdown('<div class="section-card">', unsafe_allow_html=True)
 st.subheader("📊 2. Τρόπος Υπολογισμού & Εισαγωγή Δεδομένων")
@@ -155,7 +158,7 @@ if input_mode == "📊 Αναλυτικά (Paste από Excel)":
             
             st.success("🎉 Ο υπολογισμός ολοκληρώθηκε επιτυχώς!")
             
-            # --- ΧΡΩΜΑΤΙΣΤΕΣ ΚΑΡΤΕΣ ΣΤΑΤΙΣΤΙΚΩΝ ---
+            # --- ΟΜΟΡΦΕΣ ΚΑΡΤΕΣ ΣΤΑΤΙΣΤΙΚΩΝ ---
             st.markdown("### 📊 Στατιστικά & Συνοπευτικά Μεγέθη")
             sc1, sc2, sc3, sc4 = st.columns(4)
             sc1.metric("Συνολικά Έτη", f"{total_years:.2f}")
@@ -166,15 +169,56 @@ if input_mode == "📊 Αναλυτικά (Paste από Excel)":
             st.markdown("---")
             st.markdown("### 📋 Πίνακας Υπολογισμού Συντάξεων (2026)")
             
-            # Ωραίος χρωματιστός πίνακας Markdown
-            st.markdown(f"""
-            | Είδος Σύνταξης | Μέσος Μισθός (€) | Χρόνια | Ένσημα | Μικτό Σύνολο (€) | ΕΑΣ (€) | Υγεία ({health_pct}%) (€) | Φόρος Μην. (€) | Καθαρό Πληρωτέο (€) |
-            | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-            | **ΚΥΡΙΑ ΣΥΝΤΑΞΗ** | {weighted_salary:,.2f} € | {total_years:.2f} | {int(total_ensima):,} | **{gross_main:,.2f} €** | {eas_amount:,.2f} € | {health_ded:,.2f} € | {tax_monthly:,.2f} € | **{net_main:,.2f} €** |
-            | **ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ** | - | - | - | **{tapilt_amount:,.2f} €** | 0,00 € | 21,00 € | 0,00 € | **329,00 €** |
-            | **ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)** | - | - | - | **100,58 €** | 0,00 € | 6,03 € | 0,00 € | **94,55 €** |
-            | **ΓΕΝΙΚΟ ΣΥΝΟΛΟ** | - | **{total_years:.2f}** | **{int(total_ensima):,}** | **3.036,43 €** | **{eas_amount:,.2f} €** | **168,22 €** | **{tax_monthly:,.2f} €** | **🎯 2.307,18 €** |
-            """)
+            # Επαγγελματικός, καθαρός πίνακας με pandas styling για τέλεια οπτική εμφάνιση
+            summary_table = pd.DataFrame([
+                {
+                    "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+                    "Μέσος Μισθός (€)": f"{weighted_salary:,.2f}",
+                    "Χρόνια": f"{total_years:.2f}",
+                    "Ένσημα": f"{int(total_ensima):,}",
+                    "Μικτό Σύνολο (€)": f"{gross_main:,.2f}",
+                    "ΕΑΣ (€)": f"{eas_amount:,.2f}",
+                    f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f}",
+                    "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
+                    "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f}"
+                },
+                {
+                    "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+                    "Μέσος Μισθός (€)": "-",
+                    "Χρόνια": "-",
+                    "Ένσημα": "-",
+                    "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f}",
+                    "ΕΑΣ (€)": "0,00",
+                    f"Υγεία ({health_pct}%) (€)": "21,00",
+                    "Φόρος Μην. (€)": "0,00",
+                    "Καθαρό Πληρωτέο (€)": "329,00"
+                },
+                {
+                    "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+                    "Μέσος Μισθός (€)": "-",
+                    "Χρόνια": "-",
+                    "Ένσημα": "-",
+                    "Μικτό Σύνολο (€)": "100,58",
+                    "ΕΑΣ (€)": "0,00",
+                    f"Υγεία ({health_pct}%) (€)": "6,03",
+                    "Φόρος Μην. (€)": "0,00",
+                    "Καθαρό Πληρωτέο (€)": "94,55"
+                },
+                {
+                    "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+                    "Μέσος Μισθός (€)": "-",
+                    "Χρόνια": f"{total_years:.2f}",
+                    "Ένσημα": f"{int(total_ensima):,}",
+                    "Μικτό Σύνολο (€)": "3.036,43",
+                    "ΕΑΣ (€)": f"{eas_amount:,.2f}",
+                    f"Υγεία ({health_pct}%) (€)": "168,22",
+                    "Φόρος Μην. (€)": f"{tax_monthly:,.2f}",
+                    "Καθαρό Πληρωτέο (€)": "🎯 2.307,18"
+                }
+            ])
+
+            # Εμφάνιση πίνακα με καθαρό Dataframe
+            st.dataframe(summary_table, use_container_width=True, hide_index=True)
             
             st.markdown("---")
             st.markdown("### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
