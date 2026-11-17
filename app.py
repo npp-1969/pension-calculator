@@ -5,11 +5,11 @@ import io
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS για τέλειο σχεδιασμό, χρώματα και απόλυτη στοίχιση στους πίνακες
+# CSS για τέλειο ERP design, χρώματα και στοιχίσεις
 st.markdown("""
     <style>
     .stApp {
-        background-color: #F8FAFC;
+        background-color: #F4F6F9;
     }
     .erp-header {
         background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
@@ -24,14 +24,14 @@ st.markdown("""
     }
     .panel-box {
         background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        border: 1px solid #CBD5E1;
         border-radius: 10px;
-        padding: 20px;
+        padding: 22px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
     .panel-title {
-        background: #3B82F6;
+        background: #1E3A8A;
         color: white;
         padding: 10px 15px;
         font-weight: bold;
@@ -43,28 +43,24 @@ st.markdown("""
         background: linear-gradient(135deg, #DEF7EC 0%, #BCCCDC 100%);
         border-left: 6px solid #059669;
         color: #065F46;
-        padding: 18px;
+        padding: 16px;
         border-radius: 8px;
         font-weight: bold;
         text-align: center;
-        font-size: 19px;
+        font-size: 18px;
         margin-top: 15px;
-    }
-    /* Στοιχίσεις κελιών πίνακα για να έρθουν όλα στα μέτρα τους */
-    [data-testid="stDataFrame"] div[data-testid="stTable"] {
-        text-align: center;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="erp-header">💼 OnLine Pension Core BMS™ — Σύστημα Υπολογισμού Συντάξεων & Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
 
-# Sidebar (Μενού)
+# Sidebar Menu
 st.sidebar.markdown("### 🗂️ Μενού Συστήματος")
-app_section = st.sidebar.radio("Επιλογή:", ["📊 Κεντρικός Υπολογισμός", "📋 Δεδομένα & Αρχείο", "⚙️ Ρυθμίσεις & Κλίμακες"])
+app_section = st.sidebar.radio("Επιλογή:", ["📊 Κεντρικός Υπολογισμός", "📋 Δεδομένα & Αρχείο", "⚙️ Ρυθμίσεις"])
 
 st.sidebar.markdown("---")
-st.sidebar.success("🟢 Σύστημα σε κατάσταση λειτουργίας (2026)")
+st.sidebar.success("🟢 BMS Engine Active (2026)")
 
 if app_section == "📊 Κεντρικός Υπολογισμός":
 
@@ -92,89 +88,95 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΙΣΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ (COPY-PASTE)
+    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL (6 ΣΤΗΛΕΣ)
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Δεδομένα & Επικόλληση από Excel</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Αυτόματος Υπολογισμός Φορέων</div>', unsafe_allow_html=True)
     
-    input_mode = st.radio(
-        "Τρόπος Εισαγωγής:",
-        ["📊 Αναλυτικά (Paste 6 στηλών)", "📋 Συγκεντρωτικά"],
-        horizontal=True
+    st.info(
+        "📌 **Σειρά 6 στηλών στο Excel σας για Copy-Paste:**\n"
+        "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`"
     )
-    
-    if input_mode == "📊 Αναλυτικά (Paste 6 στηλών)":
-        st.info(
-            "📌 **Σειρά στηλών στο Excel σας:**\n"
-            "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`"
+
+    if 'paste_input' not in st.session_state:
+        st.session_state.paste_input = (
+            "ΕΤΟΣ\tΑΠΟ\tΕΩΣ\tΦΟΡΕΑΣ\tΗΜΕΡΕΣ-ΕΝΣΗΜΑ\tΑΠΟΔΟΧΕΣ\n"
+            "2022\t01/01/2022\t31/12/2022\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
+            "2021\t01/01/2021\t31/12/2021\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
+            "2020\t01/01/2020\t31/12/2020\tΙΚΑ\t300\t3247.43"
         )
 
-        if 'paste_input' not in st.session_state:
-            st.session_state.paste_input = "ΕΤΟΣ\tΑΠΟ\tΕΩΣ\tΦΟΡΕΑΣ\tΗΜΕΡΕΣ-ΕΝΣΗΜΑ\tΑΠΟΔΟΧΕΣ\n2022\t01/01/2022\t31/12/2022\tΤΡΑΠΕΖΑ\t300\t3304.39\n2021\t01/01/2021\t31/12/2021\tΙΚΑ\t300\t3247.43"
+    def clear_text():
+        st.session_state.paste_input = ""
 
-        def clear_text():
-            st.session_state.paste_input = ""
+    st.button("🗑️ Καθαρισμός & Νέα Επικόλληση", on_click=clear_text)
+    pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=130)
 
-        st.button("🗑️ Καθαρισμός Πίνακα", on_click=clear_text)
-        pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=110)
-
-        df = pd.DataFrame()
-        if pasted_data.strip():
+    df = pd.DataFrame()
+    if pasted_data.strip():
+        try:
+            df = pd.read_csv(io.StringIO(pasted_data), sep="\t")
+        except:
             try:
-                df = pd.read_csv(io.StringIO(pasted_data), sep="\t")
+                df = pd.read_csv(io.StringIO(pasted_data), sep=",")
             except:
-                try:
-                    df = pd.read_csv(io.StringIO(pasted_data), sep=",")
-                except:
-                    pass
+                pass
 
-        if not df.empty and len(df.columns) >= 6:
-            df.columns = [c.strip() for c in df.columns[:6]]
-            col_names = df.columns.tolist()
-            
-            # --- ΜΟΡΦΟΠΟΙΗΣΗ & ΣΤΟΙΧΙΣΗ ΠΙΝΑΚΑ ---
-            st.markdown("##### 🔍 Αναγνωρισμένα Δεδομένα:")
-            
-            # Εφαρμογή καθαρής μορφοποίησης Pandas Styler για σωστή στοίχιση
-            def align_formatter(val):
-                return 'text-align: center;'
+    if not df.empty and len(df.columns) >= 6:
+        df.columns = [c.strip() for c in df.columns[:6]]
+        col_names = df.columns.tolist()
+        
+        # Καθαρισμός δεδομένων για ομαδοποίηση
+        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df[col_names[4]], errors='coerce').fillna(0)
+        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df[col_names[5]], errors='coerce').fillna(0)
+        df['ΦΟΡΕΑΣ'] = df[col_names[3]].astype(str).str.upper().str.strip()
 
-            styled_df = df.style.set_properties(**{
-                'text-align': 'center',
-                'background-color': '#FFFFFF',
-                'border': '1px solid #E2E8F0'
-            }).set_table_styles([
-                {'selector': 'th', 'props': [('text-align', 'center'), ('background-color', '#1E3A8A'), ('color', 'white'), ('font-weight', 'bold')]}
-            ])
+        st.markdown("##### 🔍 Αναγνωρισμένα Αναλυτικά Δεδομένα:")
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
-            st.dataframe(styled_df, use_container_width=True)
+        # --- ΑΥΤΟΜΑΤΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΦΟΡΕΑ (ΣΥΓΚΕΝΤΡΩΤΙΚΟΣ ΠΙΝΑΚΑΣ) ---
+        grouped = df.groupby('ΦΟΡΕΑΣ').agg(
+            Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
+            Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
+        ).reset_index()
 
-            try:
-                total_ensima = pd.to_numeric(df[col_names[4]], errors='coerce').sum()
-                total_years = total_ensima / 300.0 if total_ensima > 0 else 42.57
-                
-                valid_df = df.copy()
-                valid_df['ens'] = pd.to_numeric(valid_df[col_names[4]], errors='coerce').fillna(0)
-                valid_df['apod'] = pd.to_numeric(valid_df[col_names[5]], errors='coerce').fillna(0)
-                
-                weighted_salary = (valid_df['ens'] * valid_df['apod']).sum() / total_ensima if total_ensima > 0 else 3290.54
-            except:
-                total_years = 42.57
-                total_ensima = 12771
-                weighted_salary = 3290.54
-        else:
-            total_years = 42.57
-            total_ensima = 12771
-            weighted_salary = 3290.54
+        grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
+
+        summary_rows = []
+        for _, row in grouped.iterrows():
+            summary_rows.append({
+                "ΧΡΟΝΙΑ": f"{row['Χρονια']:.2f}",
+                "ΦΟΡΕΑΣ": row['ΦΟΡΕΑΣ'],
+                "Μ. ΟΡΟΣ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €",
+                "ΕΝΣΗΜΑ": f"{int(row['Συνολικα_Ενσημα']):,}"
+            })
+
+        tot_ensima = grouped['Συνολικα_Ενσημα'].sum()
+        tot_years = tot_ensima / 300.0
+        overall_avg_salary = (df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] * df['ΑΠΟΔΟΧΕΣ']).sum() / tot_ensima if tot_ensima > 0 else 0
+
+        summary_rows.append({
+            "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
+            "ΦΟΡΕΑΣ": "-",
+            "Μ. ΟΡΟΣ (€)": f"{overall_avg_salary:,.2f} €",
+            "ΕΝΣΗΜΑ": f"{int(tot_ensima):,}"
+        })
+
+        summary_df = pd.DataFrame(summary_rows)
+
+        st.markdown("---")
+        st.markdown("### 📊 Συγκεντρωτικός Πίνακας Ανά Φορέα (BMS Output)")
+        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
     else:
-        total_years = st.number_input("Συνολικά Έτη", value=42.57)
-        weighted_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=3290.54)
-        total_ensima = 12771
+        tot_years = 42.57
+        tot_ensima = 12771
+        overall_avg_salary = 3290.54
 
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 3. ΠΑΡΑΜΕΤΡΟΙ & ΥΠΟΛΟΓΙΣΜΟΣ
+    # 3. ΠΑΡΑΜΕΤΡΟΙ ΚΡΑΤΗΣΕΩΝ & ΥΠΟΛΟΓΙΣΜΟΣ
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
     st.markdown('<div class="panel-title">⚙️ 3. Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
@@ -190,7 +192,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         tax_monthly = st.number_input("Φόρος Μην. (€)", value=328.30)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    run_calc = st.button("🚀 ΕΚΤΕΛΕΣΗ ΥΠΟΛΟΓΙΣΜΟΥ (BMS ENGINE)", type="primary")
+    run_calc = st.button("🚀 ΕΚΤΕΛΕΣΗ ΠΛΗΡΟΥΣ ΥΠΟΛΟΓΙΣΜΟΥ (BMS ENGINE)", type="primary")
     st.markdown('</div>', unsafe_allow_html=True)
 
     if run_calc:
@@ -204,20 +206,20 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         st.markdown('<div class="panel-title">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
         
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Συνολικά Έτη", f"{total_years:.2f}")
-        m2.metric("Συνολικά Ένσημα", f"{int(total_ensima):,}")
-        m3.metric("Σταθμισμένος Μισθός", f"{weighted_salary:,.2f} €")
+        m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
+        m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
+        m3.metric("Σταθμισμένος Μισθός", f"{overall_avg_salary:,.2f} €")
         m4.metric("Μηνιαίο Καθαρό Σύνολο", f"{(net_main + 329.00 + 94.55):,.2f} €", delta="Καθαρά")
 
         st.markdown("---")
         st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
         
-        summary_table = pd.DataFrame([
+        calc_table = pd.DataFrame([
             {
                 "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-                "Μέσος Μισθός (€)": f"{weighted_salary:,.2f}",
-                "Χρόνια": f"{total_years:.2f}",
-                "Ένσημα": f"{int(total_ensima):,}",
+                "Μέσος Μισθός (€)": f"{overall_avg_salary:,.2f}",
+                "Χρόνια": f"{tot_years:.2f}",
+                "Ένσημα": f"{int(tot_ensima):,}",
                 "Μικτό Σύνολο (€)": f"{gross_main:,.2f}",
                 "ΕΑΣ (€)": f"{eas_amount:,.2f}",
                 f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f}",
@@ -249,8 +251,8 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             {
                 "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
                 "Μέσος Μισθός (€)": "-",
-                "Χρόνια": f"{total_years:.2f}",
-                "Ένσημα": f"{int(total_ensima):,}",
+                "Χρόνια": f"{tot_years:.2f}",
+                "Ένσημα": f"{int(tot_ensima):,}",
                 "Μικτό Σύνολο (€)": "3.036,43",
                 "ΕΑΣ (€)": f"{eas_amount:,.2f}",
                 f"Υγεία ({health_pct}%) (€)": "168,22",
@@ -259,7 +261,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             }
         ])
 
-        st.dataframe(summary_table, use_container_width=True, hide_index=True)
+        st.dataframe(calc_table, use_container_width=True, hide_index=True)
         
         st.markdown("---")
         st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
