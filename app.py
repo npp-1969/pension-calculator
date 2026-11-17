@@ -88,21 +88,22 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
-    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL (6 ΣΤΗΛΕΣ)
+    # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Αυτόματος Υπολογισμός Φορέων</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Έλεγχος Αποδοχών</div>', unsafe_allow_html=True)
     
     st.info(
-        "📌 **Σειρά 6 στηλών στο Excel σας (με ή χωρίς τίτλους):**\n"
-        "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`"
+        "📌 **Σειρά στηλών στο Excel σας:**\n"
+        "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`\n\n"
+        "*(Σημείωση: Αν οι αποδοχές σας βρίσκονται σε άλλη στήλη στο Excel, μπορείτε να τις διορθώσετε απευθείας στον παρακάτω διαδραστικό πίνακα!)*"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
-            "2022\t01/01/2022\t31/12/2022\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
-            "2021\t01/01/2021\t31/12/2021\tΤΡΑΠΕΖΑ\t300\t3304.39\n"
-            "1990\t15/06/1990\t31/12/1990\tΙΚΑ\t200\t3247.43"
+            "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t28\t3304.39\n"
+            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t28\t3304.39\n"
+            "2007\t01/03/2007\t31/03/2007\tΤΡΑΠΕΖΑ\t29\t3304.39"
         )
 
     def clear_text():
@@ -111,32 +112,31 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.button("🗑️ Καθαρισμός & Νέα Επικόλληση", on_click=clear_text)
     pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=130)
 
-    df = pd.DataFrame()
+    raw_df = pd.DataFrame()
     if pasted_data.strip():
         try:
-            # Διαβάζουμε χωρίς header και δίνουμε σταθερά τα 6 ονόματα στηλών που θέλουμε
-            df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
-            if len(df.columns) < 6:
-                df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
+            raw_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
+            if len(raw_df.columns) < 6:
+                raw_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
             
-            # Αν η πρώτη γραμμή τυχαία έχει κείμενο (επικεφαλίδες), την αφαιρούμε έξυπνα
-            if len(df) > 0 and str(df.iloc[0, 0]).strip().upper() in ["ΕΤΟΣ", "YEAR"]:
-                df = df.iloc[1:].reset_index(drop=True)
+            if len(raw_df) > 0 and str(raw_df.iloc[0, 0]).strip().upper() in ["ΕΤΟΣ", "YEAR"]:
+                raw_df = raw_df.iloc[1:].reset_index(drop=True)
 
-            # Κρατάμε ακριβώς τις 6 πρώτες στήλες και τους δίνουμε τα σωστά ονόματα
-            df = df.iloc[:, :6]
-            df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
+            # Παίρνουμε τις 6 πρώτες στήλες
+            raw_df = raw_df.iloc[:, :6]
+            raw_df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
         except Exception as e:
             st.error(f"Σφάλμα ανάγνωσης δεδομένων: {e}")
 
-    if not df.empty:
-        # Καθαρισμός τύπων δεδομένων
-        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
-        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0)
-        df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
+    if not raw_df.empty:
+        # Καθαρισμός και μετατροπή σε αριθμούς
+        raw_df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(raw_df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
+        raw_df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(raw_df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
+        raw_df['ΦΟΡΕΑΣ'] = raw_df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-        st.markdown("##### 🔍 Αναγνωρισμένα Αναλυτικά Δεδομένα:")
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.markdown("##### ✏️ Διόρθωση / Έλεγχος Δεδομένων (Μπορείτε να επεξεργαστείτε απευθείας τα κελιά):")
+        # Χρησιμοποιούμε st.data_editor ώστε αν κάποια τιμή δεν ήρθε σωστά, να την διορθώνει με ένα κλικ!
+        df = st.data_editor(raw_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         # --- ΑΥΤΟΜΑΤΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΦΟΡΕΑ (ΣΥΓΚΕΝΤΡΩΤΙΚΟΣ ΠΙΝΑΚΑΣ) ---
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
@@ -144,7 +144,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
         ).reset_index()
 
-        # Υπολογισμός ετών διά 300 ημέρες ανά φορέα
         grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
 
         summary_rows = []
@@ -160,7 +159,6 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         tot_years = tot_ensima / 300.0
         overall_avg_salary = (df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] * df['ΑΠΟΔΟΧΕΣ']).sum() / tot_ensima if tot_ensima > 0 else 0
 
-        # Γενικό σύνολο κάτω
         summary_rows.append({
             "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
             "ΦΟΡΕΑΣ": "-",
