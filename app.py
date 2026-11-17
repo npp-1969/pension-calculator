@@ -1,10 +1,65 @@
 import streamlit as st
 import pandas as pd
 import io
-import json
+import sqlite3
 
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
+
+# ==========================================
+# ΣΥΝΔΕΣΗ & ΔΗΜΙΟΥΡΓΙΑ ΒΑΣΗΣ ΔΕΔΟΜΕΝΩΝ (SQLITE)
+# ==========================================
+def init_db():
+    conn = sqlite3.connect('pension_bms.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS client_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT,
+            last_name TEXT,
+            gender TEXT,
+            birth_date TEXT,
+            insurance_cat TEXT,
+            first_work_date TEXT,
+            econ_mode TEXT,
+            paste_input TEXT,
+            summary_years REAL,
+            summary_avg_salary REAL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def save_to_db(data):
+    conn = sqlite3.connect('pension_bms.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM client_profile') # Κρατάμε πάντα τον ενεργό πελάτη
+    cursor.execute('''
+        INSERT INTO client_profile (first_name, last_name, gender, birth_date, insurance_cat, first_work_date, econ_mode, paste_input, summary_years, summary_avg_salary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data["first_name"], data["last_name"], data["gender"], data["birth_date"],
+        data["insurance_cat"], data["first_work_date"], data["econ_mode"],
+        data["paste_input"], data["summary_years"], data["summary_avg_salary"]
+    ))
+    conn.commit()
+    conn.close()
+
+def load_from_db():
+    conn = sqlite3.connect('pension_bms.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT first_name, last_name, gender, birth_date, insurance_cat, first_work_date, econ_mode, paste_input, summary_years, summary_avg_salary FROM client_profile LIMIT 1')
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "first_name": row[0], "last_name": row[1], "gender": row[2],
+            "birth_date": row[3], "insurance_cat": row[4], "first_work_date": row[5],
+            "econ_mode": row[6], "paste_input": row[7], "summary_years": row[8], "summary_avg_salary": row[9]
+        }
+    return None
 
 # CSS για επαγγελματικό ERP design
 st.markdown("""
@@ -93,38 +148,56 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==========================================
-# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE (ΜΝΗΜΗ ΔΕΔΟΜΕΝΩΝ)
+# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE ΑΠΟ ΤΗ ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ
 # ==========================================
+db_data = load_from_db()
+
 if 'client_data' not in st.session_state:
-    st.session_state.client_data = {
-        "first_name": "",
-        "last_name": "",
-        "gender": "Άνδρας",
-        "birth_date": "",
-        "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)",
-        "first_work_date": ""
-    }
+    if db_data:
+        st.session_state.client_data = {
+            "first_name": db_data["first_name"],
+            "last_name": db_data["last_name"],
+            "gender": db_data["gender"],
+            "birth_date": db_data["birth_date"],
+            "insurance_cat": db_data["insurance_cat"],
+            "first_work_date": db_data["first_work_date"]
+        }
+    else:
+        st.session_state.client_data = {
+            "first_name": "", "last_name": "", "gender": "Άνδρας",
+            "birth_date": "", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": ""
+        }
 
 if 'econ_mode' not in st.session_state:
-    st.session_state.econ_mode = "🔄 Αναλυτικά (Πίνακας Περιόδων)"
+    st.session_state.econ_mode = db_data["econ_mode"] if db_data else "🔄 Αναλυτικά (Πίνακας Περιόδων)"
 
 if 'paste_input' not in st.session_state:
-    st.session_state.paste_input = (
+    st.session_state.paste_input = db_data["paste_input"] if db_data else (
         "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
         "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
     )
 
 if 'summary_years' not in st.session_state:
-    st.session_state.summary_years = 12.70
+    st.session_state.summary_years = db_data["summary_years"] if db_data else 12.70
 
 if 'summary_avg_salary' not in st.session_state:
-    st.session_state.summary_avg_salary = 800.10
+    st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 800.10
 
-if 'total_all_ensima' not in st.session_state:
-    st.session_state.total_all_ensima = 3810
-
-if 'overall_avg_salary' not in st.session_state:
-    st.session_state.overall_avg_salary = 800.10
+# Helper για γενική αποθήκευση στη βάση
+def persist_all():
+    full_data = {
+        "first_name": st.session_state.client_data["first_name"],
+        "last_name": st.session_state.client_data["last_name"],
+        "gender": st.session_state.client_data["gender"],
+        "birth_date": st.session_state.client_data["birth_date"],
+        "insurance_cat": st.session_state.client_data["insurance_cat"],
+        "first_work_date": st.session_state.client_data["first_work_date"],
+        "econ_mode": st.session_state.econ_mode,
+        "paste_input": st.session_state.paste_input,
+        "summary_years": float(st.session_state.summary_years),
+        "summary_avg_salary": float(st.session_state.summary_avg_salary)
+    }
+    save_to_db(full_data)
 
 # ==========================================
 # ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
@@ -135,46 +208,11 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016)</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - DB Connected</div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR: ΕΙΣΑΓΩΓΗ / ΕΞΑΓΩΓΗ ΔΕΔΟΜΕΝΩΝ ΠΕΛΑΤΗ (ΓΙΑ ΝΑ ΜΗΝ ΧΑΝΟΝΤΑΙ) ---
 st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 💾 Αρχείο Πελάτη")
-# Εξαγωγή δεδομένων σε αρχείο JSON
-client_export_data = {
-    "client_data": st.session_state.client_data,
-    "econ_mode": st.session_state.econ_mode,
-    "paste_input": st.session_state.paste_input,
-    "summary_years": st.session_state.summary_years,
-    "summary_avg_salary": st.session_state.summary_avg_salary
-}
-json_str = json.dumps(client_export_data, ensure_ascii=False, indent=4)
-st.sidebar.download_button(
-    label="📥 Αποθήκευση Δεδομένων σε Αρχείο",
-    data=json_str,
-    file_name=f"pelatis_{st.session_state.client_data.get('last_name', 'bms')}.json",
-    mime="application/json"
-)
-
-# Εισαγωγή δεδομένων από αποθηκευμένο αρχείο JSON
-uploaded_file = st.sidebar.file_uploader("📂 Φόρτωση από Αρχείο", type=["json"])
-if uploaded_file is not None:
-    try:
-        imported_data = json.load(uploaded_file)
-        st.session_state.client_data = imported_data.get("client_data", st.session_state.client_data)
-        st.session_state.econ_mode = imported_data.get("econ_mode", st.session_state.econ_mode)
-        st.session_state.paste_input = imported_data.get("paste_input", st.session_state.paste_input)
-        st.session_state.summary_years = imported_data.get("summary_years", st.session_state.summary_years)
-        st.session_state.summary_avg_salary = imported_data.get("summary_avg_salary", st.session_state.summary_avg_salary)
-        st.sidebar.success("✅ Τα δεδομένα φορτώθηκαν επιτυχώς!")
-    except Exception as e:
-        st.sidebar.error(f"Σφάλμα φόρτωσης: {e}")
-
-st.sidebar.markdown("---")
 if st.sidebar.button("🚪 Αποσύνδεση"):
     st.session_state.logged_in = False
     st.rerun()
@@ -189,7 +227,7 @@ app_section = st.sidebar.radio("Επιλογή:", [
 ])
 
 st.sidebar.markdown("---")
-st.sidebar.success("🟢 Ασφαλής Σύνδεση")
+st.sidebar.success("🟢 Βάση Δεδομένων Ενεργή")
 
 # --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
 if app_section == "👤 Προσωπικά Στοιχεία":
@@ -219,7 +257,8 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Προσωπικών Στοιχείων", type="primary"):
-        st.success("✅ Τα προσωπικά στοιχεία αποθηκεύτηκαν επιτυχώς στη μνήμη!")
+        persist_all()
+        st.success("✅ Τα προσωπικά στοιχεία αποθηκεύτηκαν μόνιμα στη βάση δεδομένων!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -323,11 +362,12 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾 Αποθήκευση Οικονομικών Στοιχείων", type="primary"):
-        st.success("✅ Τα οικονομικά στοιχεία αποθηκεύτηκαν επιτυχώς στη μνήμη!")
+        persist_all()
+        st.success("✅ Τα οικονομικά στοιχεία αποθηκεύτηκαν μόνιμα στη βάση δεδομένων!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
