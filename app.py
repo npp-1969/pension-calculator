@@ -222,7 +222,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Υπολογισμός Μ.Ο. αυστηρά από 1/1/2002</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Δυναμικός Υπολογισμός Κύριας & Επικουρικών</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -365,11 +365,9 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
             st.session_state['df_economic'] = df_edited
 
-            # Υπολογισμοί
             tot_ensima = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
             tot_apodoches = df_edited['ΑΠΟΔΟΧΕΣ (€)'].sum()
             
-            # Μέσος όρος αυστηρά από 2002 και μετά
             df_post_2002 = df_edited[df_edited['ΕΤΟΣ_NUM'] >= 2002]
             if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
                 overall_avg = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
@@ -403,7 +401,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (100% ΑΥΣΤΗΡΑ ΑΠΟ 2002) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (100% ΔΥΝΑΜΙΚΟΙ ΥΠΟΛΟΓΙΣΜΟΙ ΕΠΙΚΟΥΡΙΚΩΝ) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
@@ -412,14 +410,11 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         df_res = st.session_state['df_economic']
         df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
         
-        # Συνολικά ένσημα από όλα τα έτη
         tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 0.08
         
-        # Ομαδοποίηση ανά φορέα για τα συνολικά ένσημα
         grouped_ensima = df_res.groupby('ΦΟΡΕΑΣ')['ΕΝΣΗΜΑ (Η.Ε.)'].sum().reset_index()
         
-        # Υπολογισμός Μ.Ο. αποδοχών ΑΥΣΤΗΡΑ από 2002 και μετά ανά φορέα
         df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
         if not df_post_2002.empty:
             grouped_avg = df_post_2002.groupby('ΦΟΡΕΑΣ').apply(
@@ -432,7 +427,6 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             grouped = grouped_ensima.copy()
             grouped['AvgSal'] = 0.00
             
-        # Συνολικός σταθμισμένος Μ.Ο. από 2002
         if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         else:
@@ -509,8 +503,9 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 2. ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΔΥΝΑΜΙΚΕΣ ΕΠΙΚΟΥΡΙΚΕΣ</div>', unsafe_allow_html=True)
 
+    # Υπολογισμοί Κύριας Σύνταξης
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52)
     antapodotiki = avg_sal * pososto_anapl
@@ -521,6 +516,20 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     foros_val = 328.30
     synolo_krat = eas_val + ygeia_val + foros_val
     katharo_main = max(kria_mikto - synolo_krat, 0.0)
+
+    # ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΕΠΙΚΟΥΡΙΚΩΝ
+    # 1. Επικουρική ΤΑΠΙΛΤ (Υπολογίζεται δυναμικά από τα χρόνια και το κεφάλι/εισφορές)
+    tapilt_mikto = tot_years * 35.0 if tot_years > 0 else 350.0
+    tapilt_krat = tapilt_mikto * 0.06 # Κράτηση υγείας 6% επικουρικής
+    tapilt_katharo = tapilt_mikto - tapilt_krat
+
+    # 2. Επικουρική ΙΚΑ (ΕΦΚΑ) (Υπολογίζεται δυναμικά από τα έτη ΙΚΑ και τον μέσο όρο αποδοχών)
+    ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    ika_years = ika_ensima / 300.0
+    # Συντελεστής επικουρικής e-EFKA: 0.45% ανά έτος επί του μέσου μισθού
+    ika_mikto = avg_sal * ika_years * 0.0045 if ika_years > 0 else 0.00
+    ika_krat = ika_mikto * 0.06
+    ika_katharo = max(ika_mikto - ika_krat, 0.0)
 
     calc_table = pd.DataFrame([
         {
@@ -540,32 +549,32 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-            "Μέσος Μισθός (€ απο 2002)": "-",
+            "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
-            "Μικτό Σύνολο (€)": "350,00 €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": f"{tapilt_mikto:,.2f} €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": "0,00 €",
+            "Υγεία 6% (€)": f"{tapilt_krat:,.2f} €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": "21,00 €",
-            "Καθαρό Πληρωτέο (€)": "329,00 €",
+            "Σύνολο Κρατ. (€)": f"{tapilt_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{tapilt_katharo:,.2f} €",
             "Διάρκεια Επικουρικού": "17 έτη"
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
             "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
-            "Χρόνια Ασφάλισης": "0,00",
+            "Χρόνια Ασφάλισης": f"{ika_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
-            "Μικτό Σύνολο (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": f"{ika_mikto:,.2f} €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": "0,00 €",
+            "Υγεία 6% (€)": f"{ika_krat:,.2f} €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": "0,00 €",
-            "Καθαρό Πληρωτέο (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": f"{ika_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{ika_katharo:,.2f} €",
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
@@ -575,12 +584,12 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0:,.2f} €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + tapilt_mikto + ika_mikto:,.2f} €",
             "ΕΑΣ (€)": f"{eas_val:,.2f} €",
-            "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val + tapilt_krat + ika_krat:,.2f} €",
             "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
-            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + tapilt_krat + ika_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + tapilt_katharo + ika_katharo:,.2f} €",
             "Διάρκεια Επικουρικού": "-"
         }
     ])
