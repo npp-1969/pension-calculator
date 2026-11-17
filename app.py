@@ -189,12 +189,11 @@ if 'econ_mode' not in st.session_state:
 
 if 'paste_input' not in st.session_state:
     st.session_state.paste_input = db_data["paste_input"] if db_data else (
-        "2002\t01/07/2002\t31/07/2002\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
-        "2002\t01/08/2002\t31/08/2002\tΤΡΑΠΕΖΑ\t25\t3304.39"
+        "2002\t01/07/2002\t31/07/2002\tΤΡΑΠΕΖΑ\t25\t3304.39"
     )
 
 if 'summary_years' not in st.session_state:
-    st.session_state.summary_years = db_data["summary_years"] if db_data else 2.00
+    st.session_state.summary_years = db_data["summary_years"] if db_data else 0.08
 
 if 'summary_avg_salary' not in st.session_state:
     st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3304.39
@@ -223,7 +222,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - Άμεση Ανάγνωση Πίνακα</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016) - 100% Δυναμικός Υπολογισμός Πίνακα</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -316,14 +315,19 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
                 for _, row in temp_df.iterrows():
                     row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
                     if len(row_vals) >= 6:
-                        # Έξυπνη ανάγνωση αποδοχών (αν έχει 0 ή κενό, βάζουμε ενδεικτική τιμή ή 0)
                         raw_apod = row_vals[5].replace('€', '').strip()
-                        raw_apod = raw_apod.replace('.', '').replace(',', '.') if ',' in raw_apod and '.' in raw_apod else raw_apod.replace(',', '.')
+                        if ',' in raw_apod and '.' in raw_apod:
+                            if raw_apod.find('.') < raw_apod.find(','):
+                                raw_apod = raw_apod.replace('.', '').replace(',', '.')
+                            else:
+                                raw_apod = raw_apod.replace(',', '')
+                        elif ',' in raw_apod:
+                            raw_apod = raw_apod.replace(',', '.')
                         
                         try:
                             val_apod = float(raw_apod)
                         except:
-                            val_apod = 3304.39 # Προεπιλογή για να μην μένει 0 αν είναι κενό
+                            val_apod = 0.0
 
                         raw_ens = row_vals[4].replace(',', '.').strip()
                         try:
@@ -343,14 +347,12 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             except Exception as e:
                 st.error(f"Σφάλμα ανάγνωσης: {e}")
 
-        # Αν δεν υπάρχει προσωρινό dataframe, πάμε από την αποθηκευμένη μνήμη
+        # Ανάκτηση από μνήμη αν το text area είναι άδειο
         if df_parsed.empty and 'df_economic' in st.session_state:
             df_parsed = st.session_state['df_economic']
         elif df_parsed.empty:
-            # Αρχικό δείγμα για να μην είναι άδειο
             df_parsed = pd.DataFrame([
-                {"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/07/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/07/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3304.39},
-                {"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/08/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/08/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3304.39}
+                {"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/07/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/07/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3304.39}
             ])
 
         if not df_parsed.empty:
@@ -400,7 +402,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
 
-    # Ανάγνωση απευθείας από τον επεξεργασμένο πίνακα (data_editor)
+    # ΔΥΝΑΜΙΚΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ ΧΡΗΣΤΗ
     if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
         df_res = st.session_state['df_economic']
         grouped = df_res.groupby('ΦΟΡΕΑΣ').agg(
@@ -409,11 +411,11 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         ).reset_index()
     else:
         grouped = pd.DataFrame([
-            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "Ensima": 600, "AvgSal": 3304.39}
+            {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "Ensima": 25, "AvgSal": 3304.39}
         ])
 
     tot_ensima = grouped['Ensima'].sum()
-    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 2.00
+    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 0.08
     
     if tot_ensima > 0:
         avg_sal = (grouped['Ensima'] * grouped['AvgSal']).sum() / tot_ensima
