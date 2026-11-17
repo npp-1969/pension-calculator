@@ -92,11 +92,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==========================================
-# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE & ΑΠΟΘΗΚΕΥΣΗ ΠΕΛΑΤΩΝ
+# ΑΡΧΙΚΟΠΟΙΗΣΗ SESSION STATE (ΜΝΗΜΗ ΔΕΔΟΜΕΝΩΝ)
 # ==========================================
-if 'saved_profiles' not in st.session_state:
-    st.session_state.saved_profiles = {}
-
 if 'client_data' not in st.session_state:
     st.session_state.client_data = {
         "first_name": "",
@@ -107,11 +104,23 @@ if 'client_data' not in st.session_state:
         "first_work_date": ""
     }
 
+if 'econ_mode' not in st.session_state:
+    st.session_state.econ_mode = "🔄 Αναλυτικά (Πίνακας Περιόδων)"
+
 if 'paste_input' not in st.session_state:
     st.session_state.paste_input = (
         "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
         "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
     )
+
+if 'summary_years' not in st.session_state:
+    st.session_state.summary_years = 42.57
+
+if 'summary_avg_salary' not in st.session_state:
+    st.session_state.summary_avg_salary = 3290.54
+
+if 'saved_profiles' not in st.session_state:
+    st.session_state.saved_profiles = {}
 
 # ==========================================
 # ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
@@ -135,10 +144,12 @@ with top_c1:
     selected_profile = st.selectbox("📂 Φόρτωση Αποθηκευμένης Καρτέλας Πελάτη:", profile_names)
 
     if selected_profile != "— Νέα / Τρέχουσα Καρτέλα —":
-        # Φόρτωση αποθηκευμένου προφίλ
         prof = st.session_state.saved_profiles[selected_profile]
         st.session_state.client_data = prof["client_data"].copy()
+        st.session_state.econ_mode = prof["econ_mode"]
         st.session_state.paste_input = prof["paste_input"]
+        st.session_state.summary_years = prof["summary_years"]
+        st.session_state.summary_avg_salary = prof["summary_avg_salary"]
 
 with top_c2:
     save_profile_name = st.text_input("Όνομα αποθήκευσης καρτέλας:", placeholder="π.χ. Νεκτάριος Πελεκάνος")
@@ -149,11 +160,14 @@ with top_c3:
         if save_profile_name.strip():
             st.session_state.saved_profiles[save_profile_name.strip()] = {
                 "client_data": st.session_state.client_data.copy(),
-                "paste_input": st.session_state.paste_input
+                "econ_mode": st.session_state.econ_mode,
+                "paste_input": st.session_state.paste_input,
+                "summary_years": st.session_state.summary_years,
+                "summary_avg_salary": st.session_state.summary_avg_salary
             }
-            st.success(f"Η καρτέλα '{save_profile_name.strip()}' αποθηκεύτηκε με επιτυχία!")
+            st.success(f"Η καρτέλα '{save_profile_name.strip()}' αποθηκεύτηκε επιτυχώς!")
         else:
-            st.warning("Παρακαλώ δώστε όνομα για την αποθήκευση.")
+            st.warning("Παρακαλώ δώστε όνομα.")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -177,8 +191,8 @@ st.sidebar.success("🟢 Ασφαλής Σύνδεση")
 # --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
 if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">👤 Κατηγορία: Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Διαχειριστείτε τα στοιχεία ταυτότητας και ασφαλιστικού προφίλ.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">👤 Κατηγορία: 1. Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία ταυτότητας και πατήστε αποθήκευση κάτω.</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -200,131 +214,123 @@ if app_section == "👤 Προσωπικά Στοιχεία":
     with col6:
         st.session_state.client_data["first_work_date"] = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", value=st.session_state.client_data["first_work_date"], placeholder="π.χ. Ιούνιος 1990")
 
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Προσωπικών Στοιχείων", type="primary"):
+        st.success("✅ Τα προσωπικά στοιχεία αποθηκεύτηκαν επιτυχώς στη μνήμη!")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">💰 ΠΙΝΑΚΑΣ ΠΕΡΙΟΔΩΝ & ΟΙΚΟΝΟΜΙΚΩΝ ΣΤΟΙΧΕΙΩΝ</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="panel-desc">'
-        'Δώστε τις <b>ακριβείς ημερομηνίες</b> από–έως (ημέρα/μήνας/έτος) ή κάντε επικόλληση από το Excel σας.<br>'
-        'Ο κορμός του συστήματος διαβάζει αυτόματα τα διαστήματα, υπολογίζει τις ημέρες/ένσημα και κατανέμει τα ποσά ανά φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.).'
-        '</div>', 
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="panel-header">💰 Κατηγορία: 2. Οικονομικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Επιλέξτε τρόπο καταχώρησης (Αναλυτικά με πίνακα ή Συγκεντρωτικά) και αποθηκεύστε τα.</div>', unsafe_allow_html=True)
 
-    def clear_text():
-        st.session_state.paste_input = ""
+    # Επιλογή τρόπου καταχώρησης
+    modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά (Συνολικά Έτη & Μέσος Όρος)"]
+    m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
+    st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης οικονομικών στοιχείων:", modes, index=m_idx, horizontal=True)
 
-    col_b1, col_b2 = st.columns([1, 4])
-    with col_b1:
-        st.button("🗑️ Καθαρισμός", on_click=clear_text)
-    
-    pasted_data = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", key='paste_input', height=120)
+    st.markdown("---")
 
-    processed_df = pd.DataFrame()
-    if pasted_data.strip():
-        try:
-            temp_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
-            if len(temp_df.columns) < 3:
-                temp_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
-            
-            if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "ΑΠΌ", "ΈΩΣ", "ΗΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
-                temp_df = temp_df.iloc[1:].reset_index(drop=True)
+    if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
+        st.markdown("#### 📋 Πίνακας Περιόδων & Επικόλλησης Excel")
+        st.markdown("Σειρά στηλών: **ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ**")
 
-            final_data = []
-            for _, row in temp_df.iterrows():
-                row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
-                if len(row_vals) >= 6:
-                    etos = row_vals[0]
-                    apo = row_vals[1]
-                    eos = row_vals[2]
-                    forer = row_vals[3]
-                    
-                    try:
-                        ensima = float(row_vals[4].replace(',', '.'))
-                    except:
-                        ensima = 25.0
-                    
-                    try:
-                        apod = float(row_vals[5].replace('€', '').replace('.', '').replace(',', '.'))
-                    except:
-                        apod = 0.0
+        def clear_text():
+            st.session_state.paste_input = ""
 
-                    final_data.append({
-                        "ΕΤΟΣ": etos,
-                        "ΑΠΟ (ΗΜ/ΝΙΑ)": apo,
-                        "ΕΩΣ (ΗΜ/ΝΙΑ)": eos,
-                        "ΦΟΡΕΑΣ": str(forer).upper().strip(),
-                        "ΕΝΣΗΜΑ (Η.Ε.)": ensima,
-                        "ΑΠΟΔΟΧΕΣ (€)": apod
-                    })
+        col_b1, col_b2 = st.columns([1, 4])
+        with col_b1:
+            st.button("🗑️ Καθαρισμός", on_click=clear_text)
+        
+        st.session_state.paste_input = st.text_area("Επικόλληση δεδομένων Excel εδώ:", value=st.session_state.paste_input, height=120)
 
-            processed_df = pd.DataFrame(final_data)
-        except Exception as e:
-            st.error(f"Σφάλμα ανάγνωσης: {e}")
+        processed_df = pd.DataFrame()
+        if st.session_state.paste_input.strip():
+            try:
+                temp_df = pd.read_csv(io.StringIO(st.session_state.paste_input), sep="\t", header=None)
+                if len(temp_df.columns) < 3:
+                    temp_df = pd.read_csv(io.StringIO(st.session_state.paste_input), sep=",", header=None)
+                
+                if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "ΑΠΌ", "ΈΩΣ", "ΗΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
+                    temp_df = temp_df.iloc[1:].reset_index(drop=True)
 
-    if not processed_df.empty:
-        st.markdown("##### ✏️ Διαδραστικός Πίνακας Περιόδων (Κορμός Συστήματος):")
-        df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
+                final_data = []
+                for _, row in temp_df.iterrows():
+                    row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
+                    if len(row_vals) >= 6:
+                        etos = row_vals[0]
+                        apo = row_vals[1]
+                        eos = row_vals[2]
+                        forer = row_vals[3]
+                        
+                        try:
+                            ensima = float(row_vals[4].replace(',', '.'))
+                        except:
+                            ensima = 25.0
+                        
+                        try:
+                            apod = float(row_vals[5].replace('€', '').replace('.', '').replace(',', '.'))
+                        except:
+                            apod = 0.0
 
-        df['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
-        df['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
-        df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
+                        final_data.append({
+                            "ΕΤΟΣ": etos,
+                            "ΑΠΟ (ΗΜ/ΝΙΑ)": apo,
+                            "ΕΩΣ (ΗΜ/ΝΙΑ)": eos,
+                            "ΦΟΡΕΑΣ": str(forer).upper().strip(),
+                            "ΕΝΣΗΜΑ (Η.Ε.)": ensima,
+                            "ΑΠΟΔΟΧΕΣ (€)": apod
+                        })
 
-        total_all_ensima = df['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        total_all_apodoches = df['ΑΠΟΔΟΧΕΣ (€)'].sum()
-        overall_avg_salary = df['ΑΠΟΔΟΧΕΣ (€)'].mean() if len(df) > 0 else 0
+                processed_df = pd.DataFrame(final_data)
+            except Exception as e:
+                st.error(f"Σφάλμα ανάγνωσης: {e}")
 
-        st.session_state['total_all_ensima'] = total_all_ensima
-        st.session_state['total_all_apodoches'] = total_all_apodoches
-        st.session_state['overall_avg_salary'] = overall_avg_salary
+        if not processed_df.empty:
+            st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων:")
+            df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
-        st.markdown("---")
-        st.markdown("### 🌟 Γενικά Συγκεντρωτικά Στοιχεία (Όλοι οι Φορείς)")
-        sc1, sc2, sc3 = st.columns(3)
-        sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
-        sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
-        sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
+            df['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
+            df['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
+            df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-        grouped = df.groupby('ΦΟΡΕΑΣ').agg(
-            Συνολικα_Ενσημα=('ΕΝΣΗΜΑ (Η.Ε.)', 'sum'),
-            Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ (€)', 'mean')
-        ).reset_index()
+            total_all_ensima = df['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            total_all_apodoches = df['ΑΠΟΔΟΧΕΣ (€)'].sum()
+            overall_avg_salary = df['ΑΠΟΔΟΧΕΣ (€)'].mean() if len(df) > 0 else 0
 
-        grouped['Χρονια'] = grouped['Συνολικα_Ενσημα'] / 300.0
+            st.session_state['total_all_ensima'] = total_all_ensima
+            st.session_state['overall_avg_salary'] = overall_avg_salary
 
-        agency_rows = []
-        for _, row in grouped.iterrows():
-            agency_rows.append({
-                "ΦΟΡΕΑΣ": row['ΦΟΡΕΑΣ'],
-                "ΧΡΟΝΙΑ": f"{row['Χρονια']:.2f}",
-                "ΕΝΣΗΜΑ": f"{int(row['Συνολικα_Ενσημα']):,}",
-                "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{row['Μσ_Ορος_Αποδοχών']:,.2f} €"
-            })
+            st.markdown("---")
+            sc1, sc2, sc3 = st.columns(3)
+            sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
+            sc2.metric("Συνολικό Άθροισμα Μικτών Αποδοχών", f"{total_all_apodoches:,.2f} €")
+            sc3.metric("Συνολικός Μέσος Μισθός", f"{overall_avg_salary:,.2f} €")
 
-        tot_years = total_all_ensima / 300.0
-        agency_rows.append({
-            "ΦΟΡΕΑΣ": "🌟 ΣΥΝΟΛΟ",
-            "ΧΡΟΝΙΑ": f"{tot_years:.2f}",
-            "ΕΝΣΗΜΑ": f"{int(total_all_ensima):,}",
-            "Μ. ΟΡΟΣ ΑΠΟΔΟΧΩΝ (€)": f"{overall_avg_salary:,.2f} €"
-        })
+    else:
+        st.markdown("#### ⚡ Συγκεντρωτική Καταχώρηση")
+        eco_c1, eco_c2 = st.columns(2)
+        with eco_c1:
+            st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=st.session_state.summary_years)
+            st.session_state['total_all_ensima'] = st.session_state.summary_years * 300.0
+        with eco_c2:
+            st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=st.session_state.summary_avg_salary)
+            st.session_state['overall_avg_salary'] = st.session_state.summary_avg_salary
 
-        agency_df = pd.DataFrame(agency_rows)
-
-        st.markdown("---")
-        st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα")
-        st.dataframe(agency_df, use_container_width=True, hide_index=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Οικονομικών Στοιχείων", type="primary"):
+        st.success("✅ Τα οικονομικά στοιχεία αποθηκεύτηκαν επιτυχώς στη μνήμη!")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) — ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
     
+    # Εμφάνιση στοιχείων πελάτη
     c_info = st.session_state.client_data
     if c_info["first_name"] or c_info["last_name"]:
         st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
@@ -339,7 +345,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     detailed_calc_table = pd.DataFrame([
         {
             "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-            "Μέσος Μισθός (€)": "2.545,85 €",
+            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": "446,87 €",
             "Ποσοστό Αναπλ. (%)": "51,00%",
