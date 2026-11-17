@@ -91,17 +91,17 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Αυτόματος Εντοπισμός Αποδοχών</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Έξυπνος Εντοπισμός</div>', unsafe_allow_html=True)
     
     st.info(
-        "📌 Κάντε **Copy** ολόκληρο τον πίνακα από το Excel σας και **Paste** παρακάτω.\n"
-        "Το σύστημα εντοπίζει αυτόματα τις στήλες (Έτος, Από, Έως, Φορέας, Ημέρες, Αποδοχές), όποια σειρά κι αν έχουν!"
+        "📌 Κάντε **Copy** από το Excel σας και **Paste** παρακάτω.\n"
+        "Το σύστημα εντοπίζει αυτόνομα ποια στήλη έχει τις ημέρες και ποια έχει τις αποδοχές, ανεξάρτητα από τη θέση τους!"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
-            "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t28\t3304.39\n"
-            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t28\t3304.39"
+            "2012\t01/01/2012\t31/01/2012\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
+            "2012\t01/02/2012\t29/02/2012\tΤΡΑΠΕΖΑ\t25\t3304.39"
         )
 
     def clear_text():
@@ -110,47 +110,73 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     st.button("🗑️ Καθαρισμός & Νέα Επικόλληση", on_click=clear_text)
     pasted_data = st.text_area("Κάντε επικόλληση (Paste) εδώ:", key='paste_input', height=130)
 
-    raw_df = pd.DataFrame()
+    processed_df = pd.DataFrame()
     if pasted_data.strip():
         try:
-            # Δοκιμή ανάγνωσης με Tab (Excel)
-            raw_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
-            if len(raw_df.columns) < 3:
-                raw_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
+            # Διάβαστηκε με tab (Excel)
+            temp_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
+            if len(temp_df.columns) < 3:
+                temp_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
+            
+            # Αν η πρώτη γραμμή είναι επικεφαλίδες, την αφαιρούμε
+            if len(temp_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "YEAR", "HΜΕΡΕΣ"] for val in temp_df.iloc[0].values):
+                temp_df = temp_df.iloc[1:].reset_index(drop=True)
+
+            # Δημιουργία καθαρού DataFrame 6 βασικών στηλών
+            final_data = []
+            for _, row in temp_df.iterrows():
+                row_vals = [str(v).strip() for v in row.values if pd.notna(v) and str(v).strip() != '']
+                if len(row_vals) >= 4:
+                    etos = row_vals[0]
+                    apo = row_vals[1]
+                    eos = row_vals[2]
+                    forer = row_vals[3]
+                    
+                    # Αναζήτηση μέσα στα υπόλοιπα στοιχεία της γραμμής για ημέρες (ακέραιοι 1-31) και αποδοχές (μεγαλύτεροι αριθμοί / δεκαδικοί)
+                    ensima = 25.0
+                    apod = 0.0
+                    
+                    nums = []
+                    for val in row_vals[4:]:
+                        clean_val = val.replace('€', '').replace('.', '').replace(',', '.')
+                        try:
+                            num = float(clean_val)
+                            nums.append(num)
+                        except:
+                            pass
+                    
+                    if len(nums) >= 2:
+                        # Συνήθως ο μικρότερος αριθμός (1-31) είναι οι ημέρες και ο μεγαλύτερος είναι οι αποδοχές
+                        for n in nums:
+                            if 1 <= n <= 31 and ensima == 25.0:
+                                ensima = n
+                            else:
+                                apod = n
+                    elif len(nums) == 1:
+                        apod = nums[0]
+
+                    final_data.append({
+                        "ΕΤΟΣ": etos,
+                        "ΑΠΟ": apo,
+                        "ΕΩΣ": eos,
+                        "ΦΟΡΕΑΣ": forer.upper(),
+                        "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ": ensima,
+                        "ΑΠΟΔΟΧΕΣ": apod
+                    })
+
+            processed_df = pd.DataFrame(final_data)
         except Exception as e:
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
-    if not raw_df.empty:
-        # Αν η πρώτη γραμμή είναι τίτλοι, την αφαιρούμε
-        if len(raw_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "YEAR"] for val in raw_df.iloc[0].values):
-            raw_df = raw_df.iloc[1:].reset_index(drop=True)
-
-        # Δημιουργία τυπικών ονομασιών για τις στήλες ανάλογα με το πόσες είναι
-        cols_count = len(raw_df.columns)
-        if cols_count >= 6:
-            # Αν υπάρχουν τουλάχιστον 6 στήλες, αντιστοιχίζουμε: 0:ΕΤΟΣ, 1:ΑΠΟ, 2:ΕΩΣ, 3:ΦΟΡΕΑΣ, 4:ΕΝΣΗΜΑ, 5+:ΑΠΟΔΟΧΕΣ
-            raw_df = raw_df.iloc[:, :6]
-            raw_df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
-        else:
-            # Προσαρμογή αν οι στήλες είναι λιγότερες
-            raw_df.columns = [f"Col_{i}" for i in range(cols_count)]
-            raw_df["ΕΤΟΣ"] = raw_df.iloc[:, 0]
-            raw_df["ΦΟΡΕΑΣ"] = raw_df.iloc[:, 3] if cols_count > 3 else "ΑΓΝΩΣΤΟΣ"
-            raw_df["ΗΜΕΡΕΣ-ΕΝΣΗΜΑ"] = 25
-            raw_df["ΑΠΟΔΟΧΕΣ"] = raw_df.iloc[:, -1] # Παίρνει την τελευταία στήλη ως αποδοχές
-
-        # Έξυπνος καθαρισμός αριθμών (αφαίρεση συμβόλων € ή κενών)
-        for col in ["ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]:
-            if col in raw_df.columns:
-                raw_df[col] = raw_df[col].astype(str).str.replace('€', '').str.replace(',', '.').str.strip()
-                raw_df[col] = pd.to_numeric(raw_df[col], errors='coerce').fillna(0.0)
-
-        raw_df['ΦΟΡΕΑΣ'] = raw_df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
-
+    if not processed_df.empty:
         st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων (Μπορείτε να επεξεργαστείτε απευθείας τα κελιά):")
-        df = st.data_editor(raw_df, num_rows="dynamic", use_container_width=True, hide_index=True)
+        df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         # --- ΑΥΤΟΜΑΤΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΦΟΡΕΑ (ΣΥΓΚΕΝΤΡΩΤΙΚΟΣ ΠΙΝΑΚΑΣ) ---
+        df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
+        df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
+        df['ΦΟΡΕΑΣ'] = df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
+
         grouped = df.groupby('ΦΟΡΕΑΣ').agg(
             Συνολικα_Ενσημα=('ΗΜΕΡΕΣ-ΕΝΣΗΜΑ', 'sum'),
             Μσ_Ορος_Αποδοχών=('ΑΠΟΔΟΧΕΣ', 'mean')
@@ -265,7 +291,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
                 "Καθαρό Πληρωτέο (€)": "94,55"
             },
             {
-                "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+                "Είδος Σής": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
                 "Μέσος Μισθός (€)": "-",
                 "Χρόνια": f"{tot_years:.2f}",
                 "Ένσημα": f"{int(tot_ensima):,}",
