@@ -35,7 +35,7 @@ init_db()
 def save_to_db(data):
     conn = sqlite3.connect('pension_bms.db')
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM client_profile') # Κρατάμε πάντα τον ενεργό πελάτη
+    cursor.execute('DELETE FROM client_profile')
     cursor.execute('''
         INSERT INTO client_profile (first_name, last_name, gender, birth_date, insurance_cat, first_work_date, econ_mode, paste_input, summary_years, summary_avg_salary)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -183,7 +183,6 @@ if 'summary_years' not in st.session_state:
 if 'summary_avg_salary' not in st.session_state:
     st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 800.10
 
-# Helper για γενική αποθήκευση στη βάση
 def persist_all():
     full_data = {
         "first_name": st.session_state.client_data["first_name"],
@@ -344,6 +343,13 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             st.session_state['total_all_ensima'] = total_all_ensima
             st.session_state['overall_avg_salary'] = overall_avg_salary
 
+            # Υπολογισμός ενσήμων ανά φορέα για δυναμική εμφάνιση στις επικουρικές
+            ika_ensima = df[df['ΦΟΡΕΑΣ'].str.contains("ΙΚΑ|ΕΦΚΑ", na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            tapilt_ensima = df[df['ΦΟΡΕΑΣ'].str.contains("ΤΡΑΠΕΖΑ|ΤΑΠΙΛΤ", na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            
+            st.session_state['ika_years'] = ika_ensima / 300.0 if ika_ensima > 0 else (total_all_ensima / 300.0 * 0.2)
+            st.session_state['tapilt_years'] = tapilt_ensima / 300.0 if tapilt_ensima > 0 else (total_all_ensima / 300.0 * 0.8)
+
             st.markdown("---")
             sc1, sc2, sc3 = st.columns(3)
             sc1.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
@@ -356,6 +362,8 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
         with eco_c1:
             st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years))
             st.session_state['total_all_ensima'] = st.session_state.summary_years * 300.0
+            st.session_state['ika_years'] = st.session_state.summary_years * 0.3
+            st.session_state['tapilt_years'] = st.session_state.summary_years * 0.7
         with eco_c2:
             st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=float(st.session_state.summary_avg_salary))
             st.session_state['overall_avg_salary'] = st.session_state.summary_avg_salary
@@ -367,7 +375,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
@@ -380,19 +388,34 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     tot_years = tot_ensima / 300.0
     avg_sal = st.session_state.get('overall_avg_salary', 800.10)
 
+    # Δυναμικά έτη για τις επικουρικές
+    ika_years = st.session_state.get('ika_years', tot_years * 0.3)
+    tapilt_years = st.session_state.get('tapilt_years', tot_years * 0.7)
+
     ethniki = 446.87
     pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52) 
     antapodotiki = avg_sal * pososto_anapl
     kria_mikto = ethniki + antapodotiki + 349.26 
     
+    # Επικουρική ΤΑΠΙΛΤ & ΙΚΑ υπολογισμός βάσει ετών
+    epik_tapilt_mikto = 350.0 * (tapilt_years / max(tot_years, 1))
+    epik_ika_mikto = avg_sal * 0.0045 * ika_years  # Ενδεικτικός υπολογισμός επικουρικής ΙΚΑ
+
     eas_val = 146.62 if kria_mikto > 1400 else 0.00
     ygeia_val = kria_mikto * 0.06
     foros_val = 244.50 if kria_mikto > 1000 else 100.00
     synolo_krat = eas_val + ygeia_val + foros_val
     katharo_main = max(kria_mikto - synolo_krat, 0.0)
 
+    # Κρατήσεις επικουρικών
+    ygeia_tapilt = epik_tapilt_mikto * 0.06
+    katharo_tapilt = max(epik_tapilt_mikto - ygeia_tapilt, 0.0)
+
+    ygeia_ika = epik_ika_mikto * 0.06
+    katharo_ika = max(epik_ika_mikto - ygeia_ika, 0.0)
+
     st.markdown("---")
-    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026 - Βάσει των στοιχείων σας)")
+    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026 - Δυναμική Υπολογιστική)")
     
     detailed_calc_table = pd.DataFrame([
         {
@@ -413,31 +436,31 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
             "Μέσος Μισθός (€)": "-",
-            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
+            "Χρόνια Ασφάλισης": f"{tapilt_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
-            "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
-            "Μικτό Σύνολο (€)": "350,00 €",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": f"{epik_tapilt_mikto:,.2f} €",
+            "Μικτό Σύνολο (€)": f"{epik_tapilt_mikto:,.2f} €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": "21,00 €",
+            "Υγεία 6% (€)": f"{ygeia_tapilt:,.2f} €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": "21,00 €",
-            "Καθαρό Πληρωτέο (€)": "329,00 €",
+            "Σύνολο Κρατ. (€)": f"{ygeia_tapilt:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_tapilt:,.2f} €",
             "Διάρκεια Επικουρικού": "17 έτη"
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-            "Μέσος Μισθός (€)": "0,00 €",
-            "Χρόνια Ασφάλισης": "0,00",
+            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
+            "Χρόνια Ασφάλισης": f"{ika_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
-            "Μικτό Σύνολο (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": f"{epik_ika_mikto:,.2f} €",
             "ΕΑΣ (€)": "0,00 €",
-            "Υγεία 6% (€)": "0,00 €",
+            "Υγεία 6% (€)": f"{ygeia_ika:,.2f} €",
             "Φόρος Μην. (€)": "0,00 €",
-            "Σύνολο Κρατ. (€)": "0,00 €",
-            "Καθαρό Πληρωτέο (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": f"{ygeia_ika:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_ika:,.2f} €",
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
@@ -447,12 +470,12 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0:,.2f} €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + epik_tapilt_mikto + epik_ika_mikto:,.2f} €",
             "ΕΑΣ (€)": f"{eas_val:,.2f} €",
-            "Υγεία 6% (€)": f"{ygeia_val + 21.0:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val + ygeia_tapilt + ygeia_ika:,.2f} €",
             "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
-            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0:,.2f} €",
-            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + ygeia_tapilt + ygeia_ika:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + katharo_tapilt + katharo_ika:,.2f} €",
             "Διάρκεια Επικουρικού": "-"
         }
     ])
