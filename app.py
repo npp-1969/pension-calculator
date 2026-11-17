@@ -258,7 +258,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Άμεση Ενημέρωση Ρυθμίσεων</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Έλεγχος & Τελική Εικόνα</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -274,6 +274,7 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
     "📊 Συγκεντρωτικά Αποτελέσματα", 
     "💼 Υπολογισμός Εφάπαξ",
+    "📋 Τελική Εικόνα & Εκτύπωση",
     "⚙️ Ρυθμίσεις Συστήματος"
 ])
 
@@ -665,54 +666,4 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
             <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
             <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
         </table>
-        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 5. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
-else:
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα ενημερώνει άμεσα τους υπολογισμούς!</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    col_set1, col_set2 = st.columns(2)
-    
-    with col_set1:
-        new_merida = st.number_input(
-            "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
-            value=float(st.session_state.merida_amount), 
-            step=100.0,
-            format="%.2f"
-        )
-        
-        new_tapilt = st.number_input(
-            "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
-            value=float(st.session_state.tapilt_net), 
-            step=10.0,
-            format="%.2f"
-        )
-
-    with col_set2:
-        new_expiry = st.number_input(
-            "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
-            value=float(st.session_state.tapilt_after_expiry), 
-            step=10.0,
-            format="%.2f"
-        )
-        
-        calc_annual = new_tapilt * 12
-        calc_years = (new_merida / calc_annual) if calc_annual > 0 else 0
-        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
-        # Ενημέρωση άμεσα στη session state και στη βάση
-        st.session_state.merida_amount = new_merida
-        st.session_state.tapilt_net = new_tapilt
-        st.session_state.tapilt_after_expiry = new_expiry
-        persist_all()
-        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν και ενημερώθηκαν άμεσα σε όλους τους υπολογισμούς!")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal *
