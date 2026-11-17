@@ -30,7 +30,6 @@ def init_db():
             tapilt_after_expiry REAL
         )
     ''')
-    # Αυτόματος έλεγχος και προσθήκη στηλών αν λείπουν από παλιά βάση
     cursor.execute("PRAGMA table_info(client_profile)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'merida_amount' not in columns:
@@ -223,7 +222,6 @@ if 'summary_years' not in st.session_state:
 if 'summary_avg_salary' not in st.session_state:
     st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3304.39
 
-# Ρυθμίσεις Μερίδας & ΤΑΠΙΛΤ
 if 'merida_amount' not in st.session_state:
     st.session_state.merida_amount = db_data["merida_amount"] if db_data else 71206.66
 
@@ -260,7 +258,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Αυτόματη Αναβάθμιση Βάσης Δεδομένων</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Ανάλυση Κύριας, Επικουρικών & Εφάπαξ</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -439,7 +437,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΜΕ ΕΦΑΠΑΞ ΑΚΡΙΒΩΣ ΚΑΤΩ ΑΠΟ ΤΟΝ ΥΠΟΛΟΓΙΣΜΟ) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
@@ -633,6 +631,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
 
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
 
+    # --- ΕΦΑΠΑΞ ΥΠΟΛΟΓΙΣΜΟΣ ΑΚΡΙΒΩΣ ΚΑΤΩ ΑΠΟ ΤΟΝ ΥΠΟΛΟΓΙΣΜΟ ΣΥΝΤΑΞΗΣ ---
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 3. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
 
