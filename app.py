@@ -560,4 +560,149 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     tapilt_katharo = st.session_state.tapilt_net
     tapilt_krat = tapilt_katharo * 0.06 / 0.94
     tapilt_mikto = tapilt_katharo + tapilt_krat
-    tapilt_duration_str = f"
+    tapilt_duration_str = f"Πρώτα {years_to_expiry:.1f} έτη (μετά {st.session_state.tapilt_after_expiry:.2f} € ισόβια)"
+
+    ika_ensima = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ|ΕΦΚΑ', na=False)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if 'df_res' in locals() else 0
+    ika_years = ika_ensima / 300.0
+    ika_mikto = avg_sal * ika_years * 0.0045 if ika_years > 0 else 0.00
+    ika_krat = ika_mikto * 0.06
+    ika_katharo = max(ika_mikto - ika_krat, 0.0)
+
+    calc_table = pd.DataFrame([
+        {
+            "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+            "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
+            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
+            "Εθνική Σύνταξη (€)": f"{ethniki:,.2f} €",
+            "Ποσοστό Αναπλ. (%)": f"{pososto_anapl*100:.2f}%",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "451,42 €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto:,.2f} €",
+            "ΕΑΣ (€)": f"{eas_val:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
+            "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main:,.2f} €",
+            "Διάρκεια Επικουρικού": "Ισόβια"
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ (ΡΥΘΜΙΣΜΕΝΗ)",
+            "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
+            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": f"{tapilt_mikto:,.2f} €",
+            "ΕΑΣ (€)": "0,00 €",
+            "Υγεία 6% (€)": f"{tapilt_krat:,.2f} €",
+            "Φόρος Μην. (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": f"{tapilt_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{tapilt_katharo:,.2f} €",
+            "Διάρκεια Επικουρικού": tapilt_duration_str
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+            "Μέσος Μισθός (€ απο 2002)": f"{avg_sal:,.2f} €",
+            "Χρόνια Ασφάλισης": f"{ika_years:.2f}",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
+            "Μικτό Σύνολο (€)": f"{ika_mikto:,.2f} €",
+            "ΕΑΣ (€)": "0,00 €",
+            "Υγεία 6% (€)": f"{ika_krat:,.2f} €",
+            "Φόρος Μην. (€)": "0,00 €",
+            "Σύνολο Κρατ. (€)": f"{ika_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{ika_katharo:,.2f} €",
+            "Διάρκεια Επικουρικού": "Ισόβια"
+        },
+        {
+            "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+            "Μέσος Μισθός (€ απο 2002)": "-",
+            "Χρόνια Ασφάλισης": "-",
+            "Εθνική Σύνταξη (€)": "-",
+            "Ποσοστό Αναπλ. (%)": "-",
+            "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + tapilt_mikto + ika_mikto:,.2f} €",
+            "ΕΑΣ (€)": f"{eas_val:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val + tapilt_krat + ika_krat:,.2f} €",
+            "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + tapilt_krat + ika_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + tapilt_katharo + ika_katharo:,.2f} €",
+            "Διάρκεια Επικουρικού": "-"
+        }
+    ])
+
+    st.dataframe(calc_table, use_container_width=True, hide_index=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 3. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
+
+    efap_col1, efap_col2 = st.columns(2)
+    with efap_col1:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-gold-header"><th colspan="2">ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ (ΤΑ ΠΑΛ ΠΡΑΣΙΝΑ/ΓΑΛΑΖΙΑ ΑΛΛΑΖΟΥΝ)</th></tr>
+            <tr><td>Έτη Τράπεζας έως 31/12/2013</td><td style="text-align: center;">{:.2f}</td></tr>
+            <tr><td>Μέσος Μισθός (12μηνο)</td><td style="text-align: center;">{:,.2f} €</td></tr>
+            <tr><td>Αναγωγή σε Μηνιαίο Τακτικό</td><td style="text-align: center;">{:,.2f} €</td></tr>
+            <tr><td>Συντελεστής Αναπλήρωσης (έως 2013)</td><td style="text-align: center; color: blue;">60,00%</td></tr>
+            <tr><td>Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td><td style="text-align: center;">4,00%</td></tr>
+            <tr><td>Συντελεστής Αποτίμησης (2014–2022)</td><td style="text-align: center;">1,015</td></tr>
+        </table>
+        """.format(tot_years, avg_sal, avg_sal*0.85), unsafe_allow_html=True)
+
+    with efap_col2:
+        st.markdown("""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-table-header"><th colspan="2">ΤΜΗΜΑ ΕΦΑΠΑΞ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
+            <tr><td colspan="2">1. Τμήμα Α (Έτη έως 31/12/2013)</td><td style="text-align: right;">{:,.2f} €</td></tr>
+            <tr><td colspan="2">2. Τμήμα Β (Εισφορές 2014–2022)</td><td style="text-align: right;">{:,.2f} €</td></tr>
+            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td><td style="text-align: right; color: #1E3A8A;">{:,.2f} €</td></tr>
+            <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (Πλήρως Αφορολόγητο)</td></tr>
+        </table>
+        """.format(tot_years * avg_sal * 0.6, tot_years * avg_sal * 0.1, tot_years * avg_sal * 0.7), unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
+else:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Εδώ μπορείτε να ορίσετε τα ακριβή ποσά για τις Εισφορές Μερίδας και το καθαρό ποσό Επικουρικής ΤΑΠΙΛΤ. Το σύστημα υπολογίζει αυτόματα τη διάρκεια εξάντλησης!</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    col_set1, col_set2 = st.columns(2)
+    
+    with col_set1:
+        st.session_state.merida_amount = st.number_input(
+            "💰 Συνολικό Ποσό Εισφορών Μερίδας (€):", 
+            value=float(st.session_state.merida_amount), 
+            step=100.0,
+            format="%.2f"
+        )
+        
+        st.session_state.tapilt_net = st.number_input(
+            "💶 Καθαρό Μηνιαίο Ποσό Επικουρικής ΤΑΠΙΛΤ (€):", 
+            value=float(st.session_state.tapilt_net), 
+            step=10.0,
+            format="%.2f"
+        )
+
+    with col_set2:
+        st.session_state.tapilt_after_expiry = st.number_input(
+            "📉 Ποσό Επικουρικής ΤΑΠΙΛΤ μετά την εξάντληση της μερίδας (€):", 
+            value=float(st.session_state.tapilt_after_expiry), 
+            step=10.0,
+            format="%.2f"
+        )
+        
+        calc_annual = st.session_state.tapilt_net * 12
+        calc_years = (st.session_state.merida_amount / calc_annual) if calc_annual > 0 else 0
+        st.info(f"⏳ **Υπολογιζόμενη Διάρκεια Αρχικού Ποσού:** {calc_years:.1f} έτη ({calc_years * 12:.0f} μήνες)")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Ρυθμίσεων & Υπολογισμών", type="primary"):
+        persist_all()
+        st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν επιτυχώς και εφαρμόστηκαν στα αποτελέσματα!")
+
+    st.markdown('</div>', unsafe_allow_html=True)
