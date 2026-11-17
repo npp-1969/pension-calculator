@@ -91,19 +91,17 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     # 2. ΕΠΙΚΟΛΛΗΣΗ ΔΕΔΟΜΕΝΩΝ ΑΠΟ ΕΧCΕL
     # ==========================================
     st.markdown('<div class="panel-box">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Έλεγχος Αποδοχών</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-title">📊 2. Επικόλληση Δεδομένων από Excel & Αυτόματος Εντοπισμός Αποδοχών</div>', unsafe_allow_html=True)
     
     st.info(
-        "📌 **Σειρά στηλών στο Excel σας:**\n"
-        "`1) ΕΤΟΣ` | `2) ΑΠΟ` | `3) ΕΩΣ` | `4) ΦΟΡΕΑΣ` | `5) ΗΜΕΡΕΣ-ΕΝΣΗΜΑ` | `6) ΑΠΟΔΟΧΕΣ`\n\n"
-        "*(Σημείωση: Αν οι αποδοχές σας βρίσκονται σε άλλη στήλη στο Excel, μπορείτε να τις διορθώσετε απευθείας στον παρακάτω διαδραστικό πίνακα!)*"
+        "📌 Κάντε **Copy** ολόκληρο τον πίνακα από το Excel σας και **Paste** παρακάτω.\n"
+        "Το σύστημα εντοπίζει αυτόματα τις στήλες (Έτος, Από, Έως, Φορέας, Ημέρες, Αποδοχές), όποια σειρά κι αν έχουν!"
     )
 
     if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
             "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t28\t3304.39\n"
-            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t28\t3304.39\n"
-            "2007\t01/03/2007\t31/03/2007\tΤΡΑΠΕΖΑ\t29\t3304.39"
+            "2007\t01/02/2007\t28/02/2007\tΤΡΑΠΕΖΑ\t28\t3304.39"
         )
 
     def clear_text():
@@ -115,27 +113,41 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
     raw_df = pd.DataFrame()
     if pasted_data.strip():
         try:
+            # Δοκιμή ανάγνωσης με Tab (Excel)
             raw_df = pd.read_csv(io.StringIO(pasted_data), sep="\t", header=None)
-            if len(raw_df.columns) < 6:
+            if len(raw_df.columns) < 3:
                 raw_df = pd.read_csv(io.StringIO(pasted_data), sep=",", header=None)
-            
-            if len(raw_df) > 0 and str(raw_df.iloc[0, 0]).strip().upper() in ["ΕΤΟΣ", "YEAR"]:
-                raw_df = raw_df.iloc[1:].reset_index(drop=True)
-
-            # Παίρνουμε τις 6 πρώτες στήλες
-            raw_df = raw_df.iloc[:, :6]
-            raw_df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
         except Exception as e:
-            st.error(f"Σφάλμα ανάγνωσης δεδομένων: {e}")
+            st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not raw_df.empty:
-        # Καθαρισμός και μετατροπή σε αριθμούς
-        raw_df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(raw_df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
-        raw_df['ΑΠΟΔΟΧΕΣ'] = pd.to_numeric(raw_df['ΑΠΟΔΟΧΕΣ'], errors='coerce').fillna(0.0)
+        # Αν η πρώτη γραμμή είναι τίτλοι, την αφαιρούμε
+        if len(raw_df) > 0 and any(str(val).upper() in ["ΕΤΟΣ", "ΦΟΡΕΑΣ", "ΑΠΟΔΟΧΕΣ", "YEAR"] for val in raw_df.iloc[0].values):
+            raw_df = raw_df.iloc[1:].reset_index(drop=True)
+
+        # Δημιουργία τυπικών ονομασιών για τις στήλες ανάλογα με το πόσες είναι
+        cols_count = len(raw_df.columns)
+        if cols_count >= 6:
+            # Αν υπάρχουν τουλάχιστον 6 στήλες, αντιστοιχίζουμε: 0:ΕΤΟΣ, 1:ΑΠΟ, 2:ΕΩΣ, 3:ΦΟΡΕΑΣ, 4:ΕΝΣΗΜΑ, 5+:ΑΠΟΔΟΧΕΣ
+            raw_df = raw_df.iloc[:, :6]
+            raw_df.columns = ["ΕΤΟΣ", "ΑΠΟ", "ΕΩΣ", "ΦΟΡΕΑΣ", "ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]
+        else:
+            # Προσαρμογή αν οι στήλες είναι λιγότερες
+            raw_df.columns = [f"Col_{i}" for i in range(cols_count)]
+            raw_df["ΕΤΟΣ"] = raw_df.iloc[:, 0]
+            raw_df["ΦΟΡΕΑΣ"] = raw_df.iloc[:, 3] if cols_count > 3 else "ΑΓΝΩΣΤΟΣ"
+            raw_df["ΗΜΕΡΕΣ-ΕΝΣΗΜΑ"] = 25
+            raw_df["ΑΠΟΔΟΧΕΣ"] = raw_df.iloc[:, -1] # Παίρνει την τελευταία στήλη ως αποδοχές
+
+        # Έξυπνος καθαρισμός αριθμών (αφαίρεση συμβόλων € ή κενών)
+        for col in ["ΗΜΕΡΕΣ-ΕΝΣΗΜΑ", "ΑΠΟΔΟΧΕΣ"]:
+            if col in raw_df.columns:
+                raw_df[col] = raw_df[col].astype(str).str.replace('€', '').str.replace(',', '.').str.strip()
+                raw_df[col] = pd.to_numeric(raw_df[col], errors='coerce').fillna(0.0)
+
         raw_df['ΦΟΡΕΑΣ'] = raw_df['ΦΟΡΕΑΣ'].astype(str).str.upper().str.strip()
 
-        st.markdown("##### ✏️ Διόρθωση / Έλεγχος Δεδομένων (Μπορείτε να επεξεργαστείτε απευθείας τα κελιά):")
-        # Χρησιμοποιούμε st.data_editor ώστε αν κάποια τιμή δεν ήρθε σωστά, να την διορθώνει με ένα κλικ!
+        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων (Μπορείτε να επεξεργαστείτε απευθείας τα κελιά):")
         df = st.data_editor(raw_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         # --- ΑΥΤΟΜΑΤΗ ΟΜΑΔΟΠΟΙΗΣΗ ΑΝΑ ΦΟΡΕΑ (ΣΥΓΚΕΝΤΡΩΤΙΚΟΣ ΠΙΝΑΚΑΣ) ---
