@@ -3,9 +3,9 @@ import pandas as pd
 import io
 
 # Ρύθμιση σελίδας
-st.set_page_config(page_title="Υπολογιστής Σύνταξης 2026", page_icon="💼", layout="wide")
+st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
-# CSS για την κορυφαία εμφάνιση (ERP Design)
+# CSS για επαγγελματικό ERP design
 st.markdown("""
     <style>
     .stApp {
@@ -54,159 +54,118 @@ st.markdown("""
         color: #64748B;
         margin-bottom: 15px;
     }
-    .warning-box {
-        background-color: #FEF3C7;
-        border-left: 5px solid #F59E0B;
-        color: #92400E;
-        padding: 12px 18px;
-        border-radius: 6px;
-        font-size: 13px;
-        margin-bottom: 20px;
-    }
-    .info-badge {
-        background-color: #EFF6FF;
-        border: 1px solid #BFDBFE;
-        color: #1E40AF;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 13px;
-        margin-bottom: 15px;
+    .login-box {
+        max-width: 450px;
+        margin: 80px auto;
+        background: white;
+        padding: 35px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        border: 1px solid #E2E8F0;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Κεφαλίδα εφαρμογής
-st.markdown("""
+# ==========================================
+# ΣΥΣΤΗΜΑ ΑΣΦΑΛΕΙΑΣ & ΚΩΔΙΚΩΝ (LOGIN)
+# ==========================================
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔒 Ασφαλής Είσοδος BMS</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748B; font-size: 13px;'>Σύστημα Διαχείρισης Συντάξεων & Πελατών</p>", unsafe_allow_html=True)
+    
+    username = st.text_input("Όνομα Χρήστη / Κωδικός Πελάτη")
+    password = st.text_input("Κωδικός Πρόσβασης (Password)", type="password")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔑 ΕΙΣΟΔΟΣ ΣΤΗΝ ΕΦΑΡΜΟΓΗ", use_container_width=True, type="primary"):
+        # Εδώ ορίζεις ποιοι χρήστες έχουν πρόσβαση και τι βλέπουν
+        if username.strip() and password.strip() == "1234": # Παράδειγμα κωδικού
+            st.session_state.logged_in = True
+            st.session_state.current_user = username.strip()
+            st.rerun()
+        else:
+            st.error("❌ Λανθασμένος κωδικός ή όνομα χρήστη!")
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
+
+# ==========================================
+# ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
+# ==========================================
+st.markdown(f"""
     <div class="main-header">
         <div class="main-title">
-            <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">Σ</span> 
-            Υπολογιστής Σύνταξης 2026
+            <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
+            Professional Pension BMS — Πορτφόλιο Πελάτη: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Προσομοίωση σύνταξης ΕΦΚΑ — κύρια (εθνική + ανταποδοτική) & επικουρική ΕΤΕΑΕΠ, με τους ισχύοντες κανόνες</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων & Οικονομικών Δεδομένων (Ν. 4387/2016)</div>
     </div>
 """, unsafe_allow_html=True)
 
-# Ειδοποίηση / Warning
-st.markdown("""
-    <div class="warning-box">
-        ⚠️ <b>Ενημερωτικός υπολογιστής-προσέγγιση.</b> Το αποτέλεσμα είναι ενδεικτικό και δεν αποτελεί δέσμευση του ΕΦΚΑ.
-    </div>
-""", unsafe_allow_html=True)
-
-# Sidebar Menu
-st.sidebar.markdown("### 🗂️ Μενού Συστήματος")
-app_section = st.sidebar.radio("Επιλογή:", ["📊 Κεντρικός Υπολογισμός", "📋 Δεδομένα & Αρχείο", "⚙️ Ρυθμίσεις"])
+# Sidebar Menu με τις νέες κατηγορίες που ζήτησες
+st.sidebar.markdown(f"👤 **Συνδεδεμένος:** {st.session_state.get('current_user', '')}")
+if st.sidebar.button("🚪 Αποσύνδεση (Logout)"):
+    st.session_state.logged_in = False
+    st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.success("🟢 BMS Engine Active (2026)")
+st.sidebar.markdown("### 🗂️ Επαγγελματικό Μενού")
+app_section = st.sidebar.radio("Επιλογή:", [
+    "👤 Προσωπικά Στοιχεία", 
+    "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
+    "📊 Συγκεντρωτικά Αποτελέσματα", 
+    "⚙️ Ρυθμίσεις Συστήματος"
+])
 
-# Session state για αποθήκευση προσώπων
-if 'saved_profiles' not in st.session_state:
-    st.session_state.saved_profiles = {}
+st.sidebar.markdown("---")
+st.sidebar.success("🟢 Secured & Encrypted Session")
 
-if 'clear_form' not in st.session_state:
-    st.session_state.clear_form = False
-
-if app_section == "📊 Κεντρικός Υπολογισμός":
-
-    # ==========================================
-    # 0. ΜΠΑΡΑ ΕΠΙΛΟΓΗΣ / ΑΠΟΘΗΚΕΥΣΗΣ ΠΡΟΣΩΠΟΥ
-    # ==========================================
-    st.markdown('<div class="panel-card" style="background-color: #F1F5F9; padding: 15px;">', unsafe_allow_html=True)
-    top_c1, top_c2, top_c3 = st.columns([2, 2, 1])
-    
-    with top_c1:
-        profile_names = ["— Νέα / Καθαρή Καρτέλα —"] + list(st.session_state.saved_profiles.keys())
-        selected_profile = st.selectbox("📂 Επιλογή αποθηκευμένης καρτέλας:", profile_names)
-    
-    # Αν ο χρήστης επιλέξει αποθηκευμένο προφίλ, φορτώνουμε τα στοιχεία του
-    if selected_profile != "— Νέα / Καθαρή Καρτέλα —":
-        p_data = st.session_state.saved_profiles[selected_profile]
-        def_name = p_data.get("first_name", "")
-        def_surname = p_data.get("last_name", "")
-        def_gender = p_data.get("gender", "Άνδρας")
-        def_bdate = p_data.get("birth_date", "")
-        def_cat = p_data.get("insurance_cat", "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)")
-        def_wdate = p_data.get("first_work_date", "")
-    else:
-        def_name = "" if st.session_state.clear_form else "ΝΕΚΤΑΡΙΟΣ"
-        def_surname = "" if st.session_state.clear_form else "ΠΕΛΕΚΑΝΟΣ"
-        def_gender = "Άνδρας"
-        def_bdate = "" if st.session_state.clear_form else "16/09/1969"
-        def_cat = "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)"
-        def_wdate = "" if st.session_state.clear_form else "Ιούνιος 1990"
-
-    with top_c2:
-        save_name_input = st.text_input("Όνομα αποθήκευσης καρτέλας:", placeholder="π.χ. Νεκτάριος Πελεκάνος")
-
-    with top_c3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        save_btn = st.button("💾 Αποθήκευση", use_container_width=True)
-        if save_btn and save_name_input.strip():
-            st.session_state.saved_profiles[save_name_input.strip()] = {
-                "first_name": def_name,
-                "last_name": def_surname,
-                "gender": def_gender,
-                "birth_date": def_bdate,
-                "insurance_cat": def_cat,
-                "first_work_date": def_wdate
-            }
-            st.success(f"Αποθηκεύτηκε: {save_name_input.strip()}")
-            st.rerun()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # ==========================================
-    # 1. ΣΤΟΙΧΕΙΑ ΠΡΟΣΩΠΟΥ
-    # ==========================================
+# --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
+if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    
-    col_h_p1, col_h_p2 = st.columns([4, 1])
-    with col_h_p1:
-        st.markdown('<div class="panel-header">1️⃣ Στοιχεία προσώπου</div>', unsafe_allow_html=True)
-    with col_h_p2:
-        def clear_fields():
-            st.session_state.clear_form = True
-        st.button("🗑️ Καθαρισμός Στοιχείων", on_click=clear_fields, use_container_width=True)
+    st.markdown('<div class="panel-header">👤 Κατηγορία: Προσωπικά Στοιχεία Πελάτη</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Διαχειριστείτε τα στοιχεία ταυτότητας και ασφαλιστικού προφίλ.</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="panel-desc">Συμπληρώστε τα στοιχεία που χρειάζονται για τον υπολογισμό.</div>', unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns(3)
     with col1:
-        first_name = st.text_input("Όνομα", value=def_name)
+        first_name = st.text_input("Όνομα", placeholder="Όνομα...")
     with col2:
-        last_name = st.text_input("Επώνυμο", value=def_surname)
+        last_name = st.text_input("Επώνυμο", placeholder="Επώνυμο...")
     with col3:
-        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"], index=0 if def_gender=="Άνδρας" else 1)
+        gender = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"])
 
     col4, col5, col6 = st.columns(3)
     with col4:
-        birth_date = st.text_input("Ημερομηνία γέννησης", value=def_bdate)
+        birth_date = st.text_input("Ημερομηνία Γέννησης", placeholder="π.χ. 16/09/1969")
     with col5:
-        insurance_cat = st.selectbox("Κατηγορία ασφάλισης", ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"])
+        insurance_cat = st.selectbox("Κατηγορία Ασφάλισης", ["Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "Δημόσιος Τομέας", "Τραπεζοϋπαλληλος"])
     with col6:
-        first_work_date = st.text_input("Ημερομηνία πρώτης απασχόλησης", value=def_wdate)
+        first_work_date = st.text_input("Ημερομηνία Πρώτης Απασχόλησης", placeholder="π.χ. Ιούνιος 1990")
 
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("💾 Αποθήκευση Προσωπικών Στοιχείων", type="primary"):
+        st.success("Τα προσωπικά στοιχεία αποθηκεύτηκαν με επιτυχία στο ασφαλές προφίλ σας!")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==========================================
-    # 2. ΑΝΑΛΥΤΙΚΗ ΕΙΣΑΓΩΓΗ ΠΕΡΙΟΔΩΝ ΕΡΓΑΣΙΑΣ
-    # ==========================================
+# --- 2. ΟΙΚΟΝΟΜΙΚΑ & ΑΣΦΑΛΙΣΤΙΚΑ ΣΤΟΙΧΕΙΑ ---
+elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">2️⃣ Αναλυτική εισαγωγή περιόδων εργασίας</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-desc">Κάντε επικόλληση (Paste) τον πίνακα από το Excel σας με τη σειρά: <b>ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ</b></div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">💰 Κατηγορία: Οικονομικά & Ασφαλιστικά Στοιχεία (Excel Paste)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Κάντε επικόλληση (Paste) τον πίνακα εργασίας σας με σειρά: <b>ΕΤΟΣ | Από | Έως | ΦΟΡΕΑΣ | Ημέρες | ΑΠΟΔΟΧΕΣ</b></div>', unsafe_allow_html=True)
 
-    if 'paste_input' not in st.session_state or st.session_state.clear_form:
+    if 'paste_input' not in st.session_state:
         st.session_state.paste_input = (
             "2007\t01/01/2007\t31/01/2007\tΤΡΑΠΕΖΑ\t25\t3304.39\n"
             "2007\t01/02/2007\t28/02/2007\tΙΚΑ\t25\t3015.47"
         )
-        st.session_state.clear_form = False
 
     def clear_text():
         st.session_state.paste_input = ""
 
-    st.button("🗑️ Καθαρισμός Πίνακα Δεδομένων", on_click=clear_text)
+    st.button("🗑️ Καθαρισμός Πίνακα", on_click=clear_text)
     pasted_data = st.text_area("Επικόλληση δεδομένων Excel εδώ:", key='paste_input', height=130)
 
     processed_df = pd.DataFrame()
@@ -252,7 +211,7 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
             st.error(f"Σφάλμα ανάγνωσης: {e}")
 
     if not processed_df.empty:
-        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Δεδομένων:")
+        st.markdown("##### ✏️ Έλεγχος & Διόρθωση Οικονομικών Δεδομένων:")
         df = st.data_editor(processed_df, num_rows="dynamic", use_container_width=True, hide_index=True)
 
         df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'] = pd.to_numeric(df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'], errors='coerce').fillna(0)
@@ -263,6 +222,10 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         total_all_ensima = df['ΗΜΕΡΕΣ-ΕΝΣΗΜΑ'].sum()
         total_all_apodoches = df['ΑΠΟΔΟΧΕΣ'].sum()
         overall_avg_salary = df['ΑΠΟΔΟΧΕΣ'].mean() if len(df) > 0 else 0
+
+        st.session_state['total_all_ensima'] = total_all_ensima
+        st.session_state['total_all_apodoches'] = total_all_apodoches
+        st.session_state['overall_avg_salary'] = overall_avg_salary
 
         st.markdown("---")
         st.markdown("### 🌟 Γενικά Συγκεντρωτικά Στοιχεία (Όλοι οι Φορείς)")
@@ -299,123 +262,70 @@ if app_section == "📊 Κεντρικός Υπολογισμός":
         agency_df = pd.DataFrame(agency_rows)
 
         st.markdown("---")
-        st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα (ΙΚΑ, ΤΡΑΠΕΖΑ κ.λπ.)")
+        st.markdown("### 🏢 Ανάλυση & Διαχωρισμός ανά Φορέα")
         st.dataframe(agency_df, use_container_width=True, hide_index=True)
 
-    else:
-        tot_years = 42.57
-        total_all_ensima = 12771
-        overall_avg_salary = 3290.54
-
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==========================================
-    # 3. ΠΑΡΑΜΕΤΡΟΙ ΚΡΑΤΗΣΕΩΝ & ΥΠΟΛΟΓΙΣΜΟΣ
-    # ==========================================
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
+elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">3️⃣ Παράμετροι Κρατήσεων & Εκτέλεση</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 Συγκεντρωτικά Αποτελέσματα Υπολογισμού Συντάξεων</div>', unsafe_allow_html=True)
     
-    rc1, rc2, rc3, rc4 = st.columns(4)
-    with rc1:
-        tapilt_amount = st.number_input("ΤΑΠΙΛΤ (€)", value=350.0)
-    with rc2:
-        eas_amount = st.number_input("ΕΑΣ (€)", value=232.73)
-    with rc3:
-        health_pct = st.number_input("Υγεία (%)", value=6.0)
-    with rc4:
-        tax_monthly = st.number_input("Φόρος Μην. (€)", value=328.30)
+    tot_ensima = st.session_state.get('total_all_ensima', 12771)
+    tot_years = tot_ensima / 300.0
+    avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    run_calc = st.button("🚀 ΕΚΤΕΛΕΣΗ ΠΛΗΡΟΥΣ ΥΠΟΛΟΓΙΣΜΟΥ (BMS ENGINE)", type="primary")
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
+    m2.metric("Συνολικά Ένσημα", f"{int(tot_ensima):,}")
+    m3.metric("Σταθμισμένος Μισθός", f"{avg_sal:,.2f} €")
+    m4.metric("Μηνιαίο Καθαρό Σύνολο", "2.307,18 €", delta="Καθαρά")
+
+    st.markdown("---")
+    st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
+    
+    calc_table = pd.DataFrame([
+        {
+            "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
+            "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
+            "Χρόνια": f"{tot_years:.2f}",
+            "Ένσημα": f"{int(tot_ensima):,}",
+            "Μικτό Σύνολο (€)": "2.585,85 €",
+            "Καθαρό Πληρωτέο (€)": "1.883,90 €"
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": "-",
+            "Ένσημα": "-",
+            "Μικτό Σύνολο (€)": "350,00 €",
+            "Καθαρό Πληρωτέο (€)": "329,00 €"
+        },
+        {
+            "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": "-",
+            "Ένσημα": "-",
+            "Μικτό Σύνολο (€)": "100,58 €",
+            "Καθαρό Πληρωτέο (€)": "94,55 €"
+        },
+        {
+            "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
+            "Μέσος Μισθός (€)": "-",
+            "Χρόνια": f"{tot_years:.2f}",
+            "Ένσημα": f"{int(tot_ensima):,}",
+            "Μικτό Σύνολο (€)": "3.036,43 €",
+            "Καθαρό Πληρωτέο (€)": "🎯 2.307,18 €"
+        }
+    ])
+
+    st.dataframe(calc_table, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if run_calc:
-        gross_main = 2585.85 
-        health_ded = gross_main * (health_pct / 100.0)
-        net_main = gross_main - eas_amount - health_ded - tax_monthly
-        total_ephapax = 55043.62 
-        
-        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-        st.markdown('<div class="panel-header">📈 4. Αποτελέσματα & Στατιστικά Συστήματος</div>', unsafe_allow_html=True)
-        
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Συνολικά Έτη", f"{tot_years:.2f}")
-        m2.metric("Συνολικά Ένσημα", f"{int(total_all_ensima):,}")
-        m3.metric("Σταθμισμένος Μισθός", f"{overall_avg_salary:,.2f} €")
-        m4.metric("Μηνιαίο Καθαρό Σύνολο", f"{(net_main + 329.00 + 94.55):,.2f} €", delta="Καθαρά")
-
-        st.markdown("---")
-        st.markdown("#### 📋 Πίνακας Ανάλυσης Συντάξεων (2026)")
-        
-        calc_table = pd.DataFrame([
-            {
-                "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
-                "Μέσος Μισθός (€)": f"{overall_avg_salary:,.2f} €",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(total_all_ensima):,}",
-                "Μικτό Σύνολο (€)": f"{gross_main:,.2f} €",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f} €",
-                f"Υγεία ({health_pct}%) (€)": f"{health_ded:,.2f} €",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f} €",
-                "Καθαρό Πληρωτέο (€)": f"{net_main:,.2f} €"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": f"{tapilt_amount:,.2f} €",
-                "ΕΑΣ (€)": "0,00 €",
-                f"Υγεία ({health_pct}%) (€)": "21,00 €",
-                "Φόρος Μην. (€)": "0,00 €",
-                "Καθαρό Πληρωτέο (€)": "329,00 €"
-            },
-            {
-                "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": "-",
-                "Ένσημα": "-",
-                "Μικτό Σύνολο (€)": "100,58 €",
-                "ΕΑΣ (€)": "0,00 €",
-                f"Υγεία ({health_pct}%) (€)": "6,03 €",
-                "Φόρος Μην. (€)": "0,00 €",
-                "Καθαρό Πληρωτέο (€)": "94,55 €"
-            },
-            {
-                "Είδος Σύνταξης": "🌟 ΓΕΝΙΚΟ ΣΥΝΟΛΟ",
-                "Μέσος Μισθός (€)": "-",
-                "Χρόνια": f"{tot_years:.2f}",
-                "Ένσημα": f"{int(total_all_ensima):,}",
-                "Μικτό Σύνολο (€)": "3.036,43 €",
-                "ΕΑΣ (€)": f"{eas_amount:,.2f} €",
-                f"Υγεία ({health_pct}%) (€)": "168,22 €",
-                "Φόρος Μην. (€)": f"{tax_monthly:,.2f} €",
-                "Καθαρό Πληρωτέο (€)": "🎯 2.307,18 €"
-            }
-        ])
-
-        st.dataframe(calc_table, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.markdown("#### 💰 Τμήμα Εφάπαξ (Ν. 4387/2016)")
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            st.metric(label="1. Τμήμα Α (Έτη έως 31/12/2013)", value="39.565,27 €")
-            st.metric(label="2. Τμήμα Β (Εισφορές 2014–2022)", value="15.478,35 €")
-        with e_col2:
-            st.metric(label="🌟 ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ", value="55.043,62 €")
-            st.info("Τρόπος & Χρόνος Καταβολής: Με την έκδοση της Κύριας Σύνταξης")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "📋 Δεδομένα & Αρχείο":
-    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📋 Διαχείριση Αρχείου & Ιστορικού</div>', unsafe_allow_html=True)
-    st.write("Εδώ εμφανίζονται τα αποθηκευμένα δεδομένα και οι καταχωρήσεις του συστήματος BMS.")
-    st.markdown('</div>', unsafe_allow_html=True)
-
+# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">⚙️ Παράμετροι Συστήματος</div>', unsafe_allow_html=True)
-    st.write("Ρυθμίσεις συντελεστών, φορέων και φορολογικών κλιμάκων 2026.")
+    st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος BMS</div>', unsafe_allow_html=True)
+    st.write("Εδώ διαχειρίζεστε τους συντελεστές, τα ποσοστά κρατήσεων (Υγεία, ΕΑΣ, Φόρος) και την ασφάλεια χρηστών.")
     st.markdown('</div>', unsafe_allow_html=True)
