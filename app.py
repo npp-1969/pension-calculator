@@ -114,10 +114,16 @@ if 'paste_input' not in st.session_state:
     )
 
 if 'summary_years' not in st.session_state:
-    st.session_state.summary_years = 42.57
+    st.session_state.summary_years = 12.70
 
 if 'summary_avg_salary' not in st.session_state:
-    st.session_state.summary_avg_salary = 3290.54
+    st.session_state.summary_avg_salary = 800.10
+
+if 'total_all_ensima' not in st.session_state:
+    st.session_state.total_all_ensima = 3810
+
+if 'overall_avg_salary' not in st.session_state:
+    st.session_state.overall_avg_salary = 800.10
 
 # ==========================================
 # ΕΠΑΓΓΕΛΜΑΤΙΚΟ MENU & ΕΦΑΡΜΟΓΗ
@@ -273,10 +279,10 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
         st.markdown("#### ⚡ Συγκεντρωτική Καταχώρηση")
         eco_c1, eco_c2 = st.columns(2)
         with eco_c1:
-            st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=st.session_state.summary_years)
+            st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years))
             st.session_state['total_all_ensima'] = st.session_state.summary_years * 300.0
         with eco_c2:
-            st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=st.session_state.summary_avg_salary)
+            st.session_state.summary_avg_salary = st.number_input("Συνολικός Μέσος Μισθός (€)", value=float(st.session_state.summary_avg_salary))
             st.session_state['overall_avg_salary'] = st.session_state.summary_avg_salary
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -285,7 +291,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ) ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 Κατηγορία: 3. Συγκεντρωτικά Αποτελέσματα (2026)</div>', unsafe_allow_html=True)
@@ -294,33 +300,50 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     if c_info["first_name"] or c_info["last_name"]:
         st.info(f"📋 **Εξεταζόμενος Πελάτης:** {c_info['first_name']} {c_info['last_name']} | **Φύλο:** {c_info['gender']} | **Γέννηση:** {c_info['birth_date']} | **Ταμείο:** {c_info['insurance_cat']}")
 
-    tot_ensima = st.session_state.get('total_all_ensima', 12771)
+    # Παίρνουμε τα ΠΡΑΓΜΑΤΙΚΑ δεδομένα που καταχώρησε ο χρήστης
+    tot_ensima = st.session_state.get('total_all_ensima', 3810)
     tot_years = tot_ensima / 300.0
-    avg_sal = st.session_state.get('overall_avg_salary', 3290.54)
+    avg_sal = st.session_state.get('overall_avg_salary', 800.10)
+
+    # Δυναμικός υπολογισμός κύριας σύνταξης βάσει των πραγματικών ετών και μισθού
+    # (Εθνική σύνταξη + Ανταποδοτική με βάση τον μέσο μισθό και τα έτη)
+    ethniki = 446.87
+    # Ποσοστό αναπλήρωσης ανάλογα με τα έτη (ενδεικτικός τύπος κλιμάκων Ν.4387)
+    pososto_anapl = min(0.15 + (tot_years * 0.012), 0.52) 
+    antapodotiki = avg_sal * pososto_anapl
+    
+    kria_mikto = ethniki + antapodotiki + 349.26 # με προσαύξηση ΤΑΠΙΛΤ
+    
+    # Υπολογισμός κρατήσεων (ΕΑΣ, Υγεία 6%, Φόρος)
+    eas_val = 146.62 if kria_mikto > 1400 else 0.00
+    ygeia_val = kria_mikto * 0.06
+    foros_val = 244.50 if kria_mikto > 1000 else 100.00
+    synolo_krat = eas_val + ygeia_val + foros_val
+    katharo_main = max(kria_mikto - synolo_krat, 0.0)
 
     st.markdown("---")
-    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026)")
+    st.markdown("#### 📋 Αναλυτικός Πίνακας Συντάξεων & Κρατήσεων (2026 - Βάσει των στοιχείων σας)")
     
     detailed_calc_table = pd.DataFrame([
         {
             "Είδος Σύνταξης": "ΚΥΡΙΑ ΣΥΝΤΑΞΗ",
             "Μέσος Μισθός (€)": f"{avg_sal:,.2f} €",
             "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
-            "Εθνική Σύνταξη (€)": "446,87 €",
-            "Ποσοστό Αναπλ. (%)": "51,00%",
+            "Εθνική Σύνταξη (€)": f"{ethniki:,.2f} €",
+            "Ποσοστό Αναπλ. (%)": f"{pososto_anapl*100:.2f}%",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "349,26 €",
-            "Μικτό Σύνολο (€)": "2.094,51 €",
-            "ΕΑΣ (€)": "146,62 €",
-            "Υγεία 6% (€)": "116,87 €",
-            "Φόρος Μην. (€)": "244,50 €",
-            "Σύνολο Κρατ. (€)": "507,99 €",
-            "Καθαρό Πληρωτέο (€)": "1.586,53 €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto:,.2f} €",
+            "ΕΑΣ (€)": f"{eas_val:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val:,.2f} €",
+            "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main:,.2f} €",
             "Διάρκεια Επικουρικού": "Ισόβια"
         },
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ",
             "Μέσος Μισθός (€)": "-",
-            "Χρόνια Ασφάλισης": "32,22",
+            "Χρόνια Ασφάλισης": f"{tot_years:.2f}",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "350,00 €",
@@ -335,7 +358,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         {
             "Είδος Σύνταξης": "ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)",
             "Μέσος Μισθός (€)": "0,00 €",
-            "Χρόνια Ασφάλισης": "9,60",
+            "Χρόνια Ασφάλισης": "0,00",
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "0,00 €",
@@ -354,12 +377,12 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
             "Εθνική Σύνταξη (€)": "-",
             "Ποσοστό Αναπλ. (%)": "-",
             "Προσαύξ. ΤΑΠΙΛΤ (€)": "-",
-            "Μικτό Σύνολο (€)": "2.444,51 €",
-            "ΕΑΣ (€)": "146,62 €",
-            "Υγεία 6% (€)": "137,87 €",
-            "Φόρος Μην. (€)": "244,50 €",
-            "Σύνολο Κρατ. (€)": "528,99 €",
-            "Καθαρό Πληρωτέο (€)": "1.915,53 €",
+            "Μικτό Σύνολο (€)": f"{kria_mikto + 350.0:,.2f} €",
+            "ΕΑΣ (€)": f"{eas_val:,.2f} €",
+            "Υγεία 6% (€)": f"{ygeia_val + 21.0:,.2f} €",
+            "Φόρος Μην. (€)": f"{foros_val:,.2f} €",
+            "Σύνολο Κρατ. (€)": f"{synolo_krat + 21.0:,.2f} €",
+            "Καθαρό Πληρωτέο (€)": f"{katharo_main + 329.0:,.2f} €",
             "Διάρκεια Επικουρικού": "-"
         }
     ])
