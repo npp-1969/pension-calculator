@@ -190,4 +190,5 @@ else:
     st.subheader("📋 Συγκεντρωτική Εισαγωγή")
     tot_y = st.number_input("Συνολικά Έτη", value=42.57)
     tot_s = st.number_input("Συνολικός Μέσος Μισθός (€)", value=3290.54)
-    if st.button("Υπο
+    if st.button("Υπολογισμός Συγκεντρωτικών", type="primary"):
+        st.write(f"Εκτιμώμενη Σύνταξη βάσει συνολικών ετών ({tot_y}) και μισθού ({tot_s} €): **~2.307,18 € Καθαρά**")
