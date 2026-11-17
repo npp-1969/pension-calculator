@@ -258,7 +258,7 @@ st.markdown(f"""
             <span style="background: rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">💼</span> 
             Professional Pension BMS — Χρήστης: <u>{st.session_state.get('current_user', 'Χρήστης')}</u>
         </div>
-        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Ανάλυση Κύριας, Επικουρικών & Εφάπαξ</div>
+        <div class="main-subtitle">Επαγγελματικό Σύστημα Υπολογισμού Συντάξεων (Ν. 4387/2016) - Πλήρης Διαχείριση Μενού</div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -273,11 +273,28 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "👤 Προσωπικά Στοιχεία", 
     "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
     "📊 Συγκεντρωτικά Αποτελέσματα", 
+    "💼 Υπολογισμός Εφάπαξ",
     "⚙️ Ρυθμίσεις Συστήματος"
 ])
 
 st.sidebar.markdown("---")
 st.sidebar.success("🟢 Βάση Δεδομένων Ενεργή")
+
+# Υπολογισμός συνολικών ετών / ενσήμων και μέσου όρου για κοινή χρήση στις καρτέλες
+if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
+    df_res = st.session_state['df_economic']
+    df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
+    tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 0.08
+    df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
+    if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    else:
+        avg_sal = 3304.39
+else:
+    tot_ensima = 25
+    tot_years = 0.08
+    avg_sal = 3304.39
 
 # --- 1. ΠΡΟΣΩΠΙΚΑ ΣΤΟΙΧΕΙΑ ---
 if app_section == "👤 Προσωπικά Στοιχεία":
@@ -437,18 +454,13 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (ΜΕ ΕΦΑΠΑΞ ΑΚΡΙΒΩΣ ΚΑΤΩ ΑΠΟ ΤΟΝ ΥΠΟΛΟΓΙΣΜΟ) ---
+# --- 3. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ ---
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">📊 1. ΣΥΓΚΕΝΤΡΩΤΙΚΑ ΣΤΟΙΧΕΙΑ ΑΣΦΑΛΙΣΗΣ & ΠΑΡΑΜΕΤΡΟΙ (Υπολογισμός από 1/1/2002)</div>', unsafe_allow_html=True)
 
     if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
         df_res = st.session_state['df_economic']
-        df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
-        
-        tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        tot_years = tot_ensima / 300.0 if tot_ensima > 0 else 0.08
-        
         grouped_ensima = df_res.groupby('ΦΟΡΕΑΣ')['ΕΝΣΗΜΑ (Η.Ε.)'].sum().reset_index()
         
         df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
@@ -462,18 +474,10 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
         else:
             grouped = grouped_ensima.copy()
             grouped['AvgSal'] = 0.00
-            
-        if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-            avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        else:
-            avg_sal = 0.00
     else:
         grouped = pd.DataFrame([
             {"ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25, "AvgSal": 3304.39}
         ])
-        tot_ensima = 25
-        tot_years = 0.08
-        avg_sal = 3304.39
 
     agency_rows_html = ""
     for _, r in grouped.iterrows():
@@ -630,10 +634,16 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
     ])
 
     st.dataframe(calc_table, use_container_width=True, hide_index=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- ΕΦΑΠΑΞ ΥΠΟΛΟΓΙΣΜΟΣ ΑΚΡΙΒΩΣ ΚΑΤΩ ΑΠΟ ΤΟΝ ΥΠΟΛΟΓΙΣΜΟ ΣΥΝΤΑΞΗΣ ---
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="panel-header">📊 3. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
+# --- 4. ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ (ΑΥΤΟΝΟΜΗ ΚΑΡΤΕΛΑ ΣΤΟ ΜΕΝΟΥ) ---
+elif app_section == "💼 Υπολογισμός Εφάπαξ":
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📊 ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-desc">Αυτόνομη καρτέλα αναλυτικού υπολογισμού εφάπαξ παροχής με βάση τα συνολικά έτη ασφάλισης και τον μέσο μισθό.</div>', unsafe_allow_html=True)
+
+    annual_tapilt_total = st.session_state.tapilt_net * 12
+    years_to_expiry = (st.session_state.merida_amount / annual_tapilt_total) if annual_tapilt_total > 0 else 0.0
 
     efap_col1, efap_col2 = st.columns(2)
     with efap_col1:
@@ -662,7 +672,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
+# --- 5. ΡΥΘΜΙΣΕΙΣ ΣΥΣΤΗΜΑΤΟΣ ---
 else:
     st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.markdown('<div class="panel-header">⚙️ Ρυθμίσεις Συστήματος & Παραμέτρων ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
