@@ -229,6 +229,30 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "📋 Τελική Εικόνα"
 ])
 
+# -----------------------------------------
+# ΕΞΥΠΝΗ ΑΝΑΓΝΩΣΗ ΑΠΟΔΟΧΩΝ & ΕΤΩΝ
+# -----------------------------------------
+df_parsed = pd.DataFrame()
+if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)" and st.session_state.paste_input.strip():
+    try:
+        final_data = []
+        for line in st.session_state.paste_input.strip().split('\n'):
+            parts = line.replace('\t', ' ').split()
+            if len(parts) >= 6:
+                raw_apod = parts[-1].replace('€', '').replace('.', '').replace(',', '.').strip()
+                try: val_apod = float(raw_apod)
+                except:
+                    try: val_apod = float(parts[-2].replace('€', '').replace('.', '').replace(',', '.').strip())
+                    except: val_apod = 0.0
+                try: val_ens = float(parts[-3].replace(',', '.')) if '€' in parts[-1] else float(parts[-2].replace(',', '.'))
+                except: val_ens = 25.0
+                final_data.append({"ΕΤΟΣ": parts[0], "ΑΠΟ (ΗΜ/ΝΙΑ)": parts[1], "ΕΩΣ (ΗΜ/ΝΙΑ)": parts[2], "ΦΟΡΕΑΣ": parts[3].upper(), "ΕΝΣΗΜΑ (Η.Ε.)": val_ens, "ΑΠΟΔΟΧΕΣ (€)": val_apod})
+        df_parsed = pd.DataFrame(final_data)
+    except: pass
+
+if not df_parsed.empty:
+    st.session_state['df_economic'] = df_parsed
+
 if st.session_state.econ_mode == "⚡ Συγκεντρωτικά":
     tot_years = float(st.session_state.summary_years)
     avg_sal = float(st.session_state.summary_avg_salary)
@@ -277,31 +301,14 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">💰 Οικονομικά Στοιχεία & Προσαύξηση ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    st.session_state.econ_mode = st.radio("Τρόπος:", ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά"], horizontal=True)
+    modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά"]
+    m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
+    st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης:", modes, index=m_idx, horizontal=True)
 
-    df_parsed = pd.DataFrame()
     if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
-        st.session_state.paste_input = st.text_area("Επικόλληση δεδομένων εδώ:", value=st.session_state.paste_input, height=140)
-        if st.session_state.paste_input.strip():
-            try:
-                final_data = []
-                for line in st.session_state.paste_input.strip().split('\n'):
-                    parts = line.replace('\t', ' ').split()
-                    if len(parts) >= 6:
-                        raw_apod = parts[-1].replace('€', '').replace('.', '').replace(',', '.').strip()
-                        try: val_apod = float(raw_apod)
-                        except: val_apod = 0.0
-                        try: val_ens = float(parts[-3].replace(',', '.')) if '€' in parts[-1] else float(parts[-2].replace(',', '.'))
-                        except: val_ens = 25.0
-                        final_data.append({"ΕΤΟΣ": parts[0], "ΑΠΟ (ΗΜ/ΝΙΑ)": parts[1], "ΕΩΣ (ΗΜ/ΝΙΑ)": parts[2], "ΦΟΡΕΑΣ": parts[3].upper(), "ΕΝΣΗΜΑ (Η.Ε.)": val_ens, "ΑΠΟΔΟΧΕΣ (€)": val_apod})
-                df_parsed = pd.DataFrame(final_data)
-            except Exception as e: st.error(f"Σφάλμα: {e}")
-
-        if df_parsed.empty and 'df_economic' in st.session_state: df_parsed = st.session_state['df_economic']
-        elif df_parsed.empty: df_parsed = pd.DataFrame([{"ΕΤΟΣ": "2002", "ΑΠΟ (ΗΜ/ΝΙΑ)": "01/07/2002", "ΕΩΣ (ΗΜ/ΝΙΑ)": "31/07/2002", "ΦΟΡΕΑΣ": "ΤΡΑΠΕΖΑ", "ΕΝΣΗΜΑ (Η.Ε.)": 25.0, "ΑΠΟΔΟΧΕΣ (€)": 3358.78}])
-
-        if not df_parsed.empty:
-            df_edited = st.data_editor(df_parsed, num_rows="dynamic", use_container_width=True, hide_index=True)
+        st.session_state.paste_input = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", value=st.session_state.paste_input, height=140)
+        if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
+            df_edited = st.data_editor(st.session_state['df_economic'], num_rows="dynamic", use_container_width=True, hide_index=True)
             df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_edited['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
@@ -324,7 +331,6 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Αναλυτικός Υπολογισμός Κύριας & Προσαύξησης ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    
     col_left, col_right = st.columns(2)
     with col_left:
         st.markdown(f"""
