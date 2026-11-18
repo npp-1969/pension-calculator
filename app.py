@@ -153,7 +153,7 @@ st.markdown("""
     }
     .panel-header { font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
-    /* Sidebar & Radio Menu - Τέλεια στοίχιση στο κέντρο */
+    /* Sidebar & Radio Menu */
     section[data-testid="stSidebar"] {
         background-color: #0F172A;
         border-right: 1px solid #1E293B;
@@ -418,6 +418,20 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
             st.session_state['df_economic'] = df_edited
+            
+            # Υπολογισμός συνολικών ενσήμων και μέσου όρου αποδοχών για εμφάνιση κάτω από τον πίνακα
+            total_ensima_disp = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            df_p02 = df_edited[df_edited['ΕΤΟΣ_NUM'] >= 2002]
+            avg_apod_disp = (df_p02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_p02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not df_p02.empty and df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0 else 0.0
+            total_years_disp = total_ensima_disp / 300.0
+
+            # Εμφάνιση Κάρτας Σύνοψης Κάτω από τον Πίνακα Περιόδων
+            st.markdown(f"""
+            <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 12px 18px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #1E293B;">
+                <div>📌 ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ: <span style="color: #1E3A8A;">{int(total_ensima_disp):,} Η.Ε.</span> ({total_years_disp:.2f} έτη)</div>
+                <div>💶 ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002): <span style="color: #16A34A;">{avg_apod_disp:,.2f} €</span></div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         col_s1, col_s2 = st.columns(2)
         with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.01)
