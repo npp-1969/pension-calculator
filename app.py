@@ -564,15 +564,28 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         col_e1, col_e2, col_e3, col_e4 = st.columns(4)
         with col_e1: 
             st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
-        with col_e2: 
-            # ΔΙΟΡΘΩΣΗ: Πλέον η Διάρκεια είναι ελεύθερο πεδίο number_input και δεν κλειδώνει στα συνολικά χρόνια ασφάλισης
-            st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=0.1)
-        with col_e3: 
-            st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
         with col_e4: 
             st.session_state.tapilt_net = st.number_input("Ποσό Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
+        with col_e3: 
+            st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
 
-        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{st.session_state.tapilt_duration_years:.2f} έτη**, ο υπολογισμός προχωρά κανονικά.")
+        # Αυτόματος υπολογισμός διάρκειας: Μερίδα / (Μηνιαίο Ποσό * 12)
+        annual_tapilt = st.session_state.tapilt_net * 12.0
+        auto_calculated_duration = (st.session_state.merida_amount / annual_tapilt) if annual_tapilt > 0 else 15.0
+        
+        # Αν δεν έχει οριστεί χειροκénta ή αν θέλουμε να συγχρονίζεται δυναμικά:
+        if 'tapilt_duration_years' not in st.session_state or st.session_state.tapilt_duration_years <= 0:
+            st.session_state.tapilt_duration_years = auto_calculated_duration
+
+        with col_e2: 
+            st.session_state.tapilt_duration_years = st.number_input(
+                "Διάρκεια (Έτη)", 
+                value=float(auto_calculated_duration), 
+                step=0.1, 
+                help="Υπολογίζεται αυτόματα: Ατομική Μερίδα / (Μηνιαίο Ποσό × 12)"
+            )
+
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και το ετήσιο ποσό επικουρικής, η διάρκεια υπολογίστηκε σε **{st.session_state.tapilt_duration_years:.2f} έτη**.")
     else:
         st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό καθεστώς Ιονικής/ΤΑΠΙΛΤ).")
 
