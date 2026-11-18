@@ -7,7 +7,7 @@ import sqlite3
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
 
 # ==========================================
-# ΣΥΝΔΕΣΗ & ΔΗΜΙΟΥΡΓΙΑ / ΕΝΗΜΕΡΩΣΗ ΒΑΣΗΣ (SQLITE)
+# ΣΥΝΔΕΣΗ & ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ (SQLITE)
 # ==========================================
 def init_db():
     conn = sqlite3.connect('pension_bms.db')
@@ -156,8 +156,13 @@ st.markdown("""
         padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     .panel-header { font-size: 18px; font-weight: bold; color: #1E293B; margin-bottom: 8px; }
-    .excel-table-header { background-color: #1E3A8A; color: white; text-align: center; font-weight: bold; padding: 8px; border: 1px solid #CBD5E1; }
-    .excel-gold-header { background-color: #856404; color: white; text-align: center; font-weight: bold; padding: 8px; border: 1px solid #CBD5E1; }
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: sans-serif; }
+    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 8px; border: 1px solid #CBD5E1; }
+    .custom-table th.kratseis { background-color: #856404; }
+    .custom-table td { padding: 8px; border: 1px solid #CBD5E1; text-align: right; }
+    .custom-table td.left { text-align: left; font-weight: bold; }
+    .custom-table td.center { text-align: center; }
+    .custom-table tr.total-row { background-color: #E2E8F0; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -188,8 +193,8 @@ if 'client_data' not in st.session_state:
 
 if 'econ_mode' not in st.session_state: st.session_state.econ_mode = db_data["econ_mode"] if db_data else "🔄 Αναλυτικά (Πίνακας Περιόδων)"
 if 'paste_input' not in st.session_state: st.session_state.paste_input = db_data["paste_input"] if db_data else "2002\t01/07/2002\t31/07/2002\tΤΡΑΠΕΖΑ\t25\t3358.78"
-if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 40.00
-if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3358.78
+if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 42.57
+if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3275.91
 if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data else 71206.66
 if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 329.00
 if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 100.00
@@ -209,7 +214,8 @@ def persist_all():
         "econ_mode": st.session_state.econ_mode, "paste_input": st.session_state.paste_input,
         "summary_years": float(st.session_state.summary_years), "summary_avg_salary": float(st.session_state.summary_avg_salary),
         "merida_amount": float(st.session_state.merida_amount), "tapilt_net": float(st.session_state.tapilt_net),
-        "tapilt_after_expiry": float(st.session_state.tapilt_after_expiry), "bank_years_until_2013": float(st.session_state.bank_years_until_2013),
+        "tapilt_after_expiry": float(st.session_state.tapilt_after_expiry),
+        "bank_years_until_2013": float(st.session_state.bank_years_until_2013),
         "bank_years_from_2014": float(st.session_state.bank_years_from_2014), "tapilt_prosafxisi": float(st.session_state.tapilt_prosafxisi)
     })
 
@@ -230,7 +236,7 @@ app_section = st.sidebar.radio("Επιλογή:", [
 ])
 
 # -----------------------------------------
-# ΕΞΥΠΝΗ ΑΝΑΓΝΩΣΗ ΑΠΟΔΟΧΩΝ & ΕΤΩΝ
+# ΑΝΑΓΝΩΣΗ ΔΕΔΟΜΕΝΩΝ
 # -----------------------------------------
 df_parsed = pd.DataFrame()
 if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)" and st.session_state.paste_input.strip():
@@ -271,24 +277,39 @@ else:
     tot_years = float(st.session_state.summary_years)
     avg_sal = float(st.session_state.summary_avg_salary)
 
-# Υπολογισμός Κύριας Σύνταξης με ενσωματωμένη την Προσαύξηση ΤΑΠΙΛΤ
+# Υπολογισμοί Κύριας Σύνταξης
 ethniki = calc_ethniki_syntaksi(tot_years, 446.87)
 pososto_anapl = calc_pososto_anaplirosis(tot_years)
 antapodotiki_vassiki = avg_sal * pososto_anapl
 prosafxisi_tapilt = float(st.session_state.tapilt_prosafxisi)
-antapodotiki_synoliki = antapodotiki_vassiki + prosafxisi_tapilt
-kria_mikto = ethniki + antapodotiki_synoliki
+kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
 
-eas_val = calc_eas(kria_mikto)
-ygeia_val = (kria_mikto - eas_val) * 0.06
-taxable_main = max(0.0, kria_mikto - eas_val - ygeia_val)
-foros_val = calc_monthly_tax(taxable_main)
-synolo_krat = eas_val + ygeia_val + foros_val
-katharo_main = max(kria_mikto - synolo_krat, 0.0)
+eas_main = calc_eas(kria_mikto)
+ygeia_main = (kria_mikto - eas_main) * 0.06
+taxable_main = max(0.0, kria_mikto - eas_main - ygeia_main)
+foros_main = calc_monthly_tax(taxable_main)
+krat_main_total = eas_main + ygeia_main + foros_main
+katharo_main = max(kria_mikto - krat_main_total, 0.0)
 
+# Υπολογισμοί Επικουρικής ΤΑΠΙΛΤ
 tapilt_katharo = float(st.session_state.tapilt_net)
 tapilt_mikto = tapilt_katharo / 0.94 if tapilt_katharo > 0 else 0.0
-tapilt_krat = tapilt_mikto - tapilt_katharo
+ygeia_tapilt = tapilt_mikto * 0.06
+krat_tapilt_total = ygeia_tapilt
+
+# Υπολογισμοί Επικουρικής ΙΚΑ (ΕΦΚΑ) - (Δεδομένα παραδείγματος ή αναλογικά)
+ika_mikto = 100.58
+ygeia_ika = 6.03
+krat_ika_total = ygeia_ika
+katharo_ika = ika_mikto - krat_ika_total
+
+# Γενικά Σύνολα
+geniko_mikto = kria_mikto + tapilt_mikto + ika_mikto
+geniko_eas = eas_main
+geniko_ygeia = ygeia_main + ygeia_tapilt + ygeia_ika
+geniko_foros = foros_main
+geniko_krat_total = krat_main_total + krat_tapilt_total + krat_ika_total
+geniko_katharo = katharo_main + tapilt_katharo + katharo_ika
 
 if app_section == "👤 Προσωπικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -315,7 +336,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             st.session_state['df_economic'] = df_edited
     else:
         col_s1, col_s2 = st.columns(2)
-        with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.1)
+        with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.01)
         with col_s2: st.session_state.summary_avg_salary = st.number_input("Συντάξιμες Αποδοχές από 2002 (€)", value=float(st.session_state.summary_avg_salary), step=10.0)
 
     st.markdown("---")
@@ -330,34 +351,99 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
-    st.markdown('<div class="panel-card"><div class="panel-header">📊 Αναλυτικός Υπολογισμός Κύριας & Προσαύξησης ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
-    col_left, col_right = st.columns(2)
-    with col_left:
-        st.markdown(f"""
-        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-table-header"><th colspan="2">ΚΥΡΙΑ ΣΥΝΤΑΞΗ & ΠΡΟΣΑΥΞΗΣΗ ΤΑΠΙΛΤ</th></tr>
-            <tr><td>Εθνική Σύνταξη ({tot_years:.2f} έτη)</td><td style="text-align: right;">{ethniki:,.2f} €</td></tr>
-            <tr><td>Βασική Ανταποδοτική ({pososto_anapl*100:.2f}%)</td><td style="text-align: right;">{antapodotiki_vassiki:,.2f} €</td></tr>
-            <tr style="background-color: #FEF08A; font-weight: bold;"><td>🌟 Προσαύξηση ΤΑΠΙΛΤ (e-ΕΦΚΑ)</td><td style="text-align: right; color: #856404;">+{prosafxisi_tapilt:,.2f} €</td></tr>
-            <tr style="background-color: #F1F5F9; font-weight: bold;"><td>Μικτό Σύνολο Κύριας</td><td style="text-align: right;">{kria_mikto:,.2f} €</td></tr>
-            <tr><td>Κράτηση ΕΑΣ</td><td style="text-align: right; color: #DC2626;">-{eas_val:,.2f} €</td></tr>
-            <tr><td>Κράτηση Υγείας (6%)</td><td style="text-align: right; color: #DC2626;">-{ygeia_val:,.2f} €</td></tr>
-            <tr><td>Παρακράτηση Φόρου</td><td style="text-align: right; color: #DC2626;">-{foros_val:,.2f} €</td></tr>
-            <tr style="background-color: #E2E8F0; font-weight: bold;"><td>💰 ΚΑΘΑΡΗ ΚΥΡΙΑ ΣΥΝΤΑΞΗ</td><td style="text-align: right; color: #1E3A8A;">{katharo_main:,.2f} €</td></tr>
-        </table>
-        """, unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown(f"""
-        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
-            <tr class="excel-gold-header"><th colspan="2">ΕΠΙΚΟΥΡΙΚΗ & ΣΥΝΟΛΙΚΑ</th></tr>
-            <tr><td>Μικτή Επικουρική ΤΑΠΙΛΤ</td><td style="text-align: right;">{tapilt_mikto:,.2f} €</td></tr>
-            <tr><td>Κράτηση Υγείας (6%)</td><td style="text-align: right; color: #DC2626;">-{tapilt_krat:,.2f} €</td></tr>
-            <tr style="background-color: #F1F5F9; font-weight: bold;"><td>Καθαρή Επικουρική ΤΑΠΙΛΤ</td><td style="text-align: right;">{tapilt_katharo:,.2f} €</td></tr>
-            <tr><td>Ποσό ΤΑΠΙΛΤ μετά τη λήξη</td><td style="text-align: right;">{st.session_state.tapilt_after_expiry:,.2f} €</td></tr>
-            <tr style="background-color: #DCFCE7; font-weight: bold;"><td>🌟 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΜΗΝΙΑΙΟ</td><td style="text-align: right; color: #16A34A;">{katharo_main + tapilt_katharo:,.2f} € / μήνα</td></tr>
-        </table>
-        """, unsafe_allow_html=True)
+    st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων (Αυτόματος Υπολογισμός)</div>', unsafe_allow_html=True)
+    
+    # Εμφάνιση του ακριβούς πίνακα που ζήτησες
+    st.markdown(f"""
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ (ΕΑΣ, ΥΓΕΙΑ 6%, ΦΟΡΟΣ 2026)</th>
+                <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΒΑΣΕΙ ΚΛΙΜΑΚΩΝ 2026)</th>
+                <th>ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€)</th>
+                <th>ΔΙΑΡΚΕΙΑ ΕΠΙΚΟΥΡΙΚΟΥ</th>
+            </tr>
+            <tr>
+                <th>Είδος Σύνταξης</th>
+                <th>Μέσος Μισθός (€)</th>
+                <th>Χρόνια Ασφάλισης</th>
+                <th>Εθνική Σύνταξη (€)</th>
+                <th>Ποσοστό Αναπλ. (%)</th>
+                <th>Προσαύξ. ΤΑΠΙΛΤ (€)</th>
+                <th>Μικτό Σύνολο (€)</th>
+                <th class="kratseis">ΕΑΣ (€)</th>
+                <th class="kratseis">Υγεία 6% (€)</th>
+                <th class="kratseis">Φόρος Μην. (€)</th>
+                <th class="kratseis">Σύνολο Κρατ. (€)</th>
+                <th>Καθαρό (€/μήνα)</th>
+                <th>Διάρκεια</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="left">ΚΥΡΙΑ ΣΥΝΤΑΞΗ</td>
+                <td>{avg_sal:,.2f} €</td>
+                <td class="center">{tot_years:.2f}</td>
+                <td>{ethniki:,.2f} €</td>
+                <td class="center">{pososto_anapl*100:.2f}%</td>
+                <td>{prosafxisi_tapilt:,.2f} €</td>
+                <td><b>{kria_mikto:,.2f} €</b></td>
+                <td>{eas_main:,.2f} €</td>
+                <td>{ygeia_main:,.2f} €</td>
+                <td>{foros_main:,.2f} €</td>
+                <td>{krat_main_total:,.2f} €</td>
+                <td><b>{katharo_main:,.2f} €</b></td>
+                <td class="center">Ισόβια</td>
+            </tr>
+            <tr>
+                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
+                <td class="center">-</td>
+                <td class="center">32,22</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td>350,00 €</td>
+                <td><b>350,00 €</b></td>
+                <td>0,00 €</td>
+                <td>21,00 €</td>
+                <td>0,00 €</td>
+                <td>21,00 €</td>
+                <td><b>{tapilt_katharo:,.2f} €</b></td>
+                <td class="center">17 έτη</td>
+            </tr>
+            <tr>
+                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
+                <td>3.247,43 €</td>
+                <td class="center">10,35</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td>100,58 €</td>
+                <td><b>100,58 €</b></td>
+                <td>0,00 €</td>
+                <td>6,03 €</td>
+                <td>0,00 €</td>
+                <td>6,03 €</td>
+                <td><b>{katharo_ika:,.2f} €</b></td>
+                <td class="center">Ισόβια</td>
+            </tr>
+            <tr class="total-row">
+                <td class="left">ΓΕΝΙΚΟ ΣΥΝΟΛΟ</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td><b>{geniko_mikto:,.2f} €</b></td>
+                <td><b>{geniko_eas:,.2f} €</b></td>
+                <td><b>{geniko_ygeia:,.2f} €</b></td>
+                <td><b>{geniko_foros:,.2f} €</b></td>
+                <td><b>{geniko_krat_total:,.2f} €</b></td>
+                <td><b>{geniko_katharo:,.2f} €</b></td>
+                <td class="center">-</td>
+            </tr>
+        </tbody>
+    </table>
+    """, unsafe_allow_html=True)
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
@@ -395,9 +481,7 @@ else:
         <h3 style="color: #1E3A8A; margin-top: 0;">📄 ΕΠΙΣΗΜΗ ΣΥΝΟΨΗ ΠΕΛΑΤΗ: {c_name}</h3>
         <hr style="margin: 10px 0;">
         <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη</p>
-        <p><b>🏛️ Καθαρή Κύρια Σύνταξη (με προσαύξηση ΤΑΠΙΛΤ {prosafxisi_tapilt:,.2f} €):</b> {katharo_main:,.2f} € / μήνα</p>
-        <p><b>🏦 Καθαρή Επικουρική ΤΑΠΙΛΤ:</b> {tapilt_katharo:,.2f} € / μήνα</p>
-        <p style="font-size: 16px; color: #1E3A8A;"><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{katharo_main + tapilt_katharo:,.2f} € / μήνα</b></p>
+        <p><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{geniko_katharo:,.2f} € / μήνα</b></p>
         <hr style="margin: 10px 0;">
         <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ:</b> <b>{total_efapax_fin:,.2f} €</b></p>
     </div>
