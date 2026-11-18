@@ -35,6 +35,8 @@ def init_db():
             tapilt_sum_ginomeno REAL,
             tapilt_syntaximos_misthos REAL,
             tapilt_duration_years REAL,
+            art30_years REAL,
+            art30_extra_units REAL,
             efap_repl_rate REAL,
             efap_avg_5y REAL,
             efap_tmima_b REAL
@@ -52,6 +54,8 @@ def init_db():
     if 'tapilt_sum_ginomeno' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_sum_ginomeno REAL")
     if 'tapilt_syntaximos_misthos' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_syntaximos_misthos REAL")
     if 'tapilt_duration_years' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_duration_years REAL")
+    if 'art30_years' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN art30_years REAL DEFAULT 16.4")
+    if 'art30_extra_units' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN art30_extra_units REAL DEFAULT 6.67")
     if 'efap_repl_rate' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_repl_rate REAL")
     if 'efap_avg_5y' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_avg_5y REAL")
     if 'efap_tmima_b' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_tmima_b REAL")
@@ -70,9 +74,9 @@ def save_to_db(data):
             econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, has_tapilt, tapilt_net, tapilt_after_expiry,
             bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, 
             tapilt_sum_ginomeno, tapilt_syntaximos_misthos, tapilt_duration_years,
-            efap_repl_rate, efap_avg_5y, efap_tmima_b
+            art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data["first_name"], data["last_name"], data["gender"], data["birth_date"],
         data["insurance_cat"], data["first_work_date"], data["econ_mode"],
@@ -80,6 +84,7 @@ def save_to_db(data):
         data["merida_amount"], data["has_tapilt"], data["tapilt_net"], data["tapilt_after_expiry"],
         data["bank_years_until_2013"], data["bank_years_from_2014"], data["pososto_anapl_custom"],
         data["tapilt_sum_ginomeno"], data["tapilt_syntaximos_misthos"], data["tapilt_duration_years"],
+        data["art30_years"], data["art30_extra_units"],
         data["efap_repl_rate"], data["efap_avg_5y"], data["efap_tmima_b"]
     ))
     conn.commit()
@@ -93,7 +98,7 @@ def load_from_db():
                econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, has_tapilt, tapilt_net, tapilt_after_expiry,
                bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, 
                tapilt_sum_ginomeno, tapilt_syntaximos_misthos, tapilt_duration_years,
-               efap_repl_rate, efap_avg_5y, efap_tmima_b
+               art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b
         FROM client_profile LIMIT 1
     ''')
     row = cursor.fetchone()
@@ -114,9 +119,11 @@ def load_from_db():
             "tapilt_sum_ginomeno": row[17] if row[17] is not None else 0.0,
             "tapilt_syntaximos_misthos": row[18] if row[18] is not None else 0.0,
             "tapilt_duration_years": row[19] if row[19] is not None else 0.0,
-            "efap_repl_rate": row[20] if row[20] is not None else 60.0,
-            "efap_avg_5y": row[21] if row[21] is not None else 0.0,
-            "efap_tmima_b": row[22] if row[22] is not None else 0.0
+            "art30_years": row[20] if row[20] is not None else 16.4,
+            "art30_extra_units": row[21] if row[21] is not None else 6.67,
+            "efap_repl_rate": row[22] if row[22] is not None else 60.0,
+            "efap_avg_5y": row[23] if row[23] is not None else 0.0,
+            "efap_tmima_b": row[24] if row[24] is not None else 0.0
         }
     return None
 
@@ -236,6 +243,10 @@ if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anap
 if 'tapilt_sum_ginomeno' not in st.session_state: st.session_state.tapilt_sum_ginomeno = db_data["tapilt_sum_ginomeno"] if db_data else 0.0
 if 'tapilt_syntaximos_misthos' not in st.session_state: st.session_state.tapilt_syntaximos_misthos = db_data["tapilt_syntaximos_misthos"] if db_data else 0.0
 if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 0.0
+
+if 'art30_years' not in st.session_state: st.session_state.art30_years = db_data["art30_years"] if db_data else 16.4
+if 'art30_extra_units' not in st.session_state: st.session_state.art30_extra_units = db_data["art30_extra_units"] if db_data else 6.67
+
 if 'efap_repl_rate' not in st.session_state: st.session_state.efap_repl_rate = db_data["efap_repl_rate"] if db_data else 60.0
 if 'efap_avg_5y' not in st.session_state: st.session_state.efap_avg_5y = db_data["efap_avg_5y"] if db_data else 0.0
 if 'efap_tmima_b' not in st.session_state: st.session_state.efap_tmima_b = db_data["efap_tmima_b"] if db_data else 0.0
@@ -255,6 +266,8 @@ def persist_all():
         "tapilt_sum_ginomeno": float(st.session_state.tapilt_sum_ginomeno),
         "tapilt_syntaximos_misthos": float(st.session_state.tapilt_syntaximos_misthos),
         "tapilt_duration_years": float(st.session_state.tapilt_duration_years),
+        "art30_years": float(st.session_state.art30_years),
+        "art30_extra_units": float(st.session_state.art30_extra_units),
         "efap_repl_rate": float(st.session_state.efap_repl_rate),
         "efap_avg_5y": float(st.session_state.efap_avg_5y),
         "efap_tmima_b": float(st.session_state.efap_tmima_b)
@@ -292,6 +305,8 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.tapilt_sum_ginomeno = 0.0
     st.session_state.tapilt_syntaximos_misthos = 0.0
     st.session_state.tapilt_duration_years = 0.0
+    st.session_state.art30_years = 16.4
+    st.session_state.art30_extra_units = 6.67
     st.session_state.efap_repl_rate = 60.0
     st.session_state.efap_avg_5y = 0.0
     st.session_state.efap_tmima_b = 0.0
@@ -332,6 +347,8 @@ avg_sal = float(st.session_state.summary_avg_salary)
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
+    df_res['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_res['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
+    df_res['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_res['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
     
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     
@@ -351,6 +368,7 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
         if not df_ika_post02.empty and df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             ika_avg = (df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
+    # ΔΙΟΡΘΩΣΗ: Υπολογισμός σταθμισμένου μέσου όρου αποδοχών από 2002 και μετά
     df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
@@ -365,18 +383,12 @@ if st.session_state.pososto_anapl_custom == 0.0 and tot_years > 0:
 
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
-sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
-t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
-
-# ΔΙΟΡΘΩΣΗ: Αν δεν συμπληρώθηκαν γινόμενα αλλά υπάρχουν χρόνια τράπεζας και μισθός, υπολογίζεται αυτόματα
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΣΑΥΞΗΣΗΣ Άρθρου 30 Ν. 4387/2016
 if st.session_state.has_tapilt and tot_years > 0:
-    if sum_ginomeno > 0 and t_synt_misthos > 0:
-        prosafxisi_tapilt = sum_ginomeno * 0.00075 * t_synt_misthos
-    else:
-        # Αυτόματος υπολογισμός βάσει ετών τράπεζας (bank_y) και μέσου μισθού
-        b_yrs = bank_y if bank_y > 0 else tot_years
-        m_sal = bank_avg if bank_avg > 0 else (avg_sal if avg_sal > 0 else 1000.0)
-        prosafxisi_tapilt = b_yrs * 0.00075 * m_sal
+    m_sal = bank_avg if bank_avg > 0 else (avg_sal if avg_sal > 0 else 3290.0)
+    art30_y = float(st.session_state.art30_years)
+    art30_units = float(st.session_state.art30_extra_units)
+    prosafxisi_tapilt = art30_y * art30_units * 0.00075 * m_sal
 else:
     prosafxisi_tapilt = 0.0
 
@@ -459,7 +471,7 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΙΟΝΙΚΗ"]):
         st.session_state.has_tapilt = True
         st.session_state.pososto_anapl_custom = 51.29
-        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Το ειδικό ταμείο ενεργοποιήθηκε αυτόματα. Παρακαλώ μεταβείτε στην ενότητα **«⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)»** για να καταχωρήσετε την Ατομική Μερίδα και το Ποσό.")
+        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Το ειδικό ταμείο ενεργοποιήθηκε αυτόματα.")
     else:
         st.session_state.has_tapilt = False
         st.session_state.pososto_anapl_custom = 50.15
@@ -518,21 +530,25 @@ elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχέ
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)":
-    st.markdown('<div class="panel-card"><div class="panel-header">⚙️ Ρυθμίσεις Παραμέτρων & Ειδικών Ταμείων (π.χ. ΤΑΠΙΛΤ)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card"><div class="panel-header">⚙️ Ρυθμίσεις Προσαύξησης (Άρθρο 30 Ν. 4387/2016) & Επικουρικής</div>', unsafe_allow_html=True)
     
-    st.session_state.has_tapilt = st.checkbox("✅ Ο πελάτης διαθέτει Επικουρική / Προσαύξηση ΤΑΠΙΛΤ (ή παρόμοιο ειδικό ταμείο)", value=bool(st.session_state.has_tapilt))
+    st.session_state.has_tapilt = st.checkbox("✅ Ο πελάτης διαθέτει Προσαύξηση Κύριας & Επικουρική ΤΑΠΙΛΤ (Ιονική Τράπεζα)", value=bool(st.session_state.has_tapilt))
 
     if st.session_state.has_tapilt:
         st.markdown("---")
-        st.markdown("#### 🏦 Παράμετροι Υπολογισμού ΤΑΠΙΛΤ")
-        col_t1, col_t2 = st.columns(2)
-        with col_t1: st.session_state.tapilt_sum_ginomeno = st.number_input("Άθροισμα Γινομένων [Έτη × (Εισφορά - 20)]", value=float(st.session_state.tapilt_sum_ginomeno), step=0.1)
-        with col_t2: st.session_state.tapilt_syntaximos_misthos = st.number_input("Συντάξιμος Μισθός Προσαύξησης (€)", value=float(st.session_state.tapilt_syntaximos_misthos), step=10.0)
+        st.markdown("#### 🏦 Παράμετροι Υπολογισμού Προσαύξησης Κύριας Σύνταξης (Άρθρο 30 Ν. 4387/2016)")
+        col_a1, col_a2 = st.columns(2)
+        with col_a1: 
+            st.session_state.art30_years = st.number_input("Ισοδύναμα Έτη Αυξημένων Εισφορών", value=float(st.session_state.art30_years), step=0.1, help="π.χ. 16.4 έτη για πρόσληψη το 1991")
+        with col_a2: 
+            st.session_state.art30_extra_units = st.number_input("Επιπλέον Μονάδες Εισφοράς (>20%)", value=float(st.session_state.art30_extra_units), step=0.01, help="π.χ. 6.67 μονάδες")
         
-        st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{prosafxisi_tapilt:,.2f} €**")
+        current_m_sal = bank_avg if bank_avg > 0 else (avg_sal if avg_sal > 0 else 3290.0)
+        calc_art30_res = float(st.session_state.art30_years) * float(st.session_state.art30_extra_units) * 0.00075 * current_m_sal
+        st.info(f"💡 **Υπολογισμένη Μηνιαία Προσαύξηση Κύριας:** {float(st.session_state.art30_years)} έτη × {float(st.session_state.art30_extra_units)} μονάδες × 0,00075 × {current_m_sal:,.2f} € = **{calc_art30_res:,.2f} €**")
 
         st.markdown("---")
-        st.markdown("#### 💶 Στοιχεία Ατομικής Μερίδας & Επικουρικής ΤΑΠΙΛΤ")
+        st.markdown("#### 💶 Στοιχεία Ατομικής Μερίδας & Επικουρικής ΤΑΠΙΛΤ-ΑΤ")
         col_e1, col_e2, col_e3, col_e4 = st.columns(4)
         with col_e1: 
             st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
@@ -544,9 +560,9 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e4: 
             st.session_state.tapilt_net = st.number_input("Ποσό Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
 
-        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €**, διάρκεια **{tot_years:.2f} έτη** και ποσό **{tapilt_mikto:,.2f} €**, ο υπολογισμός προχωρά κανονικά.")
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €**, ο υπολογισμός προχωρά κανονικά.")
     else:
-        st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό ταμείο ΤΑΠΙΛΤ).")
+        st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό καθεστώς Ιονικής/ΤΑΠΙΛΤ).")
 
     if st.button("💾 Αποθήκευση Ρυθμίσεων", type="primary"): persist_all(); st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν!")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -582,7 +598,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
         if st.session_state.has_tapilt:
             second_row_html = f"""
                 <tr>
-                    <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
+                    <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ-ΑΤ</td>
                     <td class="center">-</td>
                     <td class="center">{tot_years:.2f}</td>
                     <td class="center">-</td>
@@ -625,7 +641,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <th colspan="2" class="katharo-header">ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€) & ΔΙΑΡΚΕΙΑ</th>
             </tr>
             <tr>
-                <th>Είδος Σύνταξης</th><th>Μέσος Μισθός (€)</th><th>Χρόνια Ασφάλ.</th><th>Εθνική Σύνταξη (€)</th><th>Ποσοστό Αναπλ. (%)</th><th>Προσαύξ. (€)</th><th>Μικτό Σύνολο (€)</th>
+                <th>Είδος Σύνταξης</th><th>Μέσος Μισθός (€)</th><th>Χρόνια Ασφάλ.</th><th>Εθνική Σύνταξη (€)</th><th>Ποσοστό Αναπλ. (%)</th><th>Προσαύξ. (Ν.4387)</th><th>Μικτό Σύνολο (€)</th>
                 <th class="kratseis">ΕΑΣ (€)</th><th class="kratseis">Υγεία 6% (€)</th><th class="kratseis">Φόρος Μην. (€)</th><th class="kratseis">Σύνολο Κρατ. (€)</th>
                 <th class="katharo-header">Καθαρό (€/μήνα)</th><th class="katharo-header">Διάρκεια</th>
             </tr>
