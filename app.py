@@ -153,7 +153,7 @@ st.markdown("""
     }
     .panel-header { font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
-    /* Sidebar & Radio Menu */
+    /* Sidebar & Radio Menu - Τέλεια στοίχιση στο κέντρο */
     section[data-testid="stSidebar"] {
         background-color: #0F172A;
         border-right: 1px solid #1E293B;
@@ -165,10 +165,12 @@ st.markdown("""
         padding: 8px 12px;
         border-radius: 6px;
         transition: all 0.2s ease;
-        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
     section[data-testid="stSidebar"] .stRadio label:hover {
-        background-color: #1E293B;
+        background-color: #1E3A8A;
         color: #FFFFFF !important;
     }
 
