@@ -132,32 +132,62 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# CSS με μικρότερα γράμματα και πιο compact padding για κομψή εμφάνιση
+# Επαγγελματικό CSS Styling (Sidebar, Menus, Cards & Tables)
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
-    .main-header {
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-        color: white; padding: 20px 25px; border-radius: 10px; margin-bottom: 20px;
-    }
-    .main-title { font-size: 24px; font-weight: bold; margin: 0; display: flex; align-items: center; gap: 10px; }
-    .main-subtitle { font-size: 12px; color: #E2E8F0; margin-top: 4px; }
-    .panel-card {
-        background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px;
-        padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-    }
-    .panel-header { font-size: 16px; font-weight: bold; color: #1E293B; margin-bottom: 10px; }
     
-    /* Κομψός, compact πίνακας με μικρότερα γράμματα */
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: sans-serif; margin-bottom: 20px; }
-    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 6px 8px; border: 1px solid #CBD5E1; white-space: nowrap; }
+    /* Header */
+    .main-header {
+        background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+        color: white; padding: 22px 28px; border-radius: 12px; margin-bottom: 22px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+    .main-title { font-size: 24px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; letter-spacing: -0.5px; }
+    .main-subtitle { font-size: 12.5px; color: #94A3B8; margin-top: 5px; font-weight: 400; }
+
+    /* Cards */
+    .panel-card {
+        background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;
+        padding: 22px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .panel-header { font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+    /* Professional Sidebar & Radio Menu Customization */
+    section[data-testid="stSidebar"] {
+        background-color: #0F172A;
+        border-right: 1px solid #1E293B;
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        color: #E2E8F0 !important;
+        font-weight: 500;
+        font-size: 13.5px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    section[data-testid="stSidebar"] .stRadio label:hover {
+        background-color: #1E293B;
+        color: #FFFFFF !important;
+    }
+    section[data-testid="stSidebar"] h3 {
+        color: #94A3B8 !important;
+        font-size: 12px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 15px;
+    }
+
+    /* Compact & Clean Tables */
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: sans-serif; margin-bottom: 18px; }
+    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 7px 10px; border: 1px solid #CBD5E1; white-space: nowrap; font-weight: 600; }
     .custom-table th.kratseis { background-color: #856404; }
     .custom-table th.katharo-header { background-color: #1E3A8A; }
-    .custom-table td { padding: 6px 8px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; }
-    .custom-table td.left { text-align: left; font-weight: bold; }
+    .custom-table td { padding: 6px 10px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; color: #334155; }
+    .custom-table td.left { text-align: left; font-weight: 600; color: #0F172A; }
     .custom-table td.center { text-align: center; }
-    .custom-table tr:hover { background-color: #F1F5F9; }
-    .custom-table tr.total-row { background-color: #E2E8F0; font-weight: bold; }
+    .custom-table tr:hover { background-color: #F8FAFC; }
+    .custom-table tr.total-row { background-color: #F1F5F9; font-weight: bold; color: #0F172A; }
     
     [data-testid="stDataEditor"] div[role="gridcell"],
     [data-testid="stDataEditor"] div[role="gridcell"] > div,
@@ -232,14 +262,14 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("### 🗂️ Μενού")
+st.sidebar.markdown("### 🗂️ Πλοήγηση Συστήματος")
 app_section = st.sidebar.radio("Επιλογή:", [
     "👤 Προσωπικά Στοιχεία", 
     "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
     "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις", 
     "💼 Υπολογισμός Εφάπαξ", 
     "📋 Τελική Εικόνα"
-])
+], label_visibility="collapsed")
 
 # ΑΝΑΓΝΩΣΗ ΔΕΔΟΜΕΝΩΝ ΠΙΝΑΚΑ
 df_parsed = pd.DataFrame()
@@ -464,7 +494,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ (Compact & Beautiful)
+    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
