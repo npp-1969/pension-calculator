@@ -125,21 +125,6 @@ def calc_ethniki_syntaksi(years: float, full_ethniki: float = 446.87) -> float:
     if years >= 20.0: return full_ethniki
     return full_ethniki * (1.0 - (20.0 - years) * 0.02)
 
-def calc_antapodotiki_rate(years: float) -> float:
-    # Βασικός αλγόριθμος ποσοστού αναπλήρωσης Ν. 4387/2016 ανάλογα με τα έτη
-    if years <= 15: return 0.1155
-    elif years <= 18: return 0.1155 + (years - 15) * 0.0177
-    elif years <= 21: return 0.1686 + (years - 18) * 0.0212
-    elif years <= 24: return 0.2322 + (years - 21) * 0.0224
-    elif years <= 27: return 0.2994 + (years - 24) * 0.0263
-    elif years <= 30: return 0.3783 + (years - 27) * 0.0303
-    elif years <= 33: return 0.4692 + (years - 30) * 0.0344
-    elif years <= 36: return 0.5724 + (years - 33) * 0.0360
-    elif years <= 40: return 0.6804 + (years - 36) * 0.0380
-    else: return 0.8324 + (years - 40) * 0.005  # Συνέχεια για > 40 έτη (ή προσαρμογή)
-    # Σημείωση: Ανάλογα με την κλίμακα, για ~42.57 έτη κυμαίνεται κοντά στο 50-52% συνολικά βάσει του νόμου Βρούτση-Κατρούγκαλου.
-    # Επειδή ο χρήστης είχε 51.29% για τράπεζα, για γενικό ΙΚΑ με 42+ έτη δίνουμε αυτόματα ~50.15% αν είναι 0.
-
 def calc_eas(gross_main: float) -> float:
     if gross_main <= 1434.0: return 0.0
     if gross_main <= 1741.0: rate = 0.03
@@ -370,7 +355,6 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
-# Διασφάλληση λογικού ποσοστού αναπλήρωσης αν είναι 0
 if st.session_state.pososto_anapl_custom == 0.0:
     st.session_state.pososto_anapl_custom = 51.29 if st.session_state.has_tapilt else 50.15
 
@@ -553,20 +537,30 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         st.session_state.merida_amount = 0.0
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("#### 🏦 Παράμετροι Υπολογισμού ΤΑΠΙΛΤ")
-    col_t1, col_t2 = st.columns(2)
-    with col_t1: st.session_state.tapilt_sum_ginomeno = st.number_input("Άθροισμα Γινομένων [Έτη × (Εισφορά - 20)]", value=float(st.session_state.tapilt_sum_ginomeno), step=0.1)
-    with col_t2: st.session_state.tapilt_syntaximos_misthos = st.number_input("Συντάξιμος Μισθός Προσαύξησης (€)", value=float(st.session_state.tapilt_syntaximos_misthos), step=10.0)
-    
-    st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{sum_ginomeno}** × 0,00075 × **{t_synt_misthos:,.2f} €** = **{prosafxisi_tapilt:,.2f} €**")
+    if st.session_state.has_tapilt:
+        st.markdown("---")
+        st.markdown("#### 🏦 Παράμετροι Υπολογισμού ΤΑΠΙΛΤ")
+        col_t1, col_t2 = st.columns(2)
+        with col_t1: st.session_state.tapilt_sum_ginomeno = st.number_input("Άθροισμα Γινομένων [Έτη × (Εισφορά - 20)]", value=float(st.session_state.tapilt_sum_ginomeno), step=0.1)
+        with col_t2: st.session_state.tapilt_syntaximos_misthos = st.number_input("Συντάξιμος Μισθός Προσαύξησης (€)", value=float(st.session_state.tapilt_syntaximos_misthos), step=10.0)
+        
+        st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{sum_ginomeno}** × 0,00075 × **{t_synt_misthos:,.2f} €** = **{prosafxisi_tapilt:,.2f} €**")
 
-    st.markdown("---")
-    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
-    with col_e1: st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
-    with col_e2: st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=1.0)
-    with col_e3: st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
-    with col_e4: st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
+        st.markdown("---")
+        st.markdown("#### 💶 Στοιχεία Ατομικής Μερίδας & Επικουρικής ΤΑΠΙΛΤ")
+        col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+        with col_e1: 
+            st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
+        with col_e2: 
+            st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=1.0)
+        with col_e3: 
+            st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
+        with col_e4: 
+            # Αυτόματος υπολογισμός μικτού μηνιαίου ποσού από την ατομική μερίδα και τη διάρκεια αν χρειάζεται
+            calc_from_merida = (st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)) if st.session_state.tapilt_duration_years > 0 else st.session_state.tapilt_net
+            st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(calc_from_merida), step=5.0)
+
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{int(st.session_state.tapilt_duration_years)} έτη**, η μηνιαία μικτή σύνταξη διαμορφώνεται στα **{st.session_state.tapilt_net:,.2f} €/μήνα** (και **{tapilt_katharo:,.2f} € καθαρά** μετά τις κρατήσεις).")
 
     if st.button("💾 Αποθήκευση Ρυθμίσεων", type="primary"): persist_all(); st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν!")
     st.markdown('</div>', unsafe_allow_html=True)
