@@ -277,7 +277,6 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "📋 Τελική Εικόνα"
 ], label_visibility="collapsed")
 
-# Κουμπί Πλήρους Καθαρισμού Πελάτη (Reset) στο Sidebar
 st.sidebar.markdown("---")
 if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων Πελάτη", use_container_width=True):
     st.session_state.client_data = {"first_name": "", "last_name": "", "gender": "Άνδρας", "birth_date": "", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": ""}
@@ -302,7 +301,6 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.success("✅ Όλα τα στοιχεία του πελάτη καθαρίστηκαν πλήρως!")
     st.rerun()
 
-# ΑΝΑΓΝΩΣΗ ΔΕΔΟΜΕΝΩΝ ΠΙΝΑΚΑ
 df_parsed = pd.DataFrame()
 if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)" and st.session_state.paste_input.strip():
     try:
@@ -324,7 +322,6 @@ if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περ
 if not df_parsed.empty:
     st.session_state['df_economic'] = df_parsed
 
-# ΥΠΟΛΟΓΙΣΜΟΙ ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΗΜΕΡΑ
 bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
 ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
 calc_tot_ensima = 0.0
@@ -603,8 +600,8 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
             </tr>
         """
 
-    # ΔΙΟΡΘΩΣΗ: Προσθήκη unsafe_allow_html=True εδώ ακριβώς για να μεταφραστεί σωστά η HTML
-    st.markdown(f"""
+    # Χρησιμοποιούμε st.html() αντί για st.markdown() για να αποδοθεί απολύτως σωστά το HTML χωρίς παρενέργειες
+    table_html = f"""
     <table class="custom-table">
         <thead>
             <tr>
@@ -663,7 +660,13 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
             </tr>
         </tbody>
     </table>
-    """, unsafe_allow_html=True)
+    """
+    
+    try:
+        st.html(table_html)
+    except:
+        st.markdown(table_html, unsafe_allow_html=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
