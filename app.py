@@ -252,20 +252,24 @@ if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περ
 if not df_parsed.empty:
     st.session_state['df_economic'] = df_parsed
 
-if st.session_state.econ_mode == "⚡ Συγκεντρωτικά":
-    tot_years = float(st.session_state.summary_years)
-    avg_sal = float(st.session_state.summary_avg_salary)
-elif 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
+# Υπολογισμοί συνόλων / μέσων όρων από τον πίνακα
+calc_tot_ensima = 0.0
+calc_tot_apodoxes = 0.0
+calc_avg_post_2002 = float(st.session_state.summary_avg_salary)
+
+if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
-    tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    calc_tot_apodoxes = df_res['ΑΠΟΔΟΧΕΣ (€)'].sum()
+    
+    tot_ensima = calc_tot_ensima
     tot_years = tot_ensima / 300.0 if tot_ensima > 0 else float(st.session_state.summary_years)
+    
     df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
-    avg_sal = (
-        (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0
-        else float(st.session_state.summary_avg_salary)
-    )
+    if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        calc_avg_post_2002 = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    avg_sal = calc_avg_post_2002
 else:
     tot_years = float(st.session_state.summary_years)
     avg_sal = float(st.session_state.summary_avg_salary)
@@ -322,6 +326,15 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">💰 Οικονομικά Στοιχεία & Υπολογισμός Προσαύξησης Ιονικής/ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
     
+    # Κουμπί Καθαρισμού Δεδομένων
+    col_btn1, col_btn2 = st.columns([4, 1])
+    with col_btn2:
+        if st.button("🗑️ Καθαρισμός Δεδομένων", use_container_width=True):
+            st.session_state.paste_input = ""
+            if 'df_economic' in st.session_state:
+                st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+            st.rerun()
+
     modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά"]
     m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
     st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης αποδοχών:", modes, index=m_idx, horizontal=True)
@@ -334,6 +347,15 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
             st.session_state['df_economic'] = df_edited
+            
+            # Εμφάνιση Συνόλων κάτω από τον πίνακα
+            st.markdown(f"""
+            <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 12px 18px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; color: #1E293B;">
+                <span>📌 ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ: <span style="color: #1E3A8A;">{calc_tot_ensima:,.1f}</span></span>
+                <span>💶 ΣΥΝΟΛΟ ΑΠΟΔΟΧΩΝ: <span style="color: #1E3A8A;">{calc_tot_apodoxes:,.2f} €</span></span>
+                <span>📊 ΜΕΣΟΣ ΟΡΟΣ (ΑΠΟ 2002+): <span style="color: #16A34A;">{calc_avg_post_2002:,.2f} €</span></span>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         col_s1, col_s2 = st.columns(2)
         with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.01)
