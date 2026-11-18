@@ -276,7 +276,6 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "📋 Τελική Εικόνα"
 ], label_visibility="collapsed")
 
-# Κουμπί Πλήρους Καθαρισμού Πελάτη (Reset) στο Sidebar
 st.sidebar.markdown("---")
 if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων Πελάτη", use_container_width=True):
     st.session_state.client_data = {"first_name": "", "last_name": "", "gender": "Άνδρας", "birth_date": "", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": ""}
@@ -376,10 +375,15 @@ kria_mikto = (ethniki + antapodotiki_vassiki + prosafxisi_tapilt) if tot_years >
 eas_main = calc_eas(kria_mikto) if tot_years > 0 else 0.0
 ygeia_main = ((kria_mikto - eas_main) * 0.06) if tot_years > 0 else 0.0
 
+# Υπολογισμός μικτού ΤΑΠΙΛΤ αυτόματα από την Ατομική Μερίδα και τη Διάρκεια που δίνεις
+if st.session_state.has_tapilt and st.session_state.tapilt_duration_years > 0 and st.session_state.merida_amount > 0:
+    st.session_state.tapilt_net = st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)
+elif not st.session_state.has_tapilt:
+    st.session_state.tapilt_net = 0.0
+
 tapilt_mikto = float(st.session_state.tapilt_net) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 ygeia_tapilt = (tapilt_mikto * 0.06) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 
-# Επικουρική ΙΚΑ/ΕΦΚΑ εμφανίζεται μόνο αν υπάρχουν χρόνια και ΔΕΝ έχει ΤΑΠΙΛΤ
 ika_mikto = (100.58 if (not st.session_state.has_tapilt and tot_years > 0) else 0.0)
 ygeia_ika = (ika_mikto * 0.06) if ika_mikto > 0 else 0.0
 
@@ -447,12 +451,10 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]):
         st.session_state.has_tapilt = True
         st.session_state.pososto_anapl_custom = 51.29
-        st.session_state.tapilt_sum_ginomeno = 99.0
-        st.session_state.tapilt_syntaximos_misthos = 3275.91
-        st.session_state.tapilt_net = 531.91
-        st.session_state.tapilt_duration_years = 17.0
-        st.session_state.tapilt_after_expiry = 100.00
-        st.session_state.merida_amount = 71206.66
+        # Αν δεν υπάρχουν ήδη τιμές, δίνουμε μηδενικές ή βασικές για να τις συμπληρώνει ο χρήστης
+        if st.session_state.merida_amount == 0.0: st.session_state.merida_amount = 0.0
+        if st.session_state.tapilt_duration_years == 0.0: st.session_state.tapilt_duration_years = 17.0
+        if st.session_state.tapilt_after_expiry == 0.0: st.session_state.tapilt_after_expiry = 100.00
     else:
         st.session_state.has_tapilt = False
         st.session_state.pososto_anapl_custom = 50.15
@@ -524,12 +526,6 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
     
     if st.session_state.has_tapilt and not prev_has_tapilt:
         st.session_state.pososto_anapl_custom = 51.29
-        st.session_state.tapilt_sum_ginomeno = 99.0
-        st.session_state.tapilt_syntaximos_misthos = 3275.91
-        st.session_state.tapilt_net = 531.91
-        st.session_state.tapilt_duration_years = 17.0
-        st.session_state.tapilt_after_expiry = 100.00
-        st.session_state.merida_amount = 71206.66
         st.rerun()
     elif not st.session_state.has_tapilt and prev_has_tapilt:
         st.session_state.pososto_anapl_custom = 50.15
@@ -560,10 +556,11 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e3: 
             st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
         with col_e4: 
-            calc_from_merida = (st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)) if st.session_state.tapilt_duration_years > 0 else st.session_state.tapilt_net
-            st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(calc_from_merida), step=5.0)
+            calc_from_merida = (st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)) if st.session_state.tapilt_duration_years > 0 else 0.0
+            st.session_state.tapilt_net = calc_from_merida
+            st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(calc_from_merida), disabled=True, format="%.2f")
 
-        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{int(st.session_state.tapilt_duration_years)} έτη**, η μηνιαία μικτή σύνταξη διαμορφώνεται στα **{st.session_state.tapilt_net:,.2f} €/μήνα** (και **{tapilt_katharo:,.2f} € καθαρά** μετά τις κρατήσεις).")
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{int(st.session_state.tapilt_duration_years)} έτη**, η μηνιαία μικτή σύνταξη διαμορφώνεται στα **{tapilt_mikto:,.2f} €/μήνα** (και **{tapilt_katharo:,.2f} € καθαρά** μετά τις κρατήσεις).")
     else:
         st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό ταμείο ΤΑΠΙΛΤ).")
 
