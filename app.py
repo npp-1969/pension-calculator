@@ -133,7 +133,7 @@ def calc_monthly_tax(taxable_monthly: float) -> float:
     discount = max(0.0, 777.0 - ((annual - 12000.0) / 1000.0) * 20.0) if annual > 12000.0 else 777.0
     return max(0.0, gross_tax - discount) / 12.0
 
-# CSS - Προσθήκη κανόνα για κεντράρισμα δεδομένων στον st.data_editor
+# CSS - Απόλυτο κεντράρισμα σε όλα τα κελιά του st.data_editor
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -156,10 +156,13 @@ st.markdown("""
     .custom-table td.center { text-align: center; }
     .custom-table tr.total-row { background-color: #E2E8F0; font-weight: bold; }
     
-    /* Κεντράρισμα κειμένου/αριθμών στον πίνακα επεξεργασίας δεδομένων */
-    [data-testid="stDataEditor"] div[role="gridcell"] {
+    /* Αναγκαστικό κεντράρισμα σε όλα τα κελιά και τα εσωτερικά στοιχεία του st.data_editor */
+    [data-testid="stDataEditor"] div[role="gridcell"],
+    [data-testid="stDataEditor"] div[role="gridcell"] > div,
+    [data-testid="stDataEditor"] span {
         text-align: center !important;
         justify-content: center !important;
+        align-items: center !important;
     }
     </style>
 """, unsafe_allow_html=True)
