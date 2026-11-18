@@ -419,14 +419,19 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
             st.session_state['df_economic'] = df_edited
             
-            # Υπολογισμός συνολικών ενσήμων, συνολικών αποδοχών και μέσου όρου
+            # ΣΩΣΤΟΣ ΥΠΟΛΟΓΙΣΜΟΣ: Άθροισμα αποδοχών επί τα αντίστοιχα ένσημα/ημέρες διαιρούμενο δια 25 (ή σωστή αναγωγή) 
+            # ή απευθείας το σωστό άθροισμα γινομένου (Ημέρες * Μισθός / 25) ανά μήνα/περίοδο
             total_ensima_disp = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-            total_apodoches_disp = (df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] * df_edited['ΑΠΟΔΟΧΕΣ (€)']).sum()
+            
+            # Υπολογισμός συνολικών αποδοχών (Άθροισμα [ (Ενσ/25) * Μηνιαίος Μισθός ] ή αν οι αποδοχές είναι συνολικές περιόδου)
+            # Εδώ υπολογίζουμε το σωστό συνολικό ποσό αποδοχών βάσει των ημερών εργασίας ανά περίοδο (Μισθός * Ημέρες / 25)
+            total_apodoches_disp = ((df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_edited['ΑΠΟΔΟΧΕΣ (€)']).sum()
+            
             df_p02 = df_edited[df_edited['ΕΤΟΣ_NUM'] >= 2002]
             avg_apod_disp = (df_p02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_p02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not df_p02.empty and df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0 else 0.0
             total_years_disp = total_ensima_disp / 300.0
 
-            # Εμφάνιση Κάρτας Σύνοψης Κάτω από τον Πίνακα Περιόδων
+            # Εμφάνιση Κάρτας Σύνοψης Κάτω από τον Πίνακα Περιόδων με τα διορθωμένα ποσά
             st.markdown(f"""
             <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 15px 20px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; font-size: 13px; color: #1E293B;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
@@ -472,7 +477,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑΣ
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
