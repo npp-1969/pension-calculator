@@ -419,17 +419,24 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
             st.session_state['df_economic'] = df_edited
             
-            # Υπολογισμός συνολικών ενσήμων και μέσου όρου αποδοχών για εμφάνιση κάτω από τον πίνακα
+            # Υπολογισμός συνολικών ενσήμων, συνολικών αποδοχών και μέσου όρου
             total_ensima_disp = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+            total_apodoches_disp = (df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] * df_edited['ΑΠΟΔΟΧΕΣ (€)']).sum()
             df_p02 = df_edited[df_edited['ΕΤΟΣ_NUM'] >= 2002]
             avg_apod_disp = (df_p02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_p02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not df_p02.empty and df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0 else 0.0
             total_years_disp = total_ensima_disp / 300.0
 
             # Εμφάνιση Κάρτας Σύνοψης Κάτω από τον Πίνακα Περιόδων
             st.markdown(f"""
-            <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 12px 18px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #1E293B;">
-                <div>📌 ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ: <span style="color: #1E3A8A;">{int(total_ensima_disp):,} Η.Ε.</span> ({total_years_disp:.2f} έτη)</div>
-                <div>💶 ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002): <span style="color: #16A34A;">{avg_apod_disp:,.2f} €</span></div>
+            <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 15px 20px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; font-size: 13px; color: #1E293B;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <div>📌 <b>ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ:</b> <span style="color: #1E3A8A; font-weight: bold;">{int(total_ensima_disp):,} Η.Ε.</span> ({total_years_disp:.2f} έτη)</div>
+                    <div>💶 <b>ΓΕΝΙΚΟ ΣΥΝΟΛΟ ΑΠΟΔΟΧΩΝ (από 1η μέρα):</b> <span style="color: #1E3A8A; font-weight: bold;">{total_apodoches_disp:,.2f} €</span></div>
+                </div>
+                <hr style="margin: 6px 0; border: none; border-top: 1px solid #CBD5E1;">
+                <div style="text-align: right;">
+                    📈 <b>ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002):</b> <span style="color: #16A34A; font-weight: bold;">{avg_apod_disp:,.2f} €</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -465,7 +472,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑΣ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
