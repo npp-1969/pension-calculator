@@ -554,4 +554,59 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
     tmima_b = st.session_state.efap_tmima_b
     total_efapax = tmima_a + tmima_b
 
-    st.markdown("<br
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    efap_col1, efap_col2 = st.columns(2)
+    with efap_col1:
+        st.markdown(f"""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-gold-header"><th colspan="2">ΒΑΣΙΚΕΣ ΠΑΡΑΜΕΤΡΟΙ ΕΦΑΠΑΞ</th></tr>
+            <tr><td><b>Μηνιαία Βάση Τμήματος Α</b></td><td style="text-align: right; color: blue;"><b>{monthly_taktiko_tA:,.2f} €</b></td></tr>
+            <tr><td><b>Συντελεστής Αναπλήρωσης</b></td><td style="text-align: center; color: blue;"><b>{st.session_state.efap_repl_rate:.2f}%</b></td></tr>
+            <tr><td><b>Έτη Τμήματος Α (έως 2013)</b></td><td style="text-align: center;">{b_until_2013:.2f} έτη</td></tr>
+            <tr><td><b>Έτη Τμήματος Β (από 2014)</b></td><td style="text-align: center;">{b_from_2014:.2f} έτη</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
+    with efap_col2:
+        st.markdown(f"""
+        <table style="width:100%; border-collapse: collapse; font-size: 13px; border: 1px solid #CBD5E1;">
+            <tr class="excel-table-header"><th colspan="2">ΤΕΛΙΚΑ ΑΠΟΤΕΛΕΣΜΑΤΑ (Ν. 4387/2016)</th><th>ΠΟΣΟ (€)</th></tr>
+            <tr><td colspan="2">1. Τμήμα Α (Έως 2013)</td><td style="text-align: right;">{tmima_a:,.2f} €</td></tr>
+            <tr><td colspan="2">2. Τμήμα Β (Εισφορές από 2014)</td><td style="text-align: right;">{tmima_b:,.2f} €</td></tr>
+            <tr style="background-color: #E2E8F0; font-weight: bold;"><td colspan="2">🌟 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ</td><td style="text-align: right; color: #1E3A8A;">{total_efapax:,.2f} €</td></tr>
+            <tr><td colspan="2">Φόρος Εισοδήματος</td><td style="text-align: right;">0,00 € (100% Αφορολόγητο)</td></tr>
+        </table>
+        """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 5. ΤΕΛΙΚΗ ΕΙΚΟΝΑ & ΕΚΤΥΠΩΣΗ ---
+else:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+    st.markdown('<div class="panel-header">📋 Συνοπτική Αναφορά & Εκτύπωση</div>', unsafe_allow_html=True)
+    
+    monthly_tak_fin = st.session_state.efap_avg_5y
+    total_efapax_fin = (st.session_state.bank_years_until_2013 * monthly_tak_fin * (st.session_state.efap_repl_rate / 100.0)) + st.session_state.efap_tmima_b
+    c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
+    
+    st.markdown(f"""
+    <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 20px; border-radius: 10px; font-size: 14px;">
+        <h3 style="color: #1E3A8A; margin-top: 0;">📄 ΕΠΙΣΗΜΗ ΣΥΝΟΨΗ ΠΕΛΑΤΗ: {c_name}</h3>
+        <hr style="margin: 10px 0;">
+        <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη (Ποσοστό Αναπλήρωσης: {pososto_anapl*100:.2f}%)</p>
+        <p><b>Συντάξιμες Αποδοχές (από 2002):</b> {avg_sal:,.2f} €</p>
+        <p><b>Προβλεπόμενη Ημερομηνία Εξόδου:</b> 16/09/2031 (Στα 62 με 40ετία)</p>
+        <hr style="margin: 10px 0;">
+        <p><b>🏛️ Καθαρή Κύρια Σύνταξη:</b> {katharo_main:,.2f} € / μήνα (Μικτή: {kria_mikto:,.2f} €)</p>
+        <p><b>🏦 Καθαρή Επικουρική / ΤΑΠΙΛΤ-ΑΤ:</b> {tapilt_katharo:,.2f} € / μήνα</p>
+        <p style="font-size: 16px; color: #1E3A8A;"><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{katharo_main + tapilt_katharo:,.2f} € / μήνα</b></p>
+        <hr style="margin: 10px 0;">
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ:</b> <b>{total_efapax_fin:,.2f} €</b></p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"):
+        st.info("💡 Πατήστε **Ctrl + P** στον περιηγητή σας.")
+    st.markdown('</div>', unsafe_allow_html=True)
