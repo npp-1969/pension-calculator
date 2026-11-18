@@ -43,7 +43,7 @@ def init_db():
     cursor.execute("PRAGMA table_info(client_profile)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'merida_amount' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN merida_amount REAL")
-    if 'has_tapilt' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN has_tapilt INTEGER DEFAULT 1")
+    if 'has_tapilt' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN has_tapilt INTEGER DEFAULT 0")
     if 'tapilt_net' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_net REAL")
     if 'tapilt_after_expiry' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_after_expiry REAL")
     if 'bank_years_until_2013' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_until_2013 REAL")
@@ -104,19 +104,19 @@ def load_from_db():
             "birth_date": row[3], "insurance_cat": row[4], "first_work_date": row[5],
             "econ_mode": row[6], "paste_input": row[7], "summary_years": row[8], 
             "summary_avg_salary": row[9], 
-            "merida_amount": row[10] if row[10] is not None else 71206.66,
-            "has_tapilt": int(row[11]) if row[11] is not None else 1,
-            "tapilt_net": row[12] if row[12] is not None else 531.91,
-            "tapilt_after_expiry": row[13] if row[13] is not None else 100.00,
-            "bank_years_until_2013": row[14] if row[14] is not None else 22.90,
-            "bank_years_from_2014": row[15] if row[15] is not None else 9.0,
-            "pososto_anapl_custom": row[16] if row[16] is not None else 51.29,
-            "tapilt_sum_ginomeno": row[17] if row[17] is not None else 99.0,
-            "tapilt_syntaximos_misthos": row[18] if row[18] is not None else 3275.91,
-            "tapilt_duration_years": row[19] if row[19] is not None else 17.0,
+            "merida_amount": row[10] if row[10] is not None else 0.0,
+            "has_tapilt": int(row[11]) if row[11] is not None else 0,
+            "tapilt_net": row[12] if row[12] is not None else 0.0,
+            "tapilt_after_expiry": row[13] if row[13] is not None else 0.0,
+            "bank_years_until_2013": row[14] if row[14] is not None else 0.0,
+            "bank_years_from_2014": row[15] if row[15] is not None else 0.0,
+            "pososto_anapl_custom": row[16] if row[16] is not None else 0.0,
+            "tapilt_sum_ginomeno": row[17] if row[17] is not None else 0.0,
+            "tapilt_syntaximos_misthos": row[18] if row[18] is not None else 0.0,
+            "tapilt_duration_years": row[19] if row[19] is not None else 0.0,
             "efap_repl_rate": row[20] if row[20] is not None else 60.0,
-            "efap_avg_5y": row[21] if row[21] is not None else 3479.25,
-            "efap_tmima_b": row[22] if row[22] is not None else 15478.35
+            "efap_avg_5y": row[21] if row[21] is not None else 0.0,
+            "efap_tmima_b": row[22] if row[22] is not None else 0.0
         }
     return None
 
@@ -211,34 +211,33 @@ db_data = load_from_db()
 
 if 'client_data' not in st.session_state:
     st.session_state.client_data = {
-        "first_name": db_data["first_name"] if db_data else "Νεκτάριος", 
-        "last_name": db_data["last_name"] if db_data else "Πελεκάνος", 
+        "first_name": db_data["first_name"] if db_data else "", 
+        "last_name": db_data["last_name"] if db_data else "", 
         "gender": db_data["gender"] if db_data else "Άνδρας",
-        "birth_date": db_data["birth_date"] if db_data else "16/09/1969", 
-        "insurance_cat": db_data["insurance_cat"] if db_data else "Μισθωτός — Τράπεζα / Ιονική (πρώην ΤΑΠΙΛΤ)", 
-        "first_work_date": db_data["first_work_date"] if db_data else "01/06/1990"
+        "birth_date": db_data["birth_date"] if db_data else "", 
+        "insurance_cat": db_data["insurance_cat"] if db_data else "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", 
+        "first_work_date": db_data["first_work_date"] if db_data else ""
     }
 
 if 'econ_mode' not in st.session_state: st.session_state.econ_mode = db_data["econ_mode"] if db_data else "🔄 Αναλυτικά (Πίνακας Περιόδων)"
-if 'paste_input' not in st.session_state: st.session_state.paste_input = db_data["paste_input"] if db_data else "2002\t01/07/2002\t31/07/2002\tΤΡΑΠΕΖΑ\t25\t3275.91"
-if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 42.57
-if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3275.91
+if 'paste_input' not in st.session_state: st.session_state.paste_input = db_data["paste_input"] if db_data else ""
+if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 0.0
+if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 0.0
 
-default_has_tapilt = 1 if any(kw in st.session_state.client_data["insurance_cat"].upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΤΡΑΠΕΖΕΣ"]) else 0
-if 'has_tapilt' not in st.session_state: st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else default_has_tapilt)
+if 'has_tapilt' not in st.session_state: st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else 0)
 
-if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data and db_data["merida_amount"] > 0 else 71206.66
-if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data and db_data["tapilt_net"] > 0 else (531.91 if st.session_state.has_tapilt else 0.0)
-if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data and db_data["tapilt_after_expiry"] > 0 else (100.00 if st.session_state.has_tapilt else 0.0)
-if 'bank_years_until_2013' not in st.session_state: st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 22.90
-if 'bank_years_from_2014' not in st.session_state: st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 9.0
-if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data and db_data["pososto_anapl_custom"] > 0 else (51.29 if st.session_state.has_tapilt else 50.15)
-if 'tapilt_sum_ginomeno' not in st.session_state: st.session_state.tapilt_sum_ginomeno = db_data["tapilt_sum_ginomeno"] if db_data and db_data["tapilt_sum_ginomeno"] > 0 else (99.0 if st.session_state.has_tapilt else 0.0)
-if 'tapilt_syntaximos_misthos' not in st.session_state: st.session_state.tapilt_syntaximos_misthos = db_data["tapilt_syntaximos_misthos"] if db_data and db_data["tapilt_syntaximos_misthos"] > 0 else (3275.91 if st.session_state.has_tapilt else 0.0)
-if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data and db_data["tapilt_duration_years"] > 0 else (17.0 if st.session_state.has_tapilt else 0.0)
+if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data else 0.0
+if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 0.0
+if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 0.0
+if 'bank_years_until_2013' not in st.session_state: st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 0.0
+if 'bank_years_from_2014' not in st.session_state: st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 0.0
+if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data else 0.0
+if 'tapilt_sum_ginomeno' not in st.session_state: st.session_state.tapilt_sum_ginomeno = db_data["tapilt_sum_ginomeno"] if db_data else 0.0
+if 'tapilt_syntaximos_misthos' not in st.session_state: st.session_state.tapilt_syntaximos_misthos = db_data["tapilt_syntaximos_misthos"] if db_data else 0.0
+if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 0.0
 if 'efap_repl_rate' not in st.session_state: st.session_state.efap_repl_rate = db_data["efap_repl_rate"] if db_data else 60.0
-if 'efap_avg_5y' not in st.session_state: st.session_state.efap_avg_5y = db_data["efap_avg_5y"] if db_data else 3479.25
-if 'efap_tmima_b' not in st.session_state: st.session_state.efap_tmima_b = db_data["efap_tmima_b"] if db_data else 15478.35
+if 'efap_avg_5y' not in st.session_state: st.session_state.efap_avg_5y = db_data["efap_avg_5y"] if db_data else 0.0
+if 'efap_tmima_b' not in st.session_state: st.session_state.efap_tmima_b = db_data["efap_tmima_b"] if db_data else 0.0
 
 def persist_all():
     save_to_db({
@@ -297,8 +296,9 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.efap_repl_rate = 60.0
     st.session_state.efap_avg_5y = 0.0
     st.session_state.efap_tmima_b = 0.0
-    if 'df_economic' in st.session_state:
-        st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+    
+    st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+    persist_all()
     st.success("✅ Όλα τα στοιχεία του πελάτη καθαρίστηκαν πλήρως!")
     st.rerun()
 
@@ -322,6 +322,8 @@ if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περ
 
 if not df_parsed.empty:
     st.session_state['df_economic'] = df_parsed
+elif 'df_economic' not in st.session_state:
+    st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
 
 bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
 ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
@@ -356,43 +358,43 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
-if st.session_state.pososto_anapl_custom == 0.0:
+if st.session_state.pososto_anapl_custom == 0.0 and tot_years > 0:
     st.session_state.pososto_anapl_custom = 51.29 if st.session_state.has_tapilt else 50.15
 
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
 sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
-prosafxisi_tapilt = (sum_ginomeno * 0.00075 * t_synt_misthos) if st.session_state.has_tapilt else 0.0
+prosafxisi_tapilt = (sum_ginomeno * 0.00075 * t_synt_misthos) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 
 tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
 
-ethniki = calc_ethniki_syntaksi(tot_years, 446.87)
-antapodotiki_vassiki = avg_sal * pososto_anapl
-kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
+ethniki = calc_ethniki_syntaksi(tot_years, 446.87) if tot_years > 0 else 0.0
+antapodotiki_vassiki = (avg_sal * pososto_anapl) if tot_years > 0 else 0.0
+kria_mikto = (ethniki + antapodotiki_vassiki + prosafxisi_tapilt) if tot_years > 0 else 0.0
 
-eas_main = calc_eas(kria_mikto)
-ygeia_main = (kria_mikto - eas_main) * 0.06
+eas_main = calc_eas(kria_mikto) if tot_years > 0 else 0.0
+ygeia_main = ((kria_mikto - eas_main) * 0.06) if tot_years > 0 else 0.0
 
-tapilt_mikto = float(st.session_state.tapilt_net) if st.session_state.has_tapilt else 0.0
-ygeia_tapilt = tapilt_mikto * 0.06 if st.session_state.has_tapilt else 0.0
+tapilt_mikto = float(st.session_state.tapilt_net) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
+ygeia_tapilt = (tapilt_mikto * 0.06) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 
-# Επικουρική ΙΚΑ (ΕΦΚΑ) – εμφανίζεται μόνο αν δεν έχει ΤΑΠΙΛΤ ή αν υπάρχει ενεργή επιλογή
-ika_mikto = 0.0 if st.session_state.has_tapilt else 100.58
-ygeia_ika = ika_mikto * 0.06
+# Επικουρική ΙΚΑ/ΕΦΚΑ εμφανίζεται μόνο αν υπάρχουν χρόνια και ΔΕΝ έχει ΤΑΠΙΛΤ
+ika_mikto = (100.58 if (not st.session_state.has_tapilt and tot_years > 0) else 0.0)
+ygeia_ika = (ika_mikto * 0.06) if ika_mikto > 0 else 0.0
 
 taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
 taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0 if st.session_state.has_tapilt else 0.0
-taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0 if not st.session_state.has_tapilt else 0.0
+taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0 if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
 taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
-total_annual_tax = calc_annual_tax_total(taxable_total_annual)
+total_annual_tax = calc_annual_tax_total(taxable_total_annual) if taxable_total_annual > 0 else 0.0
 total_monthly_tax = total_annual_tax / 12.0
 
 if taxable_total_annual > 0:
     foros_main = total_monthly_tax * (taxable_main_annual / taxable_total_annual)
     foros_tapilt = total_monthly_tax * (taxable_tapilt_annual / taxable_total_annual) if st.session_state.has_tapilt else 0.0
-    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual) if not st.session_state.has_tapilt else 0.0
+    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
 else:
     foros_main = 0.0
     foros_tapilt = 0.0
@@ -404,13 +406,13 @@ foros_ika = round(foros_ika, 2) if not st.session_state.has_tapilt else 0.0
 geniko_foros = round(total_monthly_tax, 2)
 
 krat_main_total = eas_main + ygeia_main + foros_main
-katharo_main = max(kria_mikto - krat_main_total, 0.0)
+katharo_main = max(kria_mikto - krat_main_total, 0.0) if tot_years > 0 else 0.0
 
 krat_tapilt_total = (ygeia_tapilt + foros_tapilt) if st.session_state.has_tapilt else 0.0
 tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.has_tapilt else 0.0
 
-krat_ika_total = (ygeia_ika + foros_ika) if not st.session_state.has_tapilt else 0.0
-katharo_ika = max(ika_mikto - krat_ika_total, 0.0) if not st.session_state.has_tapilt else 0.0
+krat_ika_total = (ygeia_ika + foros_ika) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
+katharo_ika = max(ika_mikto - krat_ika_total, 0.0) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
 
 geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + (ika_mikto if not st.session_state.has_tapilt else 0.0)
 geniko_eas = eas_main
@@ -475,7 +477,7 @@ elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχέ
 
     if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
         st.session_state.paste_input = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", value=st.session_state.paste_input, height=120)
-        if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
+        if 'df_economic' in st.session_state:
             df_edited = st.data_editor(st.session_state['df_economic'], num_rows="dynamic", use_container_width=True, hide_index=True)
             df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_edited['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
             df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
@@ -571,15 +573,13 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # Δυναμική εμφάνιση γραμμών στον πάνω πίνακα Σύνοψης (εμφανίζονται μόνο αν έχουν ένσημα ή αν έχουν καταχωρηθεί)
     summary_rows_html = ""
     if bank_ens > 0 or bank_y > 0:
         summary_rows_html += f'<tr><td class="center">{bank_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΤΡΑΠΕΖΑ</td><td style="text-align: right;">{bank_avg:,.2f} €</td><td class="center">{int(bank_ens):,}</td></tr>'
     if ika_ens > 0 or ika_y > 0:
         summary_rows_html += f'<tr><td class="center">{ika_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΙΚΑ</td><td style="text-align: right;">{ika_avg:,.2f} €</td><td class="center">{int(ika_ens):,}</td></tr>'
     if summary_rows_html == "":
-        # Αν είναι καθαρισμένα τα πάντα
-        summary_rows_html = f'<tr><td class="center">{tot_years:.2f}</td><td style="text-align: center; font-weight: bold;">ΣΥΝΟΛΟ / ΦΟΡΕΑΣ</td><td style="text-align: right;">{avg_sal:,.2f} €</td><td class="center">{int(calc_tot_ensima):,}</td></tr>'
+        summary_rows_html = f'<tr><td class="center">0.00</td><td style="text-align: center; font-weight: bold;">-</td><td style="text-align: right;">0.00 €</td><td class="center">0</td></tr>'
 
     st.markdown(f"""
     <table class="custom-table">
@@ -596,44 +596,44 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Δυναμική γραμμή επικουρικής (ΤΑΠΙΛΤ ή ΕΦΚΑ ανάλογα με την επιλογή)
     second_row_html = ""
-    if st.session_state.has_tapilt:
-        second_row_html = f"""
-            <tr>
-                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
-                <td class="center">-</td>
-                <td class="center">{st.session_state.tapilt_duration_years:,.0f}</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td>{tapilt_mikto:,.2f} €</td>
-                <td><b>{tapilt_mikto:,.2f} €</b></td>
-                <td>0,00 €</td>
-                <td>{ygeia_tapilt:,.2f} €</td>
-                <td>{foros_tapilt:,.2f} €</td>
-                <td>{krat_tapilt_total:,.2f} €</td>
-                <td><b>{tapilt_katharo:,.2f} €</b></td>
-                <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
-            </tr>
-        """
-    else:
-        second_row_html = f"""
-            <tr>
-                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td>0,00 €</td>
-                <td><b>{ika_mikto:,.2f} €</b></td>
-                <td>0,00 €</td>
-                <td>{ygeia_ika:,.2f} €</td>
-                <td>{foros_ika:,.2f} €</td>
-                <td>{krat_ika_total:,.2f} €</td>
-                <td><b>{katharo_ika:,.2f} €</b></td>
-                <td class="center">Ισόβια</td>
-            </tr>
-        """
+    if tot_years > 0:
+        if st.session_state.has_tapilt:
+            second_row_html = f"""
+                <tr>
+                    <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
+                    <td class="center">-</td>
+                    <td class="center">{st.session_state.tapilt_duration_years:,.0f}</td>
+                    <td class="center">-</td>
+                    <td class="center">-</td>
+                    <td>{tapilt_mikto:,.2f} €</td>
+                    <td><b>{tapilt_mikto:,.2f} €</b></td>
+                    <td>0,00 €</td>
+                    <td>{ygeia_tapilt:,.2f} €</td>
+                    <td>{foros_tapilt:,.2f} €</td>
+                    <td>{krat_tapilt_total:,.2f} €</td>
+                    <td><b>{tapilt_katharo:,.2f} €</b></td>
+                    <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
+                </tr>
+            """
+        else:
+            second_row_html = f"""
+                <tr>
+                    <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
+                    <td class="center">-</td>
+                    <td class="center">-</td>
+                    <td class="center">-</td>
+                    <td class="center">-</td>
+                    <td>0,00 €</td>
+                    <td><b>{ika_mikto:,.2f} €</b></td>
+                    <td>0,00 €</td>
+                    <td>{ygeia_ika:,.2f} €</td>
+                    <td>{foros_ika:,.2f} €</td>
+                    <td>{krat_ika_total:,.2f} €</td>
+                    <td><b>{katharo_ika:,.2f} €</b></td>
+                    <td class="center">Ισόβια</td>
+                </tr>
+            """
 
     table_html = f"""
     <table class="custom-table">
@@ -719,7 +719,8 @@ else:
     st.markdown('<div class="panel-card"><div class="panel-header">📋 Τελική Εικόνα & Εκτύπωση</div>', unsafe_allow_html=True)
     monthly_tak_fin = st.session_state.efap_avg_5y
     total_efapax_fin = (st.session_state.bank_years_until_2013 * monthly_tak_fin * (st.session_state.efap_repl_rate / 100.0)) + st.session_state.efap_tmima_b
-    c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
+    c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}".strip()
+    c_name = c_name if c_name else "Ανώνυμος Πελάτης"
     
     st.markdown(f"""
     <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 20px; border-radius: 10px; font-size: 14px;">
@@ -733,4 +734,3 @@ else:
     """, unsafe_allow_html=True)
     if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"): st.info("💡 Πατήστε **Ctrl + P**.")
     st.markdown('</div>', unsafe_allow_html=True)
-    
