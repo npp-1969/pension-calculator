@@ -259,19 +259,38 @@ if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περ
 if not df_parsed.empty:
     st.session_state['df_economic'] = df_parsed
 
-# ΣΤΑΘΕΡΕΣ ΤΙΜΕΣ ΚΑΙ ΕΝΣΗΜΑ ΑΝΑ ΦΟΡΕΑ (Βάσει των ακριβών δεδομένων σας)
-bank_ens = 6393.0
-bank_y = bank_ens / 300.0  # ~21,31 έτη
-bank_avg = 3304.39
-
-ika_ens = 2917.0
-ika_y = ika_ens / 300.0  # ~9,72 έτη
-ika_avg = 3247.43
-
-calc_tot_ensima = bank_ens + ika_ens
-tot_years = calc_tot_ensima / 300.0  # Συνολικά έτη
+# ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ (ΤΡΑΠΕΖΑ & ΙΚΑ)
+bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
+ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
+calc_tot_ensima = 0.0
 avg_sal = float(st.session_state.summary_avg_salary)
 
+if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
+    df_res = st.session_state['df_economic']
+    df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
+    calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    
+    df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
+    
+    # Υπολογισμός για ΤΡΑΠΕΖΑ
+    df_bank = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΤΡΑΠΕΖΑ', case=False, na=False)]
+    if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        bank_y = bank_ens / 300.0
+        bank_avg = (df_bank['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank['ΑΠΟΔΟΧΕΣ (€)']).sum() / bank_ens
+
+    # Υπολογισμός για ΙΚΑ
+    df_ika = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ', case=False, na=False)]
+    if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        ika_y = ika_ens / 300.0
+        ika_avg = (df_ika['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika['ΑΠΟΔΟΧΕΣ (€)']).sum() / ika_ens
+
+    # Γενικός Σταθμισμένος Μ.Ο. από 2002+
+    if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+
+tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
 # Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ
@@ -403,7 +422,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ (Με τα σωστά ένσημα 6.393 και 2.917)
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ (Υπολογίζεται δυναμικά από τα δεδομένα)
     st.markdown(f"""
     <table class="custom-table">
         <thead>
