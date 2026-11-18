@@ -277,6 +277,7 @@ app_section = st.sidebar.radio("Επιλογή:", [
     "📋 Τελική Εικόνα"
 ], label_visibility="collapsed")
 
+# Κουμπί Πλήρους Καθαρισμού Πελάτη (Reset) στο Sidebar
 st.sidebar.markdown("---")
 if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων Πελάτη", use_container_width=True):
     st.session_state.client_data = {"first_name": "", "last_name": "", "gender": "Άνδρας", "birth_date": "", "insurance_cat": "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", "first_work_date": ""}
@@ -376,12 +377,13 @@ ygeia_main = (kria_mikto - eas_main) * 0.06
 tapilt_mikto = float(st.session_state.tapilt_net) if st.session_state.has_tapilt else 0.0
 ygeia_tapilt = tapilt_mikto * 0.06 if st.session_state.has_tapilt else 0.0
 
-ika_mikto = 100.58
-ygeia_ika = 6.03
+# Επικουρική ΙΚΑ (ΕΦΚΑ) – εμφανίζεται μόνο αν δεν έχει ΤΑΠΙΛΤ ή αν υπάρχει ενεργή επιλογή
+ika_mikto = 0.0 if st.session_state.has_tapilt else 100.58
+ygeia_ika = ika_mikto * 0.06
 
 taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
 taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0 if st.session_state.has_tapilt else 0.0
-taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0
+taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0 if not st.session_state.has_tapilt else 0.0
 taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
 total_annual_tax = calc_annual_tax_total(taxable_total_annual)
@@ -390,7 +392,7 @@ total_monthly_tax = total_annual_tax / 12.0
 if taxable_total_annual > 0:
     foros_main = total_monthly_tax * (taxable_main_annual / taxable_total_annual)
     foros_tapilt = total_monthly_tax * (taxable_tapilt_annual / taxable_total_annual) if st.session_state.has_tapilt else 0.0
-    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual)
+    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual) if not st.session_state.has_tapilt else 0.0
 else:
     foros_main = 0.0
     foros_tapilt = 0.0
@@ -398,7 +400,7 @@ else:
 
 foros_main = round(foros_main, 2)
 foros_tapilt = round(foros_tapilt, 2) if st.session_state.has_tapilt else 0.0
-foros_ika = round(foros_ika, 2)
+foros_ika = round(foros_ika, 2) if not st.session_state.has_tapilt else 0.0
 geniko_foros = round(total_monthly_tax, 2)
 
 krat_main_total = eas_main + ygeia_main + foros_main
@@ -407,14 +409,14 @@ katharo_main = max(kria_mikto - krat_main_total, 0.0)
 krat_tapilt_total = (ygeia_tapilt + foros_tapilt) if st.session_state.has_tapilt else 0.0
 tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.has_tapilt else 0.0
 
-krat_ika_total = ygeia_ika + foros_ika
-katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
+krat_ika_total = (ygeia_ika + foros_ika) if not st.session_state.has_tapilt else 0.0
+katharo_ika = max(ika_mikto - krat_ika_total, 0.0) if not st.session_state.has_tapilt else 0.0
 
-geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + ika_mikto
+geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + (ika_mikto if not st.session_state.has_tapilt else 0.0)
 geniko_eas = eas_main
-geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + ygeia_ika
-geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + krat_ika_total
-geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + katharo_ika
+geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + (ygeia_ika if not st.session_state.has_tapilt else 0.0)
+geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if not st.session_state.has_tapilt else 0.0)
+geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if not st.session_state.has_tapilt else 0.0)
 
 if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -556,11 +558,12 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e3: 
             st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
         with col_e4: 
-            # Αυτόματος υπολογισμός μικτού μηνιαίου ποσού από την ατομική μερίδα και τη διάρκεια αν χρειάζεται
             calc_from_merida = (st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)) if st.session_state.tapilt_duration_years > 0 else st.session_state.tapilt_net
             st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(calc_from_merida), step=5.0)
 
         st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{int(st.session_state.tapilt_duration_years)} έτη**, η μηνιαία μικτή σύνταξη διαμορφώνεται στα **{st.session_state.tapilt_net:,.2f} €/μήνα** (και **{tapilt_katharo:,.2f} € καθαρά** μετά τις κρατήσεις).")
+    else:
+        st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό ταμείο ΤΑΠΙΛΤ).")
 
     if st.button("💾 Αποθήκευση Ρυθμίσεων", type="primary"): persist_all(); st.success("✅ Οι ρυθμίσεις αποθηκεύτηκαν!")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -568,6 +571,16 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
+    # Δυναμική εμφάνιση γραμμών στον πάνω πίνακα Σύνοψης (εμφανίζονται μόνο αν έχουν ένσημα ή αν έχουν καταχωρηθεί)
+    summary_rows_html = ""
+    if bank_ens > 0 or bank_y > 0:
+        summary_rows_html += f'<tr><td class="center">{bank_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΤΡΑΠΕΖΑ</td><td style="text-align: right;">{bank_avg:,.2f} €</td><td class="center">{int(bank_ens):,}</td></tr>'
+    if ika_ens > 0 or ika_y > 0:
+        summary_rows_html += f'<tr><td class="center">{ika_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΙΚΑ</td><td style="text-align: right;">{ika_avg:,.2f} €</td><td class="center">{int(ika_ens):,}</td></tr>'
+    if summary_rows_html == "":
+        # Αν είναι καθαρισμένα τα πάντα
+        summary_rows_html = f'<tr><td class="center">{tot_years:.2f}</td><td style="text-align: center; font-weight: bold;">ΣΥΝΟΛΟ / ΦΟΡΕΑΣ</td><td style="text-align: right;">{avg_sal:,.2f} €</td><td class="center">{int(calc_tot_ensima):,}</td></tr>'
+
     st.markdown(f"""
     <table class="custom-table">
         <thead>
@@ -575,8 +588,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
             <tr><th>ΧΡΟΝΙΑ</th><th>ΦΟΡΕΑΣ</th><th>Μ. ΟΡΟΣ (€)</th><th>ΕΝΣΗΜΑ</th></tr>
         </thead>
         <tbody>
-            <tr><td class="center">{bank_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΤΡΑΠΕΖΑ</td><td style="text-align: right;">{bank_avg:,.2f} €</td><td class="center">{int(bank_ens):,}</td></tr>
-            <tr><td class="center">{ika_y:.2f}</td><td style="text-align: center; font-weight: bold;">ΙΚΑ</td><td style="text-align: right;">{ika_avg:,.2f} €</td><td class="center">{int(ika_ens):,}</td></tr>
+            {summary_rows_html}
             <tr class="total-row"><td class="center">{tot_years:.2f}</td><td style="text-align: center; font-weight: bold;">ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο.</td><td style="text-align: right;">{avg_sal:,.2f} €</td><td class="center">{int(calc_tot_ensima):,}</td></tr>
         </tbody>
     </table>
@@ -584,9 +596,10 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    tapilt_row_html = ""
+    # Δυναμική γραμμή επικουρικής (ΤΑΠΙΛΤ ή ΕΦΚΑ ανάλογα με την επιλογή)
+    second_row_html = ""
     if st.session_state.has_tapilt:
-        tapilt_row_html = f"""
+        second_row_html = f"""
             <tr>
                 <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
                 <td class="center">-</td>
@@ -601,6 +614,24 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td>{krat_tapilt_total:,.2f} €</td>
                 <td><b>{tapilt_katharo:,.2f} €</b></td>
                 <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
+            </tr>
+        """
+    else:
+        second_row_html = f"""
+            <tr>
+                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td>0,00 €</td>
+                <td><b>{ika_mikto:,.2f} €</b></td>
+                <td>0,00 €</td>
+                <td>{ygeia_ika:,.2f} €</td>
+                <td>{foros_ika:,.2f} €</td>
+                <td>{krat_ika_total:,.2f} €</td>
+                <td><b>{katharo_ika:,.2f} €</b></td>
+                <td class="center">Ισόβια</td>
             </tr>
         """
 
@@ -634,22 +665,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td><b>{katharo_main:,.2f} €</b></td>
                 <td class="center">Ισόβια</td>
             </tr>
-            {tapilt_row_html}
-            <tr>
-                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td class="center">-</td>
-                <td>0,00 €</td>
-                <td><b>{ika_mikto:,.2f} €</b></td>
-                <td>0,00 €</td>
-                <td>{ygeia_ika:,.2f} €</td>
-                <td>{foros_ika:,.2f} €</td>
-                <td>{krat_ika_total:,.2f} €</td>
-                <td><b>{katharo_ika:,.2f} €</b></td>
-                <td class="center">Ισόβια</td>
-            </tr>
+            {second_row_html}
             <tr class="total-row">
                 <td class="left">ΓΕΝΙΚΟ ΣΥΝΟΛΟ</td>
                 <td class="center">-</td><td class="center">-</td><td class="center">-</td><td class="center">-</td><td class="center">-</td>
@@ -717,3 +733,4 @@ else:
     """, unsafe_allow_html=True)
     if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"): st.info("💡 Πατήστε **Ctrl + P**.")
     st.markdown('</div>', unsafe_allow_html=True)
+    
