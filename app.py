@@ -31,7 +31,8 @@ def init_db():
             bank_years_until_2013 REAL,
             bank_years_from_2014 REAL,
             pososto_anapl_custom REAL,
-            isoδynama_eti_tapilt REAL
+            isoδynama_eti_tapilt REAL,
+            tapilt_duration_years REAL
         )
     ''')
     cursor.execute("PRAGMA table_info(client_profile)")
@@ -43,6 +44,7 @@ def init_db():
     if 'bank_years_from_2014' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_from_2014 REAL")
     if 'pososto_anapl_custom' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN pososto_anapl_custom REAL")
     if 'isoδynama_eti_tapilt' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN isoδynama_eti_tapilt REAL")
+    if 'tapilt_duration_years' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_duration_years REAL")
     conn.commit()
     conn.close()
 
@@ -56,15 +58,16 @@ def save_to_db(data):
         INSERT INTO client_profile (
             first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
             econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry,
-            bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, isoδynama_eti_tapilt
+            bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, isoδynama_eti_tapilt, tapilt_duration_years
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data["first_name"], data["last_name"], data["gender"], data["birth_date"],
         data["insurance_cat"], data["first_work_date"], data["econ_mode"],
         data["paste_input"], data["summary_years"], data["summary_avg_salary"],
         data["merida_amount"], data["tapilt_net"], data["tapilt_after_expiry"],
-        data["bank_years_until_2013"], data["bank_years_from_2014"], data["pososto_anapl_custom"], data["isoδynama_eti_tapilt"]
+        data["bank_years_until_2013"], data["bank_years_from_2014"], data["pososto_anapl_custom"], 
+        data["isoδynama_eti_tapilt"], data["tapilt_duration_years"]
     ))
     conn.commit()
     conn.close()
@@ -75,7 +78,7 @@ def load_from_db():
     cursor.execute('''
         SELECT first_name, last_name, gender, birth_date, insurance_cat, first_work_date, 
                econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, tapilt_net, tapilt_after_expiry,
-               bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, isoδynama_eti_tapilt 
+               bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, isoδynama_eti_tapilt, tapilt_duration_years 
         FROM client_profile LIMIT 1
     ''')
     row = cursor.fetchone()
@@ -87,12 +90,13 @@ def load_from_db():
             "econ_mode": row[6], "paste_input": row[7], "summary_years": row[8], 
             "summary_avg_salary": row[9], 
             "merida_amount": row[10] if row[10] is not None else 71206.66,
-            "tapilt_net": row[11] if row[11] is not None else 329.00,
+            "tapilt_net": row[11] if row[11] is not None else 350.00,
             "tapilt_after_expiry": row[12] if row[12] is not None else 100.00,
             "bank_years_until_2013": row[13] if row[13] is not None else 22.90,
             "bank_years_from_2014": row[14] if row[14] is not None else 9.0,
             "pososto_anapl_custom": row[15] if row[15] is not None else 51.29,
-            "isoδynama_eti_tapilt": row[16] if row[16] is not None else 21.37
+            "isoδynama_eti_tapilt": row[16] if row[16] is not None else 21.37,
+            "tapilt_duration_years": row[17] if row[17] is not None else 17.0
         }
     return None
 
@@ -179,12 +183,13 @@ if 'paste_input' not in st.session_state: st.session_state.paste_input = db_data
 if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 42.57
 if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3275.91
 if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data else 71206.66
-if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 329.00
+if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 350.00
 if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 100.00
 if 'bank_years_until_2013' not in st.session_state: st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 22.90
 if 'bank_years_from_2014' not in st.session_state: st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 9.0
 if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data else 51.29
 if 'isoδynama_eti_tapilt' not in st.session_state: st.session_state.isoδynama_eti_tapilt = db_data["isoδynama_eti_tapilt"] if db_data else 21.37
+if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 17.0
 
 def persist_all():
     save_to_db({
@@ -198,7 +203,8 @@ def persist_all():
         "bank_years_until_2013": float(st.session_state.bank_years_until_2013),
         "bank_years_from_2014": float(st.session_state.bank_years_from_2014), 
         "pososto_anapl_custom": float(st.session_state.pososto_anapl_custom),
-        "isoδynama_eti_tapilt": float(st.session_state.isoδynama_eti_tapilt)
+        "isoδynama_eti_tapilt": float(st.session_state.isoδynama_eti_tapilt),
+        "tapilt_duration_years": float(st.session_state.tapilt_duration_years)
     })
 
 st.markdown(f"""
@@ -260,7 +266,7 @@ else:
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 isoδynama_eti = float(st.session_state.isoδynama_eti_tapilt)
 
-# Υπολογισμός Προσαύξησης ΤΑΠΙΛΤ βάσει τύπου
+# 1. Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ βάσει τύπου: Μέσος Μισθός * Ισοδύναμα Έτη * 0.005
 prosafxisi_tapilt = avg_sal * isoδynama_eti * 0.005
 
 # Υπολογισμοί Κύριας Σύνταξης
@@ -275,11 +281,13 @@ foros_main = calc_monthly_tax(taxable_main)
 krat_main_total = eas_main + ygeia_main + foros_main
 katharo_main = max(kria_mikto - krat_main_total, 0.0)
 
-# Υπολογισμοί Επικουρικής ΤΑΠΙΛΤ
-tapilt_katharo = float(st.session_state.tapilt_net)
-tapilt_mikto = 350.00
-ygeia_tapilt = 21.00
+# 2. Υπολογισμοί Επικουρικής ΤΑΠΙΛΤ (350€ αρχικά, 6% κράτηση υγείας -> 329€ καθαρό, και διάρκεια)
+tapilt_mikto = float(st.session_state.tapilt_net) # π.χ. 350.00 €
+ygeia_tapilt = tapilt_mikto * 0.06
+tapilt_katharo = tapilt_mikto - ygeia_tapilt
 krat_tapilt_total = ygeia_tapilt
+tapilt_duration = f"{int(st.session_state.tapilt_duration_years)} έτη"
+tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry) # 100.00 €
 
 # Υπολογισμοί Επικουρικής ΙΚΑ (ΕΦΚΑ)
 ika_mikto = 100.58
@@ -331,14 +339,18 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
     with col_p2: st.session_state.pososto_anapl_custom = st.number_input("Ποσοστό Αναπλήρωσης (%)", value=float(st.session_state.pososto_anapl_custom), step=0.01)
 
     st.markdown("---")
-    st.markdown("#### 🏦 Υπολογισμός Προσαύξησης ΤΑΠΙΛΤ: Μέσος Μισθός × Ισοδύναμα Έτη × 0,005")
-    col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+    st.markdown("#### 🏦 Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ (Μέσος Μισθός × Ισοδύναμα Έτη × 0,005)")
+    col_t1, col_t2 = st.columns(2)
     with col_t1: st.session_state.isoδynama_eti_tapilt = st.number_input("Ισοδύναμα Έτη Προσαύξησης", value=float(st.session_state.isoδynama_eti_tapilt), step=0.01)
-    with col_t2: st.session_state.tapilt_net = st.number_input("Καθαρή Επικουρική ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
-    with col_t3: st.session_state.tapilt_after_expiry = st.number_input("ΤΑΠΙΛΤ μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
-    with col_t4: st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
+    st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{avg_sal:,.2f} €** × **{isoδynama_eti}** × 0,005 = **{prosafxisi_tapilt:,.2f} €**")
 
-    st.info(f"💡 Με βάση τα στοιχεία, ο Μέσος Μισθός είναι **{avg_sal:,.2f} €** και η προσαύξηση ΤΑΠΙΛΤ υπολογίζεται αυτόματα σε: **{prosafxisi_tapilt:,.2f} €**")
+    st.markdown("---")
+    st.markdown("#### 🏦 Παράμετροι Επικουρικής ΤΑΠΙΛΤ (Αρχικό ποσό, Διάρκεια & Μετά τη λήξη)")
+    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+    with col_e1: st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
+    with col_e2: st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=1.0)
+    with col_e3: st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
+    with col_e4: st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
 
     if st.button("💾 Αποθήκευση Οικονομικών", type="primary"): persist_all(); st.success("✅ Αποθηκεύτηκαν επιτυχώς!")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -393,14 +405,14 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td class="center">32,22</td>
                 <td class="center">-</td>
                 <td class="center">-</td>
-                <td>350,00 €</td>
-                <td><b>350,00 €</b></td>
+                <td>{tapilt_mikto:,.2f} €</td>
+                <td><b>{tapilt_mikto:,.2f} €</b></td>
                 <td>0,00 €</td>
-                <td>21,00 €</td>
+                <td>{ygeia_tapilt:,.2f} €</td>
                 <td>0,00 €</td>
-                <td>21,00 €</td>
+                <td>{krat_tapilt_total:,.2f} €</td>
                 <td><b>{tapilt_katharo:,.2f} €</b></td>
-                <td class="center">17 έτη</td>
+                <td class="center">{tapilt_duration} (μετά {tapilt_meta_lixi}€)</td>
             </tr>
             <tr>
                 <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
