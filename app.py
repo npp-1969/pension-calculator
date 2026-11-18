@@ -119,7 +119,7 @@ def load_from_db():
             "pososto_anapl_custom": row[16] if row[16] is not None else 0.0,
             "tapilt_sum_ginomeno": row[17] if row[17] is not None else 0.0,
             "tapilt_syntaximos_misthos": row[18] if row[18] is not None else 0.0,
-            "tapilt_duration_years": row[19] if row[19] is not None else 0.0,
+            "tapilt_duration_years": row[19] if row[19] is not None else 15.0,
             "art30_years": row[20] if row[20] is not None else 16.4,
             "art30_extra_units": row[21] if row[21] is not None else 6.67,
             "efap_repl_rate": row[22] if row[22] is not None else 60.0,
@@ -243,7 +243,7 @@ if 'bank_years_from_2014' not in st.session_state: st.session_state.bank_years_f
 if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data else (51.29 if st.session_state.has_tapilt else 0.0)
 if 'tapilt_sum_ginomeno' not in st.session_state: st.session_state.tapilt_sum_ginomeno = db_data["tapilt_sum_ginomeno"] if db_data else 0.0
 if 'tapilt_syntaximos_misthos' not in st.session_state: st.session_state.tapilt_syntaximos_misthos = db_data["tapilt_syntaximos_misthos"] if db_data else 0.0
-if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 0.0
+if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 15.0
 
 if 'art30_years' not in st.session_state: st.session_state.art30_years = db_data["art30_years"] if db_data else 16.4
 if 'art30_extra_units' not in st.session_state: st.session_state.art30_extra_units = db_data["art30_extra_units"] if db_data else 6.67
@@ -305,7 +305,7 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.bank_years_from_2014 = 0.0
     st.session_state.tapilt_sum_ginomeno = 0.0
     st.session_state.tapilt_syntaximos_misthos = 0.0
-    st.session_state.tapilt_duration_years = 0.0
+    st.session_state.tapilt_duration_years = 15.0
     st.session_state.art30_years = 16.4
     st.session_state.art30_extra_units = 6.67
     st.session_state.efap_repl_rate = 60.0
@@ -348,14 +348,13 @@ avg_sal = float(st.session_state.summary_avg_salary)
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     
-    # ΕΞΥΠΝΗ ΑΝΙΧΝΕΥΣΗ: Σαρώνει ΟΛΑ τα κελιά κάθε γραμμής για να βρει το έτος (4ψήφιο 19xx ή 20xx)
     def extract_year_from_row(row):
         for val in row.values:
             val_str = str(val)
             match = re.search(r'(19\d{2}|20\d{2})', val_str)
             if match:
                 y = int(match.group(1))
-                if 1950 <= y <= 2050: # Λογικό εύρος ετών ασφάλισης
+                if 1950 <= y <= 2050:
                     return y
         return 0
 
@@ -365,7 +364,6 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     
-    # Εύρεση φορέα από οποιοδήποτε κελί της γραμμής
     def check_for_text(row, keywords):
         row_str = " ".join([str(v).upper() for v in row.values])
         return any(kw in row_str for kw in keywords)
@@ -386,7 +384,6 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
         if not df_ika_post02.empty and df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             ika_avg = (df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # Σταθμισμένος μέσος όρος αποδοχών από 2002 και μετά
     df_post_2002 = df_res[df_res['ΕΤΟΣ_CLEAN'] >= 2002]
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
@@ -394,9 +391,6 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
         avg_sal = float(st.session_state.summary_avg_salary) if st.session_state.summary_avg_salary > 0 else 0.0
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
-
-if st.session_state.has_tapilt:
-    st.session_state.tapilt_duration_years = round(tot_years, 2)
 
 if st.session_state.pososto_anapl_custom == 0.0 and tot_years > 0:
     st.session_state.pososto_anapl_custom = 51.29 if st.session_state.has_tapilt else 50.15
@@ -571,14 +565,14 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e1: 
             st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
         with col_e2: 
-            st.session_state.tapilt_duration_years = float(tot_years)
-            st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), disabled=True, format="%.2f")
+            # ΔΙΟΡΘΩΣΗ: Πλέον η Διάρκεια είναι ελεύθερο πεδίο number_input και δεν κλειδώνει στα συνολικά χρόνια ασφάλισης
+            st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=0.1)
         with col_e3: 
             st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
         with col_e4: 
             st.session_state.tapilt_net = st.number_input("Ποσό Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
 
-        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €**, ο υπολογισμός προχωρά κανονικά.")
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{st.session_state.tapilt_duration_years:.2f} έτη**, ο υπολογισμός προχωρά κανονικά.")
     else:
         st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό καθεστώς Ιονικής/ΤΑΠΙΛΤ).")
 
@@ -613,12 +607,13 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     second_row_html = ""
     if tot_years > 0:
+        tapilt_dur_disp = float(st.session_state.tapilt_duration_years)
         if st.session_state.has_tapilt:
             second_row_html = f"""
                 <tr>
                     <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ-ΑΤ</td>
                     <td class="center">-</td>
-                    <td class="center">{tot_years:.2f}</td>
+                    <td class="center">{tapilt_dur_disp:.2f}</td>
                     <td class="center">-</td>
                     <td class="center">-</td>
                     <td>{tapilt_mikto:,.2f} €</td>
@@ -628,7 +623,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                     <td>{foros_tapilt:,.2f} €</td>
                     <td>{krat_tapilt_total:,.2f} €</td>
                     <td><b>{tapilt_katharo:,.2f} €</b></td>
-                    <td class="center">{tot_years:.2f} έτη (μετά {tapilt_meta_lixi}€)</td>
+                    <td class="center">{tapilt_dur_disp:.2f} έτη (μετά {tapilt_meta_lixi}€)</td>
                 </tr>
             """
         else:
