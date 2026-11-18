@@ -227,7 +227,6 @@ if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_sa
 default_has_tapilt = 1 if any(kw in st.session_state.client_data["insurance_cat"].upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΤΡΑΠΕΖΕΣ"]) else 0
 if 'has_tapilt' not in st.session_state: st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else default_has_tapilt)
 
-# Αρχικοποίηση τιμών ΤΑΠΙΛΤ με ασφάλεια
 if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data and db_data["merida_amount"] > 0 else 71206.66
 if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data and db_data["tapilt_net"] > 0 else (531.91 if st.session_state.has_tapilt else 0.0)
 if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data and db_data["tapilt_after_expiry"] > 0 else (100.00 if st.session_state.has_tapilt else 0.0)
@@ -359,7 +358,6 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
-# Αυτόματη απόδοση προεπιλεγμένων τιμών αν έχει ΤΑΠΙΛΤ και είναι μηδενικά
 if st.session_state.has_tapilt:
     if st.session_state.pososto_anapl_custom == 0.0: st.session_state.pososto_anapl_custom = 51.29
     if st.session_state.tapilt_sum_ginomeno == 0.0: st.session_state.tapilt_sum_ginomeno = 99.0
@@ -371,14 +369,12 @@ if st.session_state.has_tapilt:
 
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
-# Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ (0 αν δεν έχει)
 sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
 prosafxisi_tapilt = (sum_ginomeno * 0.00075 * t_synt_misthos) if st.session_state.has_tapilt else 0.0
 
 tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
 
-# Υπολογισμοί Κύριας Σύνταξης
 ethniki = calc_ethniki_syntaksi(tot_years, 446.87)
 antapodotiki_vassiki = avg_sal * pososto_anapl
 kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
@@ -386,14 +382,12 @@ kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
 eas_main = calc_eas(kria_mikto)
 ygeia_main = (kria_mikto - eas_main) * 0.06
 
-# Υπολογισμοί Επικουρικών ΤΑΠΙΛΤ (0 αν δεν έχει)
 tapilt_mikto = float(st.session_state.tapilt_net) if st.session_state.has_tapilt else 0.0
 ygeia_tapilt = tapilt_mikto * 0.06 if st.session_state.has_tapilt else 0.0
 
 ika_mikto = 100.58
 ygeia_ika = 6.03
 
-# Φορολογία
 taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
 taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0 if st.session_state.has_tapilt else 0.0
 taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0
@@ -425,7 +419,6 @@ tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.
 krat_ika_total = ygeia_ika + foros_ika
 katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
 
-# Γενικά Σύνολα
 geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + ika_mikto
 geniko_eas = eas_main
 geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + ygeia_ika
@@ -534,7 +527,6 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
     prev_has_tapilt = st.session_state.has_tapilt
     st.session_state.has_tapilt = st.checkbox("✅ Ο πελάτης διαθέτει Επικουρική / Προσαύξηση ΤΑΠΙΛΤ (ή παρόμοιο ειδικό ταμείο)", value=bool(st.session_state.has_tapilt))
     
-    # Αν ενεργοποιηθεί τώρα, αυτόματα φορτώνονται οι προεπιλεγμένες τιμές
     if st.session_state.has_tapilt and not prev_has_tapilt:
         st.session_state.pososto_anapl_custom = 51.29
         st.session_state.tapilt_sum_ginomeno = 99.0
@@ -611,6 +603,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
             </tr>
         """
 
+    # ΔΙΟΡΘΩΣΗ: Προσθήκη unsafe_allow_html=True εδώ ακριβώς για να μεταφραστεί σωστά η HTML
     st.markdown(f"""
     <table class="custom-table">
         <thead>
