@@ -132,7 +132,7 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# CSS - Απόλυτο κεντράρισμα σε όλα τα κελιά του st.data_editor
+# CSS
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -155,7 +155,6 @@ st.markdown("""
     .custom-table td.center { text-align: center; }
     .custom-table tr.total-row { background-color: #E2E8F0; font-weight: bold; }
     
-    /* Αναγκαστικό κεντράρισμα σε όλα τα κελιά και τα εσωτερικά στοιχεία του st.data_editor */
     [data-testid="stDataEditor"] div[role="gridcell"],
     [data-testid="stDataEditor"] div[role="gridcell"] > div,
     [data-testid="stDataEditor"] span {
@@ -315,11 +314,9 @@ taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0
 taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0
 taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
-# Συνολικός Ετήσιος Φόρος με βάση τη νέα κλίμακα 2026
 total_annual_tax = calc_annual_tax_total(taxable_total_annual)
 total_monthly_tax = total_annual_tax / 12.0
 
-# Επιμερισμός μηνιαίου φόρου αναλογικά με το ετήσιο φορολογητέο εισόδημα κάθε σύνταξης
 if taxable_total_annual > 0:
     foros_main = total_monthly_tax * (taxable_main_annual / taxable_total_annual)
     foros_tapilt = total_monthly_tax * (taxable_tapilt_annual / taxable_total_annual)
@@ -427,14 +424,14 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
     <table class="custom-table">
         <thead>
             <tr>
-                <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ (ΕΑΣ, ΥΓΕΙΑ 6%, ΦΟΡΟΣ 2026)</th>
-                <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΒΑΣΕΙ ΚΛΙΜΑΚΩΝ 2026)</th>
+                <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΝΕΑ ΦΟΡΟΛΟΓΙΚΗ ΚΛΙΜΑΚΑ 2026 & ΦΟΡΟΣ ΕΠΙΚΟΥΡΙΚΩΝ</th>
+                <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΚΛΙΜΑΚΕΣ 2026)</th>
                 <th>ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€)</th>
             </tr>
             <tr>
                 <th>Είδος Σύνταξης</th>
                 <th>Μέσος Μισθός (€)</th>
-                <th>Χρόνια Ασφάλισης</th>
+                <th>Χρόνια Ασφάλ.</th>
                 <th>Εθνική Σύνταξη (€)</th>
                 <th>Ποσοστό Αναπλ. (%)</th>
                 <th>Προσαύξ. ΤΑΠΙΛΤ (€)</th>
