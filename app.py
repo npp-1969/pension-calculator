@@ -224,14 +224,15 @@ if 'paste_input' not in st.session_state: st.session_state.paste_input = db_data
 if 'summary_years' not in st.session_state: st.session_state.summary_years = db_data["summary_years"] if db_data else 0.0
 if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 0.0
 
-if 'has_tapilt' not in st.session_state: st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else 0)
+if 'has_tapilt' not in st.session_state: 
+    st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else any(kw in st.session_state.client_data["insurance_cat"].upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]))
 
 if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data else 0.0
 if 'tapilt_net' not in st.session_state: st.session_state.tapilt_net = db_data["tapilt_net"] if db_data else 0.0
 if 'tapilt_after_expiry' not in st.session_state: st.session_state.tapilt_after_expiry = db_data["tapilt_after_expiry"] if db_data else 0.0
 if 'bank_years_until_2013' not in st.session_state: st.session_state.bank_years_until_2013 = db_data["bank_years_until_2013"] if db_data else 0.0
 if 'bank_years_from_2014' not in st.session_state: st.session_state.bank_years_from_2014 = db_data["bank_years_from_2014"] if db_data else 0.0
-if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data else 0.0
+if 'pososto_anapl_custom' not in st.session_state: st.session_state.pososto_anapl_custom = db_data["pososto_anapl_custom"] if db_data else (51.29 if st.session_state.has_tapilt else 0.0)
 if 'tapilt_sum_ginomeno' not in st.session_state: st.session_state.tapilt_sum_ginomeno = db_data["tapilt_sum_ginomeno"] if db_data else 0.0
 if 'tapilt_syntaximos_misthos' not in st.session_state: st.session_state.tapilt_syntaximos_misthos = db_data["tapilt_syntaximos_misthos"] if db_data else 0.0
 if 'tapilt_duration_years' not in st.session_state: st.session_state.tapilt_duration_years = db_data["tapilt_duration_years"] if db_data else 0.0
@@ -375,7 +376,6 @@ kria_mikto = (ethniki + antapodotiki_vassiki + prosafxisi_tapilt) if tot_years >
 eas_main = calc_eas(kria_mikto) if tot_years > 0 else 0.0
 ygeia_main = ((kria_mikto - eas_main) * 0.06) if tot_years > 0 else 0.0
 
-# Υπολογισμός μικτού ΤΑΠΙΛΤ αυτόματα από την Ατομική Μερίδα και τη Διάρκεια που δίνεις
 if st.session_state.has_tapilt and st.session_state.tapilt_duration_years > 0 and st.session_state.merida_amount > 0:
     st.session_state.tapilt_net = st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)
 elif not st.session_state.has_tapilt:
@@ -448,22 +448,14 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
     selected_cat = st.selectbox("Ασφαλιστική Κατηγορία / Φορέας", cat_options, index=cat_idx)
     st.session_state.client_data["insurance_cat"] = selected_cat
 
+    # Έλεγχος αν επελέγη Τράπεζα / Ιονική
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]):
         st.session_state.has_tapilt = True
         st.session_state.pososto_anapl_custom = 51.29
-        # Αν δεν υπάρχουν ήδη τιμές, δίνουμε μηδενικές ή βασικές για να τις συμπληρώνει ο χρήστης
-        if st.session_state.merida_amount == 0.0: st.session_state.merida_amount = 0.0
-        if st.session_state.tapilt_duration_years == 0.0: st.session_state.tapilt_duration_years = 17.0
-        if st.session_state.tapilt_after_expiry == 0.0: st.session_state.tapilt_after_expiry = 100.00
+        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Παρακαλώ μεταβείτε στην ενότητα **«⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)»** στο αριστερό μενού για να καταχωρήσετε την Ατομική Μερίδα και τη Διάρκεια του πελάτη.")
     else:
         st.session_state.has_tapilt = False
         st.session_state.pososto_anapl_custom = 50.15
-        st.session_state.tapilt_sum_ginomeno = 0.0
-        st.session_state.tapilt_syntaximos_misthos = 0.0
-        st.session_state.tapilt_net = 0.0
-        st.session_state.tapilt_duration_years = 0.0
-        st.session_state.tapilt_after_expiry = 0.0
-        st.session_state.merida_amount = 0.0
 
     if st.button("💾 Αποθήκευση Προσωπικών", type="primary"): 
         persist_all()
@@ -521,21 +513,7 @@ elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχέ
 elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)":
     st.markdown('<div class="panel-card"><div class="panel-header">⚙️ Ρυθμίσεις Παραμέτρων & Ειδικών Ταμείων (π.χ. ΤΑΠΙΛΤ)</div>', unsafe_allow_html=True)
     
-    prev_has_tapilt = st.session_state.has_tapilt
     st.session_state.has_tapilt = st.checkbox("✅ Ο πελάτης διαθέτει Επικουρική / Προσαύξηση ΤΑΠΙΛΤ (ή παρόμοιο ειδικό ταμείο)", value=bool(st.session_state.has_tapilt))
-    
-    if st.session_state.has_tapilt and not prev_has_tapilt:
-        st.session_state.pososto_anapl_custom = 51.29
-        st.rerun()
-    elif not st.session_state.has_tapilt and prev_has_tapilt:
-        st.session_state.pososto_anapl_custom = 50.15
-        st.session_state.tapilt_sum_ginomeno = 0.0
-        st.session_state.tapilt_syntaximos_misthos = 0.0
-        st.session_state.tapilt_net = 0.0
-        st.session_state.tapilt_duration_years = 0.0
-        st.session_state.tapilt_after_expiry = 0.0
-        st.session_state.merida_amount = 0.0
-        st.rerun()
 
     if st.session_state.has_tapilt:
         st.markdown("---")
