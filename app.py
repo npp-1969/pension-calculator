@@ -346,7 +346,9 @@ avg_sal = float(st.session_state.summary_avg_salary)
 
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
-    df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
+    
+    # Ασφαλής εξαγωγή έτους και μετατροπή τύπων δεδομένων
+    df_res['ΕΤΟΣ_CLEAN'] = pd.to_numeric(df_res['ΕΤΟΣ'].astype(str).str.extract(r'(\d{4})')[0], errors='coerce').fillna(0)
     df_res['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_res['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
     df_res['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_res['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
     
@@ -356,7 +358,7 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         bank_y = bank_ens / 300.0
-        df_bank_post02 = df_bank[df_bank['ΕΤΟΣ_NUM'] >= 2002]
+        df_bank_post02 = df_bank[df_bank['ΕΤΟΣ_CLEAN'] >= 2002]
         if not df_bank_post02.empty and df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             bank_avg = (df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
@@ -364,14 +366,16 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         ika_y = ika_ens / 300.0
-        df_ika_post02 = df_ika[df_ika['ΕΤΟΣ_NUM'] >= 2002]
+        df_ika_post02 = df_ika[df_ika['ΕΤΟΣ_CLEAN'] >= 2002]
         if not df_ika_post02.empty and df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             ika_avg = (df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # ΔΙΟΡΘΩΣΗ: Υπολογισμός σταθμισμένου μέσου όρου αποδοχών από 2002 και μετά
-    df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
+    # Σταθμισμένος μέσος όρος αποδοχών από 2002 και μετά
+    df_post_2002 = df_res[df_res['ΕΤΟΣ_CLEAN'] >= 2002]
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    else:
+        avg_sal = float(st.session_state.summary_avg_salary) if st.session_state.summary_avg_salary > 0 else 0.0
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
@@ -511,7 +515,7 @@ elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχέ
                 </div>
                 <hr style="margin: 6px 0; border: none; border-top: 1px solid #CBD5E1;">
                 <div style="text-align: right;">
-                    📈 <b>ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002):</b> <span style="color: #16A34A; font-weight: bold;">{avg_apod_disp:,.2f} €</span>
+                    📈 <b>ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002):</b> <span style="color: #16A34A; font-weight: bold;">{avg_sal:,.2f} €</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
