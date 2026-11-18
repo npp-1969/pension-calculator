@@ -367,7 +367,18 @@ pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
 sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
-prosafxisi_tapilt = (sum_ginomeno * 0.00075 * t_synt_misthos) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
+
+# ΔΙΟΡΘΩΣΗ: Αν δεν συμπληρώθηκαν γινόμενα αλλά υπάρχουν χρόνια τράπεζας και μισθός, υπολογίζεται αυτόματα
+if st.session_state.has_tapilt and tot_years > 0:
+    if sum_ginomeno > 0 and t_synt_misthos > 0:
+        prosafxisi_tapilt = sum_ginomeno * 0.00075 * t_synt_misthos
+    else:
+        # Αυτόματος υπολογισμός βάσει ετών τράπεζας (bank_y) και μέσου μισθού
+        b_yrs = bank_y if bank_y > 0 else tot_years
+        m_sal = bank_avg if bank_avg > 0 else (avg_sal if avg_sal > 0 else 1000.0)
+        prosafxisi_tapilt = b_yrs * 0.00075 * m_sal
+else:
+    prosafxisi_tapilt = 0.0
 
 tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
 
@@ -518,7 +529,7 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_t1: st.session_state.tapilt_sum_ginomeno = st.number_input("Άθροισμα Γινομένων [Έτη × (Εισφορά - 20)]", value=float(st.session_state.tapilt_sum_ginomeno), step=0.1)
         with col_t2: st.session_state.tapilt_syntaximos_misthos = st.number_input("Συντάξιμος Μισθός Προσαύξησης (€)", value=float(st.session_state.tapilt_syntaximos_misthos), step=10.0)
         
-        st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{sum_ginomeno}** × 0,00075 × **{t_synt_misthos:,.2f} €** = **{prosafxisi_tapilt:,.2f} €**")
+        st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{prosafxisi_tapilt:,.2f} €**")
 
         st.markdown("---")
         st.markdown("#### 💶 Στοιχεία Ατομικής Μερίδας & Επικουρικής ΤΑΠΙΛΤ")
