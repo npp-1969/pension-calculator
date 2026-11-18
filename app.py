@@ -302,6 +302,9 @@ sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
 prosafxisi_tapilt = sum_ginomeno * 0.00075 * t_synt_misthos
 
+# Ορισμός μεταβλητών ΤΑΠΙΛΤ μετά τη λήξη
+tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
+
 # Υπολογισμοί Κύριας Σύνταξης
 ethniki = calc_ethniki_syntaksi(tot_years, 446.87)
 antapodotiki_vassiki = avg_sal * pososto_anapl
