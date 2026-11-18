@@ -272,8 +272,7 @@ else:
 
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
-# Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ βάσει του ακριβούς τύπου:
-# Προσαύξηση = Άθροισμα [Έτη × (Ποσοστό - 20)] × 0,00075 × Συντάξιμος Μισθός
+# Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ
 sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
 prosafxisi_tapilt = sum_ginomeno * 0.00075 * t_synt_misthos
@@ -295,7 +294,6 @@ tapilt_mikto = float(st.session_state.tapilt_net)
 ygeia_tapilt = tapilt_mikto * 0.06
 tapilt_katharo = tapilt_mikto - ygeia_tapilt
 krat_tapilt_total = ygeia_tapilt
-tapilt_duration = f"{int(st.session_state.tapilt_duration_years)} έτη"
 tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
 
 # Υπολογισμοί Επικουρικής ΙΚΑ (ΕΦΚΑ)
@@ -376,7 +374,6 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ (ΕΑΣ, ΥΓΕΙΑ 6%, ΦΟΡΟΣ 2026)</th>
                 <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΒΑΣΕΙ ΚΛΙΜΑΚΩΝ 2026)</th>
                 <th>ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€)</th>
-                <th>ΔΙΑΡΚΕΙΑ ΕΠΙΚΟΥΡΙΚΟΥ</th>
             </tr>
             <tr>
                 <th>Είδος Σύνταξης</th>
@@ -423,7 +420,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td>0,00 €</td>
                 <td>{krat_tapilt_total:,.2f} €</td>
                 <td><b>{tapilt_katharo:,.2f} €</b></td>
-                <td class="center">{tapilt_duration} (μετά {tapilt_meta_lixi}€)</td>
+                <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
             </tr>
             <tr>
                 <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
