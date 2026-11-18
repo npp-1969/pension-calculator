@@ -122,16 +122,15 @@ def calc_eas(gross_main: float) -> float:
     else: rate = 0.14
     return min(gross_main * rate, gross_main - 1434.0)
 
-def calc_monthly_tax(taxable_monthly: float) -> float:
-    annual = taxable_monthly * 12.0
-    if annual <= 0: return 0.0
-    if annual <= 10000: gross_tax = annual * 0.09
-    elif annual <= 20000: gross_tax = 900.0 + (annual - 10000.0) * 0.22
-    elif annual <= 30000: gross_tax = 3100.0 + (annual - 20000.0) * 0.28
-    elif annual <= 40000: gross_tax = 5900.0 + (annual - 30000.0) * 0.36
-    else: gross_tax = 9500.0 + (annual - 40000.0) * 0.44
-    discount = max(0.0, 777.0 - ((annual - 12000.0) / 1000.0) * 20.0) if annual > 12000.0 else 777.0
-    return max(0.0, gross_tax - discount) / 12.0
+def calc_annual_tax_total(annual_income: float) -> float:
+    if annual_income <= 0: return 0.0
+    if annual_income <= 10000: gross_tax = annual_income * 0.09
+    elif annual_income <= 20000: gross_tax = 900.0 + (annual_income - 10000.0) * 0.20
+    elif annual_income <= 30000: gross_tax = 2900.0 + (annual_income - 20000.0) * 0.26
+    elif annual_income <= 40000: gross_tax = 5500.0 + (annual_income - 30000.0) * 0.36
+    else: gross_tax = 9100.0 + (annual_income - 40000.0) * 0.44
+    discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
+    return max(0.0, gross_tax - discount)
 
 # CSS - Απόλυτο κεντράρισμα σε όλα τα κελιά του st.data_editor
 st.markdown("""
@@ -297,29 +296,56 @@ kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
 
 eas_main = calc_eas(kria_mikto)
 ygeia_main = (kria_mikto - eas_main) * 0.06
-taxable_main = max(0.0, kria_mikto - eas_main - ygeia_main)
-foros_main = calc_monthly_tax(taxable_main)
-krat_main_total = eas_main + ygeia_main + foros_main
-katharo_main = max(kria_mikto - krat_main_total, 0.0)
 
-# Υπολογισμοί Επικουρικής ΤΑΠΙΛΤ
+# Υπολογισμοί Επικουρικών
 tapilt_mikto = float(st.session_state.tapilt_net) 
 ygeia_tapilt = tapilt_mikto * 0.06
 tapilt_katharo = tapilt_mikto - ygeia_tapilt
 krat_tapilt_total = ygeia_tapilt
 tapilt_meta_lixi = float(st.session_state.tapilt_after_expiry)
 
-# Υπολογισμοί Επικουρικής ΙΚΑ (ΕΦΚΑ)
 ika_mikto = 100.58
 ygeia_ika = 6.03
 krat_ika_total = ygeia_ika
 katharo_ika = ika_mikto - krat_ika_total
 
+# Συνολικό Φορολογητέο Εισόδημα όλων των συντάξεων
+taxable_main = max(0.0, kria_mikto - eas_main - ygeia_main)
+taxable_tapilt = max(0.0, tapilt_mikto - ygeia_tapilt)
+taxable_ika = max(0.0, ika_mikto - ygeia_ika)
+taxable_total_monthly = taxable_main + taxable_tapilt + taxable_ika
+
+total_annual_tax = calc_annual_tax_total(taxable_total_monthly * 12.0)
+total_monthly_tax = total_annual_tax / 12.0
+
+# Επιμερισμός φόρου ανά σύνταξη ανάλογα με το φορολογητέο ποσό
+if taxable_total_monthly > 0:
+    foros_main = total_monthly_tax * (taxable_main / taxable_total_monthly)
+    foros_tapilt = total_monthly_tax * (taxable_tapilt / taxable_total_monthly)
+    foros_ika = total_monthly_tax * (taxable_ika / taxable_total_monthly)
+else:
+    foros_main = 0.0
+    foros_tapilt = 0.0
+    foros_ika = 0.0
+
+foros_main = round(foros_main, 2)
+foros_tapilt = round(foros_tapilt, 2)
+foros_ika = round(foros_ika, 2)
+geniko_foros = round(total_monthly_tax, 2)
+
+krat_main_total = eas_main + ygeia_main + foros_main
+katharo_main = max(kria_mikto - krat_main_total, 0.0)
+
+krat_tapilt_total = ygeia_tapilt + foros_tapilt
+tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0)
+
+krat_ika_total = ygeia_ika + foros_ika
+katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
+
 # Γενικά Σύνολα
 geniko_mikto = kria_mikto + tapilt_mikto + ika_mikto
 geniko_eas = eas_main
 geniko_ygeia = ygeia_main + ygeia_tapilt + ygeia_ika
-geniko_foros = foros_main
 geniko_krat_total = krat_main_total + krat_tapilt_total + krat_ika_total
 geniko_katharo = katharo_main + tapilt_katharo + katharo_ika
 
@@ -335,7 +361,6 @@ if app_section == "👤 Προσωπικά Στοιχεία":
 elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">💰 Οικονομικά Στοιχεία & Υπολογισμός Προσαύξησης Ιονικής/ΤΑΠΙΛΤ</div>', unsafe_allow_html=True)
     
-    # Κουμπί Καθαρισμού Δεδομένων
     col_btn1, col_btn2 = st.columns([4, 1])
     with col_btn2:
         if st.button("🗑️ Καθαρισμός Δεδομένων", use_container_width=True):
@@ -357,7 +382,6 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
             df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
             st.session_state['df_economic'] = df_edited
             
-            # Εμφάνιση Συνόλων κάτω από τον πίνακα
             st.markdown(f"""
             <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 12px 18px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-around; font-size: 14px; font-weight: bold; color: #1E293B;">
                 <span>📌 ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ: <span style="color: #1E3A8A;">{calc_tot_ensima:,.1f}</span></span>
@@ -448,7 +472,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td><b>{tapilt_mikto:,.2f} €</b></td>
                 <td>0,00 €</td>
                 <td>{ygeia_tapilt:,.2f} €</td>
-                <td>0,00 €</td>
+                <td>{foros_tapilt:,.2f} €</td>
                 <td>{krat_tapilt_total:,.2f} €</td>
                 <td><b>{tapilt_katharo:,.2f} €</b></td>
                 <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
@@ -463,8 +487,8 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <td><b>100,58 €</b></td>
                 <td>0,00 €</td>
                 <td>6,03 €</td>
-                <td>0,00 €</td>
-                <td>6,03 €</td>
+                <td>{foros_ika:,.2f} €</td>
+                <td>{krat_ika_total:,.2f} €</td>
                 <td><b>{katharo_ika:,.2f} €</b></td>
                 <td class="center">Ισόβια</td>
             </tr>
