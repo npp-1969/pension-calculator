@@ -418,12 +418,13 @@ ygeia_main = ((kria_mikto - eas_main) * 0.06) if tot_years > 0 else 0.0
 tapilt_mikto = float(st.session_state.tapilt_net) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 ygeia_tapilt = (tapilt_mikto * 0.06) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 
-ika_mikto = (100.58 if (not st.session_state.has_tapilt and tot_years > 0) else 0.0)
+# Υπολογισμός Επικουρικής ΙΚΑ (εφόσον υπάρχουν ένσημα ΙΚΑ)
+ika_mikto = (100.58 if (ika_ens > 0 and tot_years > 0) else 0.0)
 ygeia_ika = (ika_mikto * 0.06) if ika_mikto > 0 else 0.0
 
 taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
 taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0 if st.session_state.has_tapilt else 0.0
-taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0 if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
+taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0 if ika_mikto > 0 else 0.0
 taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
 total_annual_tax = calc_annual_tax_total(taxable_total_annual) if taxable_total_annual > 0 else 0.0
@@ -432,7 +433,7 @@ total_monthly_tax = total_annual_tax / 12.0
 if taxable_total_annual > 0:
     foros_main = total_monthly_tax * (taxable_main_annual / taxable_total_annual)
     foros_tapilt = total_monthly_tax * (taxable_tapilt_annual / taxable_total_annual) if st.session_state.has_tapilt else 0.0
-    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
+    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual) if ika_mikto > 0 else 0.0
 else:
     foros_main = 0.0
     foros_tapilt = 0.0
@@ -440,7 +441,7 @@ else:
 
 foros_main = round(foros_main, 2)
 foros_tapilt = round(foros_tapilt, 2) if st.session_state.has_tapilt else 0.0
-foros_ika = round(foros_ika, 2) if not st.session_state.has_tapilt else 0.0
+foros_ika = round(foros_ika, 2) if ika_mikto > 0 else 0.0
 geniko_foros = round(total_monthly_tax, 2)
 
 krat_main_total = eas_main + ygeia_main + foros_main
@@ -449,14 +450,14 @@ katharo_main = max(kria_mikto - krat_main_total, 0.0) if tot_years > 0 else 0.0
 krat_tapilt_total = (ygeia_tapilt + foros_tapilt) if st.session_state.has_tapilt else 0.0
 tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.has_tapilt else 0.0
 
-krat_ika_total = (ygeia_ika + foros_ika) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
-katharo_ika = max(ika_mikto - krat_ika_total, 0.0) if (not st.session_state.has_tapilt and ika_mikto > 0) else 0.0
+krat_ika_total = (ygeia_ika + foros_ika) if ika_mikto > 0 else 0.0
+katharo_ika = max(ika_mikto - krat_ika_total, 0.0) if ika_mikto > 0 else 0.0
 
-geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + (ika_mikto if not st.session_state.has_tapilt else 0.0)
+geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + (ika_mikto if ika_mikto > 0 else 0.0)
 geniko_eas = eas_main
-geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + (ygeia_ika if not st.session_state.has_tapilt else 0.0)
-geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if not st.session_state.has_tapilt else 0.0)
-geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if not st.session_state.has_tapilt else 0.0)
+geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + (ygeia_ika if ika_mikto > 0 else 0.0)
+geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if ika_mikto > 0 else 0.0)
+geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if ika_mikto > 0 else 0.0)
 
 if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -569,11 +570,9 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e3: 
             st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
 
-        # Αυτόματος υπολογισμός διάρκειας: Μερίδα / (Μηνιαίο Ποσό * 12)
         annual_tapilt = st.session_state.tapilt_net * 12.0
         auto_calculated_duration = (st.session_state.merida_amount / annual_tapilt) if annual_tapilt > 0 else 15.0
         
-        # Αν δεν έχει οριστεί χειροκénta ή αν θέλουμε να συγχρονίζεται δυναμικά:
         if 'tapilt_duration_years' not in st.session_state or st.session_state.tapilt_duration_years <= 0:
             st.session_state.tapilt_duration_years = auto_calculated_duration
 
@@ -621,8 +620,9 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
     second_row_html = ""
     if tot_years > 0:
         tapilt_dur_disp = float(st.session_state.tapilt_duration_years)
+        # 1. Επικουρική ΤΑΠΙΛΤ-ΑΤ (αν έχει επιλεγεί το ταμείο)
         if st.session_state.has_tapilt:
-            second_row_html = f"""
+            second_row_html += f"""
                 <tr>
                     <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ-ΑΤ</td>
                     <td class="center">-</td>
@@ -639,7 +639,28 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                     <td class="center">{tapilt_dur_disp:.2f} έτη (μετά {tapilt_meta_lixi}€)</td>
                 </tr>
             """
-        else:
+        # 2. Επικουρική ΙΚΑ / ΕΦΚΑ (εφόσον υπάρχουν ένσημα ΙΚΑ στον πίνακα)
+        if ika_ens > 0:
+            ika_dur_disp = f"{ika_y:.2f}" if ika_y > 0 else "-"
+            second_row_html += f"""
+                <tr>
+                    <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
+                    <td class="center">-</td>
+                    <td class="center">{ika_dur_disp}</td>
+                    <td class="center">-</td>
+                    <td class="center">-</td>
+                    <td>{ika_mikto:,.2f} €</td>
+                    <td><b>{ika_mikto:,.2f} €</b></td>
+                    <td>0,00 €</td>
+                    <td>{ygeia_ika:,.2f} €</td>
+                    <td>{foros_ika:,.2f} €</td>
+                    <td>{krat_ika_total:,.2f} €</td>
+                    <td><b>{katharo_ika:,.2f} €</b></td>
+                    <td class="center">Ισόβια</td>
+                </tr>
+            """
+        # Αν δεν υπάρχει καμία επικουρική
+        if second_row_html == "" and not st.session_state.has_tapilt:
             second_row_html = f"""
                 <tr>
                     <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
@@ -648,12 +669,12 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                     <td class="center">-</td>
                     <td class="center">-</td>
                     <td>0,00 €</td>
-                    <td><b>{ika_mikto:,.2f} €</b></td>
+                    <td><b>0,00 €</b></td>
                     <td>0,00 €</td>
-                    <td>{ygeia_ika:,.2f} €</td>
-                    <td>{foros_ika:,.2f} €</td>
-                    <td>{krat_ika_total:,.2f} €</td>
-                    <td><b>{katharo_ika:,.2f} €</b></td>
+                    <td>0,00 €</td>
+                    <td>0,00 €</td>
+                    <td>0,00 €</td>
+                    <td><b>0,00 €</b></td>
                     <td class="center">Ισόβια</td>
                 </tr>
             """
