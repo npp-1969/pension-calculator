@@ -382,4 +382,149 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
     st.info(f"💡 Υπολογισμένη Προσαύξηση Κύριας: **{sum_ginomeno}** × 0,00075 × **{t_synt_misthos:,.2f} €** = **{prosafxisi_tapilt:,.2f} €**")
 
     st.markdown("---")
-    st.markdown("#### 🏦 Παράμετροι Επικουρικής ΤΑΠ
+    st.markdown("#### 🏦 Παράμετροι Επικουρικής ΤΑΠΙΛΤ (Αρχικό ποσό, Διάρκεια & Μετά τη λήξη)")
+    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+    with col_e1: st.session_state.tapilt_net = st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
+    with col_e2: st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=1.0)
+    with col_e3: st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
+    with col_e4: st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
+
+    if st.button("💾 Αποθήκευση Οικονομικών", type="primary"): persist_all(); st.success("✅ Αποθηκεύτηκαν επιτυχώς!")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
+    st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΜΕ ΠΛΗΡΕΙΣ ΚΡΑΤΗΣΕΙΣ (ΕΑΣ, ΥΓΕΙΑ 6%, ΦΟΡΟΣ 2026)</th>
+                <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΒΑΣΕΙ ΚΛΙΜΑΚΩΝ 2026)</th>
+                <th>ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€)</th>
+            </tr>
+            <tr>
+                <th>Είδος Σύνταξης</th>
+                <th>Μέσος Μισθός (€)</th>
+                <th>Χρόνια Ασφάλισης</th>
+                <th>Εθνική Σύνταξη (€)</th>
+                <th>Ποσοστό Αναπλ. (%)</th>
+                <th>Προσαύξ. ΤΑΠΙΛΤ (€)</th>
+                <th>Μικτό Σύνολο (€)</th>
+                <th class="kratseis">ΕΑΣ (€)</th>
+                <th class="kratseis">Υγεία 6% (€)</th>
+                <th class="kratseis">Φόρος Μην. (€)</th>
+                <th class="kratseis">Σύνολο Κρατ. (€)</th>
+                <th>Καθαρό (€/μήνα)</th>
+                <th>Διάρκεια</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="left">ΚΥΡΙΑ ΣΥΝΤΑΞΗ</td>
+                <td>{avg_sal:,.2f} €</td>
+                <td class="center">{tot_years:.2f}</td>
+                <td>{ethniki:,.2f} €</td>
+                <td class="center">{pososto_anapl*100:.2f}%</td>
+                <td>{prosafxisi_tapilt:,.2f} €</td>
+                <td><b>{kria_mikto:,.2f} €</b></td>
+                <td>{eas_main:,.2f} €</td>
+                <td>{ygeia_main:,.2f} €</td>
+                <td>{foros_main:,.2f} €</td>
+                <td>{krat_main_total:,.2f} €</td>
+                <td><b>{katharo_main:,.2f} €</b></td>
+                <td class="center">Ισόβια</td>
+            </tr>
+            <tr>
+                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
+                <td class="center">-</td>
+                <td class="center">32,22</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td>{tapilt_mikto:,.2f} €</td>
+                <td><b>{tapilt_mikto:,.2f} €</b></td>
+                <td>0,00 €</td>
+                <td>{ygeia_tapilt:,.2f} €</td>
+                <td>0,00 €</td>
+                <td>{krat_tapilt_total:,.2f} €</td>
+                <td><b>{tapilt_katharo:,.2f} €</b></td>
+                <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
+            </tr>
+            <tr>
+                <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
+                <td>3.247,43 €</td>
+                <td class="center">10,35</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td>100,58 €</td>
+                <td><b>100,58 €</b></td>
+                <td>0,00 €</td>
+                <td>6,03 €</td>
+                <td>0,00 €</td>
+                <td>6,03 €</td>
+                <td><b>{katharo_ika:,.2f} €</b></td>
+                <td class="center">Ισόβια</td>
+            </tr>
+            <tr class="total-row">
+                <td class="left">ΓΕΝΙΚΟ ΣΥΝΟΛΟ</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td><b>{geniko_mikto:,.2f} €</b></td>
+                <td><b>{geniko_eas:,.2f} €</b></td>
+                <td><b>{geniko_ygeia:,.2f} €</b></td>
+                <td><b>{geniko_foros:,.2f} €</b></td>
+                <td><b>{geniko_krat_total:,.2f} €</b></td>
+                <td><b>{geniko_katharo:,.2f} €</b></td>
+                <td class="center">-</td>
+            </tr>
+        </tbody>
+    </table>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+elif app_section == "💼 Υπολογισμός Εφάπαξ":
+    st.markdown('<div class="panel-card"><div class="panel-header">💼 Παραμετρικός Υπολογισμός Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    with col1: b_until_2013 = st.number_input("Έτη έως 31/12/2013", value=float(st.session_state.bank_years_until_2013), step=0.1)
+    with col2: b_from_2014 = st.number_input("Έτη από 2014 και μετά", value=float(st.session_state.bank_years_from_2014), step=0.1)
+    with col3: st.session_state.efap_repl_rate = st.number_input("Συντελεστής Αναπλήρωσης (%)", value=float(60.0), step=1.0)
+
+    col4, col5 = st.columns(2)
+    with col4: st.session_state.efap_avg_5y = st.number_input("Μέσος Μην. Μισθός Πενταετίας (€)", value=float(3479.25), step=10.0)
+    with col5: st.session_state.efap_tmima_b = st.number_input("Συνολικό Τμήμα Β (€)", value=float(15478.35), step=100.0)
+
+    tmima_a = b_until_2013 * st.session_state.efap_avg_5y * (st.session_state.efap_repl_rate / 100.0)
+    total_efapax = tmima_a + st.session_state.efap_tmima_b
+
+    st.markdown(f"""
+    <table style="width:100%; border-collapse: collapse; font-size: 14px; border: 1px solid #CBD5E1; margin-top: 15px;">
+        <tr class="excel-table-header"><th>ΤΜΗΜΑ ΕΦΑΠΑΞ</th><th>ΠΟΣΟ (€)</th></tr>
+        <tr><td>1. Τμήμα Α (Έως 2013)</td><td style="text-align: right;">{tmima_a:,.2f} €</td></tr>
+        <tr><td>2. Τμήμα Β (Από 2014)</td><td style="text-align: right;">{st.session_state.efap_tmima_b:,.2f} €</td></tr>
+        <tr style="background-color: #E2E8F0; font-weight: bold;"><td>🌟 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ</td><td style="text-align: right; color: #1E3A8A;">{total_efapax:,.2f} €</td></tr>
+    </table>
+    """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+else:
+    st.markdown('<div class="panel-card"><div class="panel-header">📋 Τελική Εικόνα & Εκτύπωση</div>', unsafe_allow_html=True)
+    monthly_tak_fin = st.session_state.efap_avg_5y
+    total_efapax_fin = (st.session_state.bank_years_until_2013 * monthly_tak_fin * (60.0 / 100.0)) + st.session_state.efap_tmima_b
+    c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}"
+    
+    st.markdown(f"""
+    <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 20px; border-radius: 10px; font-size: 14px;">
+        <h3 style="color: #1E3A8A; margin-top: 0;">📄 ΕΠΙΣΗΜΗ ΣΥΝΟΨΗ ΠΕΛΑΤΗ: {c_name}</h3>
+        <hr style="margin: 10px 0;">
+        <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη</p>
+        <p><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{geniko_katharo:,.2f} € / μήνα</b></p>
+        <hr style="margin: 10px 0;">
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ:</b> <b>{total_efapax_fin:,.2f} €</b></p>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"): st.info("💡 Πατήστε **Ctrl + P**.")
+    st.markdown('</div>', unsafe_allow_html=True)
