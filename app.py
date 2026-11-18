@@ -270,8 +270,11 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     calc_tot_apodoxes = df_res['ΑΠΟΔΟΧΕΣ (€)'].sum()
     
-    tot_ensima = calc_tot_ensima
-    tot_years = tot_ensima / 300.0 if tot_ensima > 0 else float(st.session_state.summary_years)
+    # ΔΙΟΡΘΩΣΗ: Ανάλογα με τη λειτουργία, τα χρόνια υπολογίζονται αυτόματα από τον πίνακα ή παίρνουν τη συγκεντρωτική τιμή
+    if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
+        tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
+    else:
+        tot_years = float(st.session_state.summary_years)
     
     df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
