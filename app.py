@@ -132,28 +132,28 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# CSS με white-space: nowrap για να μην σπάει το σύμβολο του ευρώ σε νέα γραμμή
+# CSS με μικρότερα γράμματα και πιο compact padding για κομψή εμφάνιση
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
     .main-header {
         background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-        color: white; padding: 24px 30px; border-radius: 12px; margin-bottom: 25px;
+        color: white; padding: 20px 25px; border-radius: 10px; margin-bottom: 20px;
     }
-    .main-title { font-size: 26px; font-weight: bold; margin: 0; display: flex; align-items: center; gap: 12px; }
-    .main-subtitle { font-size: 13px; color: #E2E8F0; margin-top: 6px; }
+    .main-title { font-size: 24px; font-weight: bold; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .main-subtitle { font-size: 12px; color: #E2E8F0; margin-top: 4px; }
     .panel-card {
-        background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;
-        padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px;
+        padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .panel-header { font-size: 18px; font-weight: bold; color: #1E293B; margin-bottom: 12px; }
+    .panel-header { font-size: 16px; font-weight: bold; color: #1E293B; margin-bottom: 10px; }
     
-    /* Ωραίες, καθαρές γραμμές στους πίνακες & αποτροπή σψίματος του ευρώ */
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; margin-bottom: 25px; }
-    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 10px 12px; border: 1px solid #CBD5E1; white-space: nowrap; }
+    /* Κομψός, compact πίνακας με μικρότερα γράμματα */
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: sans-serif; margin-bottom: 20px; }
+    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 6px 8px; border: 1px solid #CBD5E1; white-space: nowrap; }
     .custom-table th.kratseis { background-color: #856404; }
     .custom-table th.katharo-header { background-color: #1E3A8A; }
-    .custom-table td { padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; }
+    .custom-table td { padding: 6px 8px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; }
     .custom-table td.left { text-align: left; font-weight: bold; }
     .custom-table td.center { text-align: center; }
     .custom-table tr:hover { background-color: #F1F5F9; }
@@ -425,7 +425,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑΣ
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
@@ -464,7 +464,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ
+    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ (Compact & Beautiful)
     st.markdown(f"""
     <table class="custom-table">
         <thead>
