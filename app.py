@@ -147,7 +147,7 @@ st.markdown("""
         padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     .panel-header { font-size: 18px; font-weight: bold; color: #1E293B; margin-bottom: 8px; }
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: sans-serif; }
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: sans-serif; margin-bottom: 25px; }
     .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 8px; border: 1px solid #CBD5E1; }
     .custom-table th.kratseis { background-color: #856404; }
     .custom-table td { padding: 8px; border: 1px solid #CBD5E1; text-align: right; }
@@ -264,13 +264,16 @@ calc_tot_ensima = 0.0
 calc_tot_apodoxes = 0.0
 calc_avg_post_2002 = float(st.session_state.summary_avg_salary)
 
+# Μεταβλητές για τον πίνακα σύνοψης ανά φορέα
+bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
+ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
+
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     calc_tot_apodoxes = df_res['ΑΠΟΔΟΧΕΣ (€)'].sum()
     
-    # ΔΙΟΡΘΩΣΗ: Ανάλογα με τη λειτουργία, τα χρόνια υπολογίζονται αυτόματα από τον πίνακα ή παίρνουν τη συγκεντρωτική τιμή
     if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
         tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
     else:
@@ -280,6 +283,19 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         calc_avg_post_2002 = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     avg_sal = calc_avg_post_2002
+
+    # Υπολογισμοί ανά Φορέα (ΤΡΑΠΕΖΑ / ΙΚΑ) για τον πίνακα σύνοψης
+    df_bank = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΤΡΑΠΕΖΑ', case=False, na=False)]
+    if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        bank_y = bank_ens / 300.0
+        bank_avg = (df_bank['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank['ΑΠΟΔΟΧΕΣ (€)']).sum() / bank_ens
+
+    df_ika = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ', case=False, na=False)]
+    if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        ika_y = ika_ens / 300.0
+        ika_avg = (df_ika['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika['ΑΠΟΔΟΧΕΣ (€)']).sum() / ika_ens
 else:
     tot_years = float(st.session_state.summary_years)
     avg_sal = float(st.session_state.summary_avg_salary)
@@ -423,6 +439,46 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ (Ακριβώς όπως ζητήθηκε)
+    st.markdown(f"""
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th colspan="4" style="background-color: #1E3A8A; color: white; text-align: center;">ΣΥΝΟΨΗ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ</th>
+            </tr>
+            <tr>
+                <th>ΧΡΟΝΙΑ</th>
+                <th>ΦΟΡΕΑΣ</th>
+                <th>Μ. ΟΡΟΣ (€)</th>
+                <th>ΕΝΣΗΜΑ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="center">{bank_y:.2f}</td>
+                <td style="text-align: center; font-weight: bold;">ΤΡΑΠΕΖΑ</td>
+                <td style="text-align: right;">{bank_avg:,.2f} €</td>
+                <td class="center">{int(bank_ens):,}</td>
+            </tr>
+            <tr>
+                <td class="center">{ika_y:.2f}</td>
+                <td style="text-align: center; font-weight: bold;">ΙΚΑ</td>
+                <td style="text-align: right;">{ika_avg:,.2f} €</td>
+                <td class="center">{int(ika_ens):,}</td>
+            </tr>
+            <tr class="total-row">
+                <td class="center">{tot_years:.2f}</td>
+                <td style="text-align: center; font-weight: bold;">ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο.</td>
+                <td style="text-align: right;">{avg_sal:,.2f} €</td>
+                <td class="center">{int(calc_tot_ensima):,}</td>
+            </tr>
+        </tbody>
+    </table>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
