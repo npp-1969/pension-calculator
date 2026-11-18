@@ -132,7 +132,7 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# Επαγγελματικό CSS Styling (Sidebar, Menus, Cards & Tables)
+# Επαγγελματικό & Απόλυτα Στοιχισμένο CSS Styling
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -153,7 +153,7 @@ st.markdown("""
     }
     .panel-header { font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
-    /* Professional Sidebar & Radio Menu Customization */
+    /* Sidebar & Radio Menu */
     section[data-testid="stSidebar"] {
         background-color: #0F172A;
         border-right: 1px solid #1E293B;
@@ -162,28 +162,22 @@ st.markdown("""
         color: #E2E8F0 !important;
         font-weight: 500;
         font-size: 13.5px;
-        padding: 6px 10px;
+        padding: 8px 12px;
         border-radius: 6px;
         transition: all 0.2s ease;
+        width: 100%;
     }
     section[data-testid="stSidebar"] .stRadio label:hover {
         background-color: #1E293B;
         color: #FFFFFF !important;
     }
-    section[data-testid="stSidebar"] h3 {
-        color: #94A3B8 !important;
-        font-size: 12px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        margin-bottom: 15px;
-    }
 
-    /* Compact & Clean Tables */
-    .custom-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: sans-serif; margin-bottom: 18px; }
-    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 7px 10px; border: 1px solid #CBD5E1; white-space: nowrap; font-weight: 600; }
+    /* Τέλεια στοιχισμένοι και κομψοί πίνακες */
+    .custom-table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: sans-serif; margin-bottom: 20px; }
+    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; vertical-align: middle; padding: 8px 10px; border: 1px solid #CBD5E1; white-space: nowrap; font-weight: 600; }
     .custom-table th.kratseis { background-color: #856404; }
     .custom-table th.katharo-header { background-color: #1E3A8A; }
-    .custom-table td { padding: 6px 10px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; color: #334155; }
+    .custom-table td { padding: 7px 10px; border: 1px solid #CBD5E1; text-align: right; vertical-align: middle; white-space: nowrap; color: #334155; }
     .custom-table td.left { text-align: left; font-weight: 600; color: #0F172A; }
     .custom-table td.center { text-align: center; }
     .custom-table tr:hover { background-color: #F8FAFC; }
@@ -262,7 +256,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("### 🗂️ Πλοήγηση Συστήματος")
+st.sidebar.markdown("<h3 style='color: #94A3B8; font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;'>🗂️ Πλοήγηση Συστήματος</h3>", unsafe_allow_html=True)
 app_section = st.sidebar.radio("Επιλογή:", [
     "👤 Προσωπικά Στοιχεία", 
     "💰 Οικονομικά & Ασφαλιστικά Στοιχεία", 
