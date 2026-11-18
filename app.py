@@ -132,7 +132,7 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# CSS για ωραίες γραμμές, απρόσκοπτη εμφάνιση και ομοιομορφία
+# CSS για ωραίες γραμμές και ομοιομορφία
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -152,6 +152,7 @@ st.markdown("""
     .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; margin-bottom: 25px; }
     .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 10px 12px; border: 1px solid #CBD5E1; }
     .custom-table th.kratseis { background-color: #856404; }
+    .custom-table th.katharo-header { background-color: #1E3A8A; }
     .custom-table td { padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; }
     .custom-table td.left { text-align: left; font-weight: bold; }
     .custom-table td.center { text-align: center; }
@@ -463,14 +464,14 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ
+    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ (Με τις σωστα ομαδοποιημένες επικεφαλίδες επάνω)
     st.markdown(f"""
     <table class="custom-table">
         <thead>
             <tr>
-                <th colspan="10">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΝΕΑ ΦΟΡΟΛΟΓΙΚΗ ΚΛΙΜΑΚΑ 2026 & ΦΟΡΟΣ ΕΠΙΚΟΥΡΙΚΩΝ</th>
-                <th colspan="2" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΚΛΙΜΑΚΕΣ 2026)</th>
-                <th>ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€)</th>
+                <th colspan="7">ΥΠΟΛΟΓΙΣΜΟΣ ΣΥΝΤΑΞΗΣ (2026) - ΝΕΑ ΦΟΡΟΛΟΓΙΚΗ ΚΛΙΜΑΚΑ 2026 & ΦΟΡΟΣ ΕΠΙΚΟΥΡΙΚΩΝ</th>
+                <th colspan="4" class="kratseis">ΚΡΑΤΗΣΕΙΣ (ΚΛΙΜΑΚΕΣ 2026)</th>
+                <th colspan="2" class="katharo-header">ΚΑΘΑΡΟ ΠΛΗΡΩΤΕΟ (€) & ΔΙΑΡΚΕΙΑ</th>
             </tr>
             <tr>
                 <th>Είδος Σύνταξης</th>
@@ -484,8 +485,8 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <th class="kratseis">Υγεία 6% (€)</th>
                 <th class="kratseis">Φόρος Μην. (€)</th>
                 <th class="kratseis">Σύνολο Κρατ. (€)</th>
-                <th>Καθαρό (€/μήνα)</th>
-                <th>Διάρκεια</th>
+                <th class="katharo-header">Καθαρό (€/μήνα)</th>
+                <th class="katharo-header">Διάρκεια</th>
             </tr>
         </thead>
         <tbody>
