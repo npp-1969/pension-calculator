@@ -132,7 +132,7 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
-# CSS για ωραίες γραμμές και ομοιομορφία
+# CSS με white-space: nowrap για να μην σπάει το σύμβολο του ευρώ σε νέα γραμμή
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -148,12 +148,12 @@ st.markdown("""
     }
     .panel-header { font-size: 18px; font-weight: bold; color: #1E293B; margin-bottom: 12px; }
     
-    /* Ωραίες, καθαρές γραμμές στους πίνακες */
+    /* Ωραίες, καθαρές γραμμές στους πίνακες & αποτροπή σψίματος του ευρώ */
     .custom-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; margin-bottom: 25px; }
-    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 10px 12px; border: 1px solid #CBD5E1; }
+    .custom-table th { background-color: #1E3A8A; color: white; text-align: center; padding: 10px 12px; border: 1px solid #CBD5E1; white-space: nowrap; }
     .custom-table th.kratseis { background-color: #856404; }
     .custom-table th.katharo-header { background-color: #1E3A8A; }
-    .custom-table td { padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; }
+    .custom-table td { padding: 10px 12px; border: 1px solid #CBD5E1; text-align: right; white-space: nowrap; }
     .custom-table td.left { text-align: left; font-weight: bold; }
     .custom-table td.center { text-align: center; }
     .custom-table tr:hover { background-color: #F1F5F9; }
@@ -425,7 +425,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑΣ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
@@ -464,7 +464,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ (Με τις σωστα ομαδοποιημένες επικεφαλίδες επάνω)
+    # 2. ΚΥΡΙΟΣ ΠΙΝΑΚΑΣ ΕΚΚΑΘΑΡΙΣΗΣ ΣΥΝΤΑΞΕΩΝ
     st.markdown(f"""
     <table class="custom-table">
         <thead>
