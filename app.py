@@ -359,7 +359,7 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
-# Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ
+# Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ (0 αν δεν έχει)
 sum_ginomeno = float(st.session_state.tapilt_sum_ginomeno)
 t_synt_misthos = float(st.session_state.tapilt_syntaximos_misthos)
 prosafxisi_tapilt = (sum_ginomeno * 0.00075 * t_synt_misthos) if st.session_state.has_tapilt else 0.0
@@ -374,9 +374,9 @@ kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
 eas_main = calc_eas(kria_mikto)
 ygeia_main = (kria_mikto - eas_main) * 0.06
 
-# Υπολογισμοί Επικουρικών ΤΑΠΙΛΤ (Μηδενικά αν δεν έχει ΤΑΠΙΛΤ)
+# Υπολογισμοί Επικουρικών ΤΑΠΙΛΤ (0 αν δεν έχει)
 tapilt_mikto = float(st.session_state.tapilt_net) if st.session_state.has_tapilt else 0.0
-ygeia_tapilt = tapilt_mikto * 0.06
+ygeia_tapilt = tapilt_mikto * 0.06 if st.session_state.has_tapilt else 0.0
 
 ika_mikto = 100.58
 ygeia_ika = 6.03
@@ -413,8 +413,8 @@ tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.
 krat_ika_total = ygeia_ika + foros_ika
 katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
 
-# Γενικά Σύνολα (αθροίζουν μόνο ό,τι είναι ενεργό)
-geniko_mikto = kria_mikto + tapilt_mikto + ika_mikto
+# Γενικά Σύνολα (αθροίζουν αυστηρά μόνο ό,τι είναι ενεργό)
+geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + ika_mikto
 geniko_eas = eas_main
 geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + ygeia_ika
 geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + krat_ika_total
@@ -544,7 +544,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Εμφάνιση γραμμής ΤΑΠΙΛΤ ΜΟΝΟ αν ο πελάτης διαθέτει ΤΑΠΙΛΤ
+    # Δημιουργία γραμμής ΤΑΠΙΛΤ ΜΟΝΟ αν ο πελάτης διαθέτει ΤΑΠΙΛΤ (αλλιώς μένει εντελώς κενή/ανύπαρκτη)
     tapilt_row_html = ""
     if st.session_state.has_tapilt:
         tapilt_row_html = f"""
