@@ -225,7 +225,6 @@ if 'summary_years' not in st.session_state: st.session_state.summary_years = db_
 if 'summary_avg_salary' not in st.session_state: st.session_state.summary_avg_salary = db_data["summary_avg_salary"] if db_data else 3275.91
 if 'merida_amount' not in st.session_state: st.session_state.merida_amount = db_data["merida_amount"] if db_data else 71206.66
 
-# Αυτόματος έλεγχος ΤΑΠΙΛΤ βάσει κατηγορίας ασφάλισης
 default_has_tapilt = 1 if any(kw in st.session_state.client_data["insurance_cat"].upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΤΡΑΠΕΖΕΣ"]) else 0
 if 'has_tapilt' not in st.session_state: st.session_state.has_tapilt = bool(db_data["has_tapilt"] if db_data else default_has_tapilt)
 
@@ -375,7 +374,7 @@ kria_mikto = ethniki + antapodotiki_vassiki + prosafxisi_tapilt
 eas_main = calc_eas(kria_mikto)
 ygeia_main = (kria_mikto - eas_main) * 0.06
 
-# Υπολογισμοί Επικουρικών ΤΑΠΙΛΤ
+# Υπολογισμοί Επικουρικών ΤΑΠΙΛΤ (Μηδενικά αν δεν έχει ΤΑΠΙΛΤ)
 tapilt_mikto = float(st.session_state.tapilt_net) if st.session_state.has_tapilt else 0.0
 ygeia_tapilt = tapilt_mikto * 0.06
 
@@ -384,7 +383,7 @@ ygeia_ika = 6.03
 
 # Φορολογία
 taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
-taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0
+taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0 if st.session_state.has_tapilt else 0.0
 taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0
 taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
@@ -401,25 +400,25 @@ else:
     foros_ika = 0.0
 
 foros_main = round(foros_main, 2)
-foros_tapilt = round(foros_tapilt, 2)
+foros_tapilt = round(foros_tapilt, 2) if st.session_state.has_tapilt else 0.0
 foros_ika = round(foros_ika, 2)
 geniko_foros = round(total_monthly_tax, 2)
 
 krat_main_total = eas_main + ygeia_main + foros_main
 katharo_main = max(kria_mikto - krat_main_total, 0.0)
 
-krat_tapilt_total = ygeia_tapilt + foros_tapilt
-tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0)
+krat_tapilt_total = (ygeia_tapilt + foros_tapilt) if st.session_state.has_tapilt else 0.0
+tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.has_tapilt else 0.0
 
 krat_ika_total = ygeia_ika + foros_ika
 katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
 
-# Γενικά Σύνολα
+# Γενικά Σύνολα (αθροίζουν μόνο ό,τι είναι ενεργό)
 geniko_mikto = kria_mikto + tapilt_mikto + ika_mikto
 geniko_eas = eas_main
-geniko_ygeia = ygeia_main + ygeia_tapilt + ygeia_ika
-geniko_krat_total = krat_main_total + krat_tapilt_total + krat_ika_total
-geniko_katharo = katharo_main + tapilt_katharo + katharo_ika
+geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + ygeia_ika
+geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + krat_ika_total
+geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + katharo_ika
 
 if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -430,9 +429,8 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
 
     c4, c5 = st.columns(2)
     with c4: st.session_state.client_data["birth_date"] = st.text_input("Ημερομηνία Γέννησης", value=st.session_state.client_data["birth_date"])
-    with c5: st.session_state.client_data["first_work_date"] = st.text_input("Πρώτη Ημέρα Ασφάλλησης", value=st.session_state.client_data["first_work_date"])
+    with c5: st.session_state.client_data["first_work_date"] = st.text_input("Πρώτη Ημέρα Ασφάλισης", value=st.session_state.client_data["first_work_date"])
 
-    # Επιλογή Ασφαλιστικής Κατηγορίας με αυτόματη ανίχνευση ΤΑΠΙΛΤ
     cat_options = [
         "Μισθωτός — Τράπεζα / Ιονική (πρώην ΤΑΠΙΛΤ)", 
         "Μισθωτός — Τράπεζα (Άλλη)", 
@@ -446,7 +444,6 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
     selected_cat = st.selectbox("Ασφαλιστική Κατηγορία / Φορέας", cat_options, index=cat_idx)
     st.session_state.client_data["insurance_cat"] = selected_cat
 
-    # Αυτόματη ενημέρωση του has_tapilt αν επιλεχθεί τραπεζικό ταμείο με ΤΑΠΙΛΤ
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]):
         st.session_state.has_tapilt = True
     else:
@@ -547,13 +544,14 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Εμφάνιση γραμμής ΤΑΠΙΛΤ ΜΟΝΟ αν ο πελάτης διαθέτει ΤΑΠΙΛΤ
     tapilt_row_html = ""
     if st.session_state.has_tapilt:
         tapilt_row_html = f"""
             <tr>
                 <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
                 <td class="center">-</td>
-                <td class="center">32,22</td>
+                <td class="center">{st.session_state.tapilt_duration_years:,.0f}</td>
                 <td class="center">-</td>
                 <td class="center">-</td>
                 <td>{tapilt_mikto:,.2f} €</td>
@@ -600,14 +598,14 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
             {tapilt_row_html}
             <tr>
                 <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΙΚΑ (ΕΦΚΑ)</td>
-                <td>3.247,43 €</td>
-                <td class="center">10,35</td>
                 <td class="center">-</td>
                 <td class="center">-</td>
-                <td>100,58 €</td>
-                <td><b>100,58 €</b></td>
+                <td class="center">-</td>
+                <td class="center">-</td>
                 <td>0,00 €</td>
-                <td>6,03 €</td>
+                <td><b>{ika_mikto:,.2f} €</b></td>
+                <td>0,00 €</td>
+                <td>{ygeia_ika:,.2f} €</td>
                 <td>{foros_ika:,.2f} €</td>
                 <td>{krat_ika_total:,.2f} €</td>
                 <td><b>{katharo_ika:,.2f} €</b></td>
