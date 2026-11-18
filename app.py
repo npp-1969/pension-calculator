@@ -309,20 +309,21 @@ ygeia_ika = 6.03
 krat_ika_total = ygeia_ika
 katharo_ika = ika_mikto - krat_ika_total
 
-# Συνολικό Φορολογητέο Εισόδημα όλων των συντάξεων
-taxable_main = max(0.0, kria_mikto - eas_main - ygeia_main)
-taxable_tapilt = max(0.0, tapilt_mikto - ygeia_tapilt)
-taxable_ika = max(0.0, ika_mikto - ygeia_ika)
-taxable_total_monthly = taxable_main + taxable_tapilt + taxable_ika
+# Υπολογισμός Ετήσιου Φορολογητέου Εισοδήματος ανά Σύνταξη (Φ1, Φ2, Φ3) επί 12 μήνες
+taxable_main_annual = (kria_mikto - eas_main - ygeia_main) * 12.0
+taxable_tapilt_annual = (tapilt_mikto - ygeia_tapilt) * 12.0
+taxable_ika_annual = (ika_mikto - ygeia_ika) * 12.0
+taxable_total_annual = taxable_main_annual + taxable_tapilt_annual + taxable_ika_annual
 
-total_annual_tax = calc_annual_tax_total(taxable_total_monthly * 12.0)
+# Συνολικός Ετήσιος Φόρος με βάση τη νέα κλίμακα 2026
+total_annual_tax = calc_annual_tax_total(taxable_total_annual)
 total_monthly_tax = total_annual_tax / 12.0
 
-# Επιμερισμός φόρου ανά σύνταξη ανάλογα με το φορολογητέο ποσό
-if taxable_total_monthly > 0:
-    foros_main = total_monthly_tax * (taxable_main / taxable_total_monthly)
-    foros_tapilt = total_monthly_tax * (taxable_tapilt / taxable_total_monthly)
-    foros_ika = total_monthly_tax * (taxable_ika / taxable_total_monthly)
+# Επιμερισμός μηνιαίου φόρου αναλογικά με το ετήσιο φορολογητέο εισόδημα κάθε σύνταξης
+if taxable_total_annual > 0:
+    foros_main = total_monthly_tax * (taxable_main_annual / taxable_total_annual)
+    foros_tapilt = total_monthly_tax * (taxable_tapilt_annual / taxable_total_annual)
+    foros_ika = total_monthly_tax * (taxable_ika_annual / taxable_total_annual)
 else:
     foros_main = 0.0
     foros_tapilt = 0.0
