@@ -358,6 +358,10 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
+# Η διάρκεια ΤΑΠΙΛΤ παίρνει αυτόματα τα συνολικά χρόνια ασφάλισης (ή bank_y αν θες, εδώ παίρνει το tot_years)
+if st.session_state.has_tapilt:
+    st.session_state.tapilt_duration_years = round(tot_years, 2)
+
 if st.session_state.pososto_anapl_custom == 0.0 and tot_years > 0:
     st.session_state.pososto_anapl_custom = 51.29 if st.session_state.has_tapilt else 50.15
 
@@ -376,11 +380,7 @@ kria_mikto = (ethniki + antapodotiki_vassiki + prosafxisi_tapilt) if tot_years >
 eas_main = calc_eas(kria_mikto) if tot_years > 0 else 0.0
 ygeia_main = ((kria_mikto - eas_main) * 0.06) if tot_years > 0 else 0.0
 
-if st.session_state.has_tapilt and st.session_state.tapilt_duration_years > 0 and st.session_state.merida_amount > 0:
-    st.session_state.tapilt_net = st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)
-elif not st.session_state.has_tapilt:
-    st.session_state.tapilt_net = 0.0
-
+# Εδώ πλέον το tapilt_net το βάζεις εσύ χειροκίνητα (αντιστοιχεί στα καθαρά που περνάς)
 tapilt_mikto = float(st.session_state.tapilt_net) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 ygeia_tapilt = (tapilt_mikto * 0.06) if (st.session_state.has_tapilt and tot_years > 0) else 0.0
 
@@ -448,11 +448,10 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
     selected_cat = st.selectbox("Ασφαλιστική Κατηγορία / Φορέας", cat_options, index=cat_idx)
     st.session_state.client_data["insurance_cat"] = selected_cat
 
-    # Έλεγχος αν επελέγη Τράπεζα / Ιονική
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]):
         st.session_state.has_tapilt = True
         st.session_state.pososto_anapl_custom = 51.29
-        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Παρακαλώ μεταβείτε στην ενότητα **«⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)»** στο αριστερό μενού για να καταχωρήσετε την Ατομική Μερίδα και τη Διάρκεια του πελάτη.")
+        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Παρακαλώ μεταβείτε στην ενότητα **«⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)»** για να καταχωρήσετε την Ατομική Μερίδα και το Ποσό.")
     else:
         st.session_state.has_tapilt = False
         st.session_state.pososto_anapl_custom = 50.15
@@ -530,15 +529,16 @@ elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑ
         with col_e1: 
             st.session_state.merida_amount = st.number_input("Ατομική Μερίδα (€)", value=float(st.session_state.merida_amount), step=100.0)
         with col_e2: 
-            st.session_state.tapilt_duration_years = st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), step=1.0)
+            # Η διάρκεια γίνεται αυτόματα γκρι/disabled και παίρνει τα έτη ασφάλισης
+            st.session_state.tapilt_duration_years = float(tot_years)
+            st.number_input("Διάρκεια (Έτη)", value=float(st.session_state.tapilt_duration_years), disabled=True, format="%.2f")
         with col_e3: 
             st.session_state.tapilt_after_expiry = st.number_input("Ποσό μετά τη λήξη (€)", value=float(st.session_state.tapilt_after_expiry), step=5.0)
         with col_e4: 
-            calc_from_merida = (st.session_state.merida_amount / (st.session_state.tapilt_duration_years * 12.0)) if st.session_state.tapilt_duration_years > 0 else 0.0
-            st.session_state.tapilt_net = calc_from_merida
-            st.number_input("Μικτή Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(calc_from_merida), disabled=True, format="%.2f")
+            # Εδώ περνάς εσύ χειροκίνητα το ποσό (που ανέφερες ότι βάζεις τα καθαρά)
+            st.session_state.tapilt_net = st.number_input("Ποσό Επικ. ΤΑΠΙΛΤ (€/μήνα)", value=float(st.session_state.tapilt_net), step=5.0)
 
-        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €** και διάρκεια **{int(st.session_state.tapilt_duration_years)} έτη**, η μηνιαία μικτή σύνταξη διαμορφώνεται στα **{tapilt_mikto:,.2f} €/μήνα** (και **{tapilt_katharo:,.2f} € καθαρά** μετά τις κρατήσεις).")
+        st.success(f"📌 Με βάση την Ατομική Μερίδα **{st.session_state.merida_amount:,.2f} €**, διάρκεια **{tot_years:.2f} έτη** και ποσό **{tapilt_mikto:,.2f} €**, ο υπολογισμός προχωρά κανονικά.")
     else:
         st.info("ℹ️ Ο πελάτης είναι τυπικός μισθωτός / ασφαλισμένος (χωρίς ειδικό ταμείο ΤΑΠΙΛΤ).")
 
@@ -578,7 +578,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                 <tr>
                     <td class="left">ΕΠΙΚΟΥΡΙΚΗ ΤΑΠΙΛΤ</td>
                     <td class="center">-</td>
-                    <td class="center">{st.session_state.tapilt_duration_years:,.0f}</td>
+                    <td class="center">{tot_years:.2f}</td>
                     <td class="center">-</td>
                     <td class="center">-</td>
                     <td>{tapilt_mikto:,.2f} €</td>
@@ -588,7 +588,7 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
                     <td>{foros_tapilt:,.2f} €</td>
                     <td>{krat_tapilt_total:,.2f} €</td>
                     <td><b>{tapilt_katharo:,.2f} €</b></td>
-                    <td class="center">{int(st.session_state.tapilt_duration_years)} έτη (μετά {tapilt_meta_lixi}€)</td>
+                    <td class="center">{tot_years:.2f} έτη (μετά {tapilt_meta_lixi}€)</td>
                 </tr>
             """
         else:
