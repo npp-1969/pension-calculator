@@ -259,7 +259,7 @@ if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περ
 if not df_parsed.empty:
     st.session_state['df_economic'] = df_parsed
 
-# ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ (ΤΡΑΠΕΖΑ & ΙΚΑ)
+# ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟ ΟΛΟΚΛΗΡΟ ΤΟΝ ΠΙΝΑΚΑ (ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΗΜΕΡΑ)
 bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
 ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
 calc_tot_ensima = 0.0
@@ -268,25 +268,31 @@ avg_sal = float(st.session_state.summary_avg_salary)
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     df_res['ΕΤΟΣ_NUM'] = pd.to_numeric(df_res['ΕΤΟΣ'], errors='coerce').fillna(0)
+    
+    # ΤΑ ΣΥΝΟΛΙΚΑ ΕΝΣΗΜΑ ΥΠΟΛΟΓΙΖΟΝΤΑΙ ΑΠΟ ΟΛΟΚΛΗΡΟ ΤΟΝ ΠΙΝΑΚΑ (ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΗΜΕΡΑ)
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     
-    df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
-    
-    # Υπολογισμός για ΤΡΑΠΕΖΑ
-    df_bank = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΤΡΑΠΕΖΑ', case=False, na=False)]
+    # 1. Υπολογισμός Ένσημων & Μέσου Όρου Τράπεζας από ΟΛΟΚΛΗΡΟ τον πίνακα
+    df_bank = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΤΡΑΠΕΖΑ', case=False, na=False)]
     if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         bank_y = bank_ens / 300.0
-        bank_avg = (df_bank['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank['ΑΠΟΔΟΧΕΣ (€)']).sum() / bank_ens
+        # Ο μέσος όρος αποδοχών υπολογίζεται για τις περιόδους από 2002 και μετά
+        df_bank_post02 = df_bank[df_bank['ΕΤΟΣ_NUM'] >= 2002]
+        if not df_bank_post02.empty and df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+            bank_avg = (df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # Υπολογισμός για ΙΚΑ
-    df_ika = df_post_2002[df_post_2002['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ', case=False, na=False)]
+    # 2. Υπολογισμός Ένσημων & Μέσου Όρου ΙΚΑ από ΟΛΟΚΛΗΡΟ τον πίνακα
+    df_ika = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ', case=False, na=False)]
     if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         ika_y = ika_ens / 300.0
-        ika_avg = (df_ika['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika['ΑΠΟΔΟΧΕΣ (€)']).sum() / ika_ens
+        df_ika_post02 = df_ika[df_ika['ΕΤΟΣ_NUM'] >= 2002]
+        if not df_ika_post02.empty and df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+            ika_avg = (df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # Γενικός Σταθμισμένος Μ.Ο. από 2002+
+    # 3. Γενικός Σταθμισμένος Μ.Ο. αποδοχών (από 2002+)
+    df_post_2002 = df_res[df_res['ΕΤΟΣ_NUM'] >= 2002]
     if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
@@ -422,7 +428,7 @@ elif app_section == "💰 Οικονομικά & Ασφαλιστικά Στοι
 elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & Συντάξεις":
     st.markdown('<div class="panel-card"><div class="panel-header">📊 Πίνακας Εκκαθάρισης Συντάξεων</div>', unsafe_allow_html=True)
     
-    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑ (Υπολογίζεται δυναμικά από τα δεδομένα)
+    # 1. ΠΙΝΑΚΑΣ ΣΥΝΟΨΗΣ ΧΡΟΝΟΥ & ΑΠΟΔΟΧΩΝ ΑΝΑ ΦΟΡΕΑΣ (Υπολογίζεται από την πρώτη μέρα)
     st.markdown(f"""
     <table class="custom-table">
         <thead>
