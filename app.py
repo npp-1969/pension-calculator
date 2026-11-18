@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 import sqlite3
+import re
 
 # Ρύθμιση σελίδας
 st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layout="wide")
@@ -347,14 +348,29 @@ avg_sal = float(st.session_state.summary_avg_salary)
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
     
-    # Ασφαλής εξαγωγή έτους και μετατροπή τύπων δεδομένων
-    df_res['ΕΤΟΣ_CLEAN'] = pd.to_numeric(df_res['ΕΤΟΣ'].astype(str).str.extract(r'(\d{4})')[0], errors='coerce').fillna(0)
+    # ΕΞΥΠΝΗ ΑΝΙΧΝΕΥΣΗ: Σαρώνει ΟΛΑ τα κελιά κάθε γραμμής για να βρει το έτος (4ψήφιο 19xx ή 20xx)
+    def extract_year_from_row(row):
+        for val in row.values:
+            val_str = str(val)
+            match = re.search(r'(19\d{2}|20\d{2})', val_str)
+            if match:
+                y = int(match.group(1))
+                if 1950 <= y <= 2050: # Λογικό εύρος ετών ασφάλισης
+                    return y
+        return 0
+
+    df_res['ΕΤΟΣ_CLEAN'] = df_res.apply(extract_year_from_row, axis=1)
     df_res['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_res['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
     df_res['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_res['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
     
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     
-    df_bank = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΤΡΑΠΕΖΑ|ΙΟΝΙΚΗ', case=False, na=False)]
+    # Εύρεση φορέα από οποιοδήποτε κελί της γραμμής
+    def check_for_text(row, keywords):
+        row_str = " ".join([str(v).upper() for v in row.values])
+        return any(kw in row_str for kw in keywords)
+
+    df_bank = df_res[df_res.apply(lambda r: check_for_text(r, ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ']), axis=1)]
     if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         bank_y = bank_ens / 300.0
@@ -362,7 +378,7 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
         if not df_bank_post02.empty and df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             bank_avg = (df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    df_ika = df_res[df_res['ΦΟΡΕΑΣ'].str.contains('ΙΚΑ', case=False, na=False)]
+    df_ika = df_res[df_res.apply(lambda r: check_for_text(r, ['ΙΚΑ']), axis=1)]
     if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         ika_y = ika_ens / 300.0
@@ -503,8 +519,6 @@ elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχέ
             
             total_ensima_disp = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
             total_apodoches_disp = ((df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_edited['ΑΠΟΔΟΧΕΣ (€)']).sum()
-            df_p02 = df_edited[df_edited['ΕΤΟΣ_NUM'] >= 2002]
-            avg_apod_disp = (df_p02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_p02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() if not df_p02.empty and df_p02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0 else 0.0
             total_years_disp = total_ensima_disp / 300.0
 
             st.markdown(f"""
