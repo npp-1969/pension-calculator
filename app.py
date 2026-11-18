@@ -285,12 +285,12 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.summary_years = 0.0
     st.session_state.summary_avg_salary = 0.0
     st.session_state.has_tapilt = False
+    st.session_state.pososto_anapl_custom = 0.0
     st.session_state.merida_amount = 0.0
     st.session_state.tapilt_net = 0.0
     st.session_state.tapilt_after_expiry = 0.0
     st.session_state.bank_years_until_2013 = 0.0
     st.session_state.bank_years_from_2014 = 0.0
-    st.session_state.pososto_anapl_custom = 0.0
     st.session_state.tapilt_sum_ginomeno = 0.0
     st.session_state.tapilt_syntaximos_misthos = 0.0
     st.session_state.tapilt_duration_years = 0.0
@@ -357,6 +357,11 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
         avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
+
+# Αυτόματη απόδοση προεπιλεγμένου ποσοστού αναπλήρωσης (π.χ. 51.29%) αν είναι 0 και υπάρχει ΤΑΠΙΛΤ ή ενεργός πελάτης
+if st.session_state.pososto_anapl_custom == 0.0 and st.session_state.has_tapilt:
+    st.session_state.pososto_anapl_custom = 51.29
+
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
 # Υπολογισμός Προσαύξησης Κύριας ΤΑΠΙΛΤ (0 αν δεν έχει)
@@ -413,7 +418,7 @@ tapilt_katharo = max(tapilt_mikto - krat_tapilt_total, 0.0) if st.session_state.
 krat_ika_total = ygeia_ika + foros_ika
 katharo_ika = max(ika_mikto - krat_ika_total, 0.0)
 
-# Γενικά Σύνολα (αθροίζουν αυστηρά μόνο ό,τι είναι ενεργό)
+# Γενικά Σύνολα
 geniko_mikto = kria_mikto + (tapilt_mikto if st.session_state.has_tapilt else 0.0) + ika_mikto
 geniko_eas = eas_main
 geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + ygeia_ika
@@ -446,6 +451,8 @@ if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχε
 
     if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ"]):
         st.session_state.has_tapilt = True
+        if st.session_state.pososto_anapl_custom == 0.0:
+            st.session_state.pososto_anapl_custom = 51.29
     else:
         st.session_state.has_tapilt = False
 
@@ -544,7 +551,6 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Δημιουργία γραμμής ΤΑΠΙΛΤ ΜΟΝΟ αν ο πελάτης διαθέτει ΤΑΠΙΛΤ (αλλιώς μένει εντελώς κενή/ανύπαρκτη)
     tapilt_row_html = ""
     if st.session_state.has_tapilt:
         tapilt_row_html = f"""
