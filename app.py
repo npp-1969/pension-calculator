@@ -11,9 +11,11 @@ st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layo
 # ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ ΕΛΛΗΝΙΚΩΝ ΑΡΙΘΜΩΝ
 # ==========================================
 def parse_gr_float(val_str: str, default: float = 0.0) -> float:
-    if not val_str:
+    if val_str is None:
         return default
-    clean = str(val_str).replace('€', '').strip()
+    clean = str(val_str).replace('€', '').replace('%', '').strip()
+    if not clean:
+        return default
     if ',' in clean and '.' in clean:
         clean = clean.replace('.', '').replace(',', '.')
     elif ',' in clean:
@@ -27,8 +29,8 @@ def parse_gr_float(val_str: str, default: float = 0.0) -> float:
     except:
         return default
 
-def fmt_gr(val: float) -> str:
-    return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+def fmt_gr(val: float, decimals: int = 2) -> str:
+    return f"{val:,.{decimals}f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ==========================================
 # ΣΥΝΔΕΣΗ & ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ (SQLITE)
@@ -63,26 +65,36 @@ def init_db():
             art30_extra_units REAL,
             efap_repl_rate REAL,
             efap_avg_5y REAL,
-            efap_tmima_b REAL
+            efap_tmima_b REAL,
+            efap_apodoches_14_22 REAL,
+            efap_pronoia_rate REAL,
+            efap_apousia_factor REAL
         )
     ''')
     cursor.execute("PRAGMA table_info(client_profile)")
     columns = [col[1] for col in cursor.fetchall()]
-    if 'merida_amount' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN merida_amount REAL")
-    if 'has_tapilt' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN has_tapilt INTEGER DEFAULT 0")
-    if 'tapilt_net' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_net REAL")
-    if 'tapilt_after_expiry' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_after_expiry REAL")
-    if 'bank_years_until_2013' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_until_2013 REAL")
-    if 'bank_years_from_2014' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN bank_years_from_2014 REAL")
-    if 'pososto_anapl_custom' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN pososto_anapl_custom REAL")
-    if 'tapilt_sum_ginomeno' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_sum_ginomeno REAL")
-    if 'tapilt_syntaximos_misthos' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_syntaximos_misthos REAL")
-    if 'tapilt_duration_years' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN tapilt_duration_years REAL")
-    if 'art30_years' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN art30_years REAL DEFAULT 16.4")
-    if 'art30_extra_units' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN art30_extra_units REAL DEFAULT 6.67")
-    if 'efap_repl_rate' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_repl_rate REAL")
-    if 'efap_avg_5y' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_avg_5y REAL")
-    if 'efap_tmima_b' not in columns: cursor.execute("ALTER TABLE client_profile ADD COLUMN efap_tmima_b REAL")
+    for col_name, col_def in [
+        ('merida_amount', 'REAL'),
+        ('has_tapilt', 'INTEGER DEFAULT 0'),
+        ('tapilt_net', 'REAL'),
+        ('tapilt_after_expiry', 'REAL'),
+        ('bank_years_until_2013', 'REAL'),
+        ('bank_years_from_2014', 'REAL'),
+        ('pososto_anapl_custom', 'REAL'),
+        ('tapilt_sum_ginomeno', 'REAL'),
+        ('tapilt_syntaximos_misthos', 'REAL'),
+        ('tapilt_duration_years', 'REAL'),
+        ('art30_years', 'REAL DEFAULT 16.4'),
+        ('art30_extra_units', 'REAL DEFAULT 6.67'),
+        ('efap_repl_rate', 'REAL'),
+        ('efap_avg_5y', 'REAL'),
+        ('efap_tmima_b', 'REAL'),
+        ('efap_apodoches_14_22', 'REAL'),
+        ('efap_pronoia_rate', 'REAL'),
+        ('efap_apousia_factor', 'REAL')
+    ]:
+        if col_name not in columns:
+            cursor.execute(f"ALTER TABLE client_profile ADD COLUMN {col_name} {col_def}")
     conn.commit()
     conn.close()
 
@@ -98,9 +110,10 @@ def save_to_db(data):
             econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, has_tapilt, tapilt_net, tapilt_after_expiry,
             bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, 
             tapilt_sum_ginomeno, tapilt_syntaximos_misthos, tapilt_duration_years,
-            art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b
+            art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b,
+            efap_apodoches_14_22, efap_pronoia_rate, efap_apousia_factor
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data["first_name"], data["last_name"], data["gender"], data["birth_date"],
         data["insurance_cat"], data["first_work_date"], data["econ_mode"],
@@ -109,7 +122,8 @@ def save_to_db(data):
         data["bank_years_until_2013"], data["bank_years_from_2014"], data["pososto_anapl_custom"],
         data["tapilt_sum_ginomeno"], data["tapilt_syntaximos_misthos"], data["tapilt_duration_years"],
         data["art30_years"], data["art30_extra_units"],
-        data["efap_repl_rate"], data["efap_avg_5y"], data["efap_tmima_b"]
+        data["efap_repl_rate"], data["efap_avg_5y"], data["efap_tmima_b"],
+        data["efap_apodoches_14_22"], data["efap_pronoia_rate"], data["efap_apousia_factor"]
     ))
     conn.commit()
     conn.close()
@@ -122,7 +136,8 @@ def load_from_db():
                econ_mode, paste_input, summary_years, summary_avg_salary, merida_amount, has_tapilt, tapilt_net, tapilt_after_expiry,
                bank_years_until_2013, bank_years_from_2014, pososto_anapl_custom, 
                tapilt_sum_ginomeno, tapilt_syntaximos_misthos, tapilt_duration_years,
-               art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b
+               art30_years, art30_extra_units, efap_repl_rate, efap_avg_5y, efap_tmima_b,
+               efap_apodoches_14_22, efap_pronoia_rate, efap_apousia_factor
         FROM client_profile LIMIT 1
     ''')
     row = cursor.fetchone()
@@ -147,7 +162,10 @@ def load_from_db():
             "art30_extra_units": row[21] if row[21] is not None else 6.67,
             "efap_repl_rate": row[22] if row[22] is not None else 60.0,
             "efap_avg_5y": row[23] if row[23] is not None else 0.0,
-            "efap_tmima_b": row[24] if row[24] is not None else 0.0
+            "efap_tmima_b": row[24] if row[24] is not None else 0.0,
+            "efap_apodoches_14_22": row[25] if row[25] is not None else 0.0,
+            "efap_pronoia_rate": row[26] if row[26] is not None else 4.0,
+            "efap_apousia_factor": row[27] if row[27] is not None else 1.015
         }
     return None
 
@@ -222,6 +240,22 @@ st.markdown("""
     .custom-table td.center { text-align: center; }
     .custom-table tr:hover { background-color: #F8FAFC; }
     .custom-table tr.total-row { background-color: #F1F5F9; font-weight: bold; color: #0F172A; }
+
+    /* Ειδικός πίνακας Εφάπαξ όπως το πρότυπο */
+    .efapax-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; margin-top: 12px; margin-bottom: 18px; }
+    .efapax-table th.efapax-banner {
+        background-color: #102A54; color: #FFFFFF; text-align: center;
+        padding: 10px 12px; border: 1px solid #94A3B8; font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .efapax-table td {
+        padding: 8px 12px; border: 1px solid #94A3B8; vertical-align: middle; color: #0F172A;
+    }
+    .efapax-table td.label-cell { background-color: #F8FAFC; font-weight: 600; text-align: left; width: 25%; }
+    .efapax-table td.val-blue { background-color: #EEF5FF; color: #1D4ED8; font-weight: 700; text-align: center; width: 14%; }
+    .efapax-table td.formula-cell { background-color: #FFFFFF; font-weight: 600; text-align: center; width: 31%; }
+    .efapax-table td.result-cell { background-color: #FFFFFF; font-weight: 700; text-align: right; width: 30%; }
+    .efapax-table td.total-green-lbl { background-color: #E8F5E9; color: #15803D; font-weight: 700; text-align: center; }
+    .efapax-table td.total-green-val { background-color: #E8F5E9; color: #15803D; font-weight: 800; text-align: right; font-size: 14px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -274,6 +308,9 @@ if 'art30_extra_units' not in st.session_state: st.session_state.art30_extra_uni
 if 'efap_repl_rate' not in st.session_state: st.session_state.efap_repl_rate = db_data["efap_repl_rate"] if db_data else 60.0
 if 'efap_avg_5y' not in st.session_state: st.session_state.efap_avg_5y = db_data["efap_avg_5y"] if db_data else 0.0
 if 'efap_tmima_b' not in st.session_state: st.session_state.efap_tmima_b = db_data["efap_tmima_b"] if db_data else 0.0
+if 'efap_apodoches_14_22' not in st.session_state: st.session_state.efap_apodoches_14_22 = db_data["efap_apodoches_14_22"] if db_data else 0.0
+if 'efap_pronoia_rate' not in st.session_state: st.session_state.efap_pronoia_rate = db_data["efap_pronoia_rate"] if db_data else 4.0
+if 'efap_apousia_factor' not in st.session_state: st.session_state.efap_apousia_factor = db_data["efap_apousia_factor"] if db_data else 1.015
 
 def persist_all():
     save_to_db({
@@ -294,7 +331,10 @@ def persist_all():
         "art30_extra_units": float(st.session_state.art30_extra_units),
         "efap_repl_rate": float(st.session_state.efap_repl_rate),
         "efap_avg_5y": float(st.session_state.efap_avg_5y),
-        "efap_tmima_b": float(st.session_state.efap_tmima_b)
+        "efap_tmima_b": float(st.session_state.efap_tmima_b),
+        "efap_apodoches_14_22": float(st.session_state.efap_apodoches_14_22),
+        "efap_pronoia_rate": float(st.session_state.efap_pronoia_rate),
+        "efap_apousia_factor": float(st.session_state.efap_apousia_factor)
     })
 
 st.markdown(f"""
@@ -334,6 +374,9 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.efap_repl_rate = 60.0
     st.session_state.efap_avg_5y = 0.0
     st.session_state.efap_tmima_b = 0.0
+    st.session_state.efap_apodoches_14_22 = 0.0
+    st.session_state.efap_pronoia_rate = 4.0
+    st.session_state.efap_apousia_factor = 1.015
     
     st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
     persist_all()
@@ -368,7 +411,8 @@ ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
 calc_tot_ensima = 0.0
 avg_sal = float(st.session_state.summary_avg_salary)
 auto_years_until_2013 = 0.0
-auto_years_from_2014 = 0.0
+auto_avg_09_13 = 0.0
+auto_apod_14_22 = 0.0
 
 if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
     df_res = st.session_state['df_economic']
@@ -389,11 +433,19 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # Υπολογισμός ετών έως 2013 και από 2014 και μετά από τον πίνακα
+    # Έτη έως 31/12/2013
     ens_until_2013 = df_res[(df_res['ΕΤΟΣ_CLEAN'] > 0) & (df_res['ΕΤΟΣ_CLEAN'] <= 2013)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-    ens_from_2014 = df_res[df_res['ΕΤΟΣ_CLEAN'] >= 2014]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
     auto_years_until_2013 = round(ens_until_2013 / 300.0, 2)
-    auto_years_from_2014 = round(ens_from_2014 / 300.0, 2)
+
+    # Μέσος Μισθός 2009-2013 (12μηνο)
+    df_09_13 = df_res[(df_res['ΕΤΟΣ_CLEAN'] >= 2009) & (df_res['ΕΤΟΣ_CLEAN'] <= 2013)]
+    if not df_09_13.empty and df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+        auto_avg_09_13 = round((df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'] * df_09_13['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum(), 2)
+
+    # Αποδοχές 2014-2022
+    df_14_22 = df_res[(df_res['ΕΤΟΣ_CLEAN'] >= 2014) & (df_res['ΕΤΟΣ_CLEAN'] <= 2022)]
+    if not df_14_22.empty:
+        auto_apod_14_22 = round(((df_14_22['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_14_22['ΑΠΟΔΟΧΕΣ (€)']).sum(), 2)
     
     def check_for_text(row, keywords):
         row_str = " ".join([str(v).upper() for v in row.values])
@@ -428,7 +480,6 @@ if st.session_state.pososto_anapl_custom == 0.0 and tot_years > 0:
 
 pososto_anapl = float(st.session_state.pososto_anapl_custom) / 100.0
 
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΣΑΥΞΗΣΗΣ Άρθρου 30 Ν. 4387/2016
 if st.session_state.has_tapilt and tot_years > 0:
     m_sal = bank_avg if bank_avg > 0 else (avg_sal if avg_sal > 0 else 3290.0)
     art30_y = float(st.session_state.art30_years)
@@ -488,6 +539,20 @@ geniko_eas = eas_main
 geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.0) + (ygeia_ika if ika_mikto > 0 else 0.0)
 geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if ika_mikto > 0 else 0.0)
 geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if ika_mikto > 0 else 0.0)
+
+# Υπολογισμοί Εφάπαξ βάσει προτύπου πίνακα
+if st.session_state.bank_years_until_2013 == 0.0 and auto_years_until_2013 > 0:
+    st.session_state.bank_years_until_2013 = auto_years_until_2013
+if st.session_state.efap_avg_5y == 0.0 and auto_avg_09_13 > 0:
+    st.session_state.efap_avg_5y = auto_avg_09_13
+if st.session_state.efap_apodoches_14_22 == 0.0 and auto_apod_14_22 > 0:
+    st.session_state.efap_apodoches_14_22 = auto_apod_14_22
+
+anagogi_14minou = st.session_state.efap_avg_5y * (14.0 / 12.0)
+tmima_a = st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0)
+tmima_b = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
+st.session_state.efap_tmima_b = round(tmima_b, 2)
+total_efapax = tmima_a + tmima_b
 
 if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -761,60 +826,90 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
     st.markdown('</div>', unsafe_allow_html=True)
 
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
-    st.markdown('<div class="panel-card"><div class="panel-header">💼 Παραμετρικός Υπολογισμός Εφάπαξ (Ν. 4387/2016)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-card"><div class="panel-header">💼 Υπολογισμός Εφάπαξ Παροχής (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016)</div>', unsafe_allow_html=True)
 
-    # Αν τα πεδία είναι ακόμα 0 και υπάρχουν δεδομένα από το ιστορικό, δίνουμε αυτόματη αρχική πρόταση
-    if st.session_state.bank_years_until_2013 == 0.0 and auto_years_until_2013 > 0:
-        st.session_state.bank_years_until_2013 = auto_years_until_2013
-    if st.session_state.bank_years_from_2014 == 0.0 and auto_years_from_2014 > 0:
-        st.session_state.bank_years_from_2014 = auto_years_from_2014
-    if st.session_state.efap_avg_5y == 0.0 and avg_sal > 0:
-        st.session_state.efap_avg_5y = round(avg_sal, 2)
+    st.markdown("##### ✏️ Καταχώρηση / Διόρθωση Στοιχείων Υπολογισμού")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        y13_in = st.text_input("Έτη Τράπεζας έως 31/12/2013", value=fmt_gr(st.session_state.bank_years_until_2013, 2))
+        st.session_state.bank_years_until_2013 = parse_gr_float(y13_in, st.session_state.bank_years_until_2013)
+    with c2:
+        avg0913_in = st.text_input("Μέσος Μισθός 2009–2013 (12μηνο) (€)", value=fmt_gr(st.session_state.efap_avg_5y, 2))
+        st.session_state.efap_avg_5y = parse_gr_float(avg0913_in, st.session_state.efap_avg_5y)
+    with c3:
+        repl_in = st.text_input("Συντελεστής Αναπλήρωσης (έως 2013) (%)", value=fmt_gr(st.session_state.efap_repl_rate, 2))
+        st.session_state.efap_repl_rate = parse_gr_float(repl_in, st.session_state.efap_repl_rate)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        y13_str = st.text_input("Έτη έως 31/12/2013", value=fmt_gr(st.session_state.bank_years_until_2013))
-        st.session_state.bank_years_until_2013 = parse_gr_float(y13_str, st.session_state.bank_years_until_2013)
-    with col2:
-        y14_str = st.text_input("Έτη από 2014 και μετά", value=fmt_gr(st.session_state.bank_years_from_2014))
-        st.session_state.bank_years_from_2014 = parse_gr_float(y14_str, st.session_state.bank_years_from_2014)
-    with col3:
-        rate_str = st.text_input("Συντελεστής Αναπλήρωσης (%)", value=fmt_gr(st.session_state.efap_repl_rate))
-        st.session_state.efap_repl_rate = parse_gr_float(rate_str, st.session_state.efap_repl_rate)
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        apod1422_in = st.text_input("Αποδοχές 2014–2022 (€)", value=fmt_gr(st.session_state.efap_apodoches_14_22, 2))
+        st.session_state.efap_apodoches_14_22 = parse_gr_float(apod1422_in, st.session_state.efap_apodoches_14_22)
+    with c5:
+        pron_in = st.text_input("Ποσοστό Εισφοράς Πρόνοιας (από 2014) (%)", value=fmt_gr(st.session_state.efap_pronoia_rate, 2))
+        st.session_state.efap_pronoia_rate = parse_gr_float(pron_in, st.session_state.efap_pronoia_rate)
+    with c6:
+        apot_in = st.text_input("Συντελεστής Αποτίμησης (2014–2022)", value=fmt_gr(st.session_state.efap_apousia_factor, 3))
+        st.session_state.efap_apousia_factor = parse_gr_float(apot_in, st.session_state.efap_apousia_factor)
 
-    col4, col5 = st.columns(2)
-    with col4:
-        avg5y_str = st.text_input("Μέσος Μην. Μισθός Πενταετίας (€)", value=fmt_gr(st.session_state.efap_avg_5y))
-        st.session_state.efap_avg_5y = parse_gr_float(avg5y_str, st.session_state.efap_avg_5y)
-    with col5:
-        tm_b_str = st.text_input("Συνολικό Τμήμα Β (€)", value=fmt_gr(st.session_state.efap_tmima_b))
-        st.session_state.efap_tmima_b = parse_gr_float(tm_b_str, st.session_state.efap_tmima_b)
+    # Επανυπολογισμός μετά τις αλλαγές της τρέχουσας εκτέλεσης
+    anagogi_14minou = st.session_state.efap_avg_5y * (14.0 / 12.0)
+    tmima_a = st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0)
+    tmima_b = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
+    st.session_state.efap_tmima_b = round(tmima_b, 2)
+    total_efapax = tmima_a + tmima_b
 
-    tmima_a = st.session_state.bank_years_until_2013 * st.session_state.efap_avg_5y * (st.session_state.efap_repl_rate / 100.0)
-    total_efapax = tmima_a + st.session_state.efap_tmima_b
-
-    st.markdown(f"""
-    <table class="custom-table" style="margin-top: 15px;">
-        <thead><tr><th>ΤΜΗΜΑ ΕΦΑΠΑΞ</th><th>ΑΝΑΛΥΣΗ</th><th>ΠΟΣΟ (€)</th></tr></thead>
+    efapax_table_html = f"""
+    <table class="efapax-table">
+        <thead>
+            <tr>
+                <th colspan="4" class="efapax-banner">ΥΠΟΛΟΓΙΣΜΟΣ ΕΦΑΠΑΞ ΠΑΡΟΧΗΣ (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016) - ΑΦΟΡΟΛΟΓΗΤΟ</th>
+            </tr>
+        </thead>
         <tbody>
             <tr>
-                <td class="left">1. Τμήμα Α (Έως 2013)</td>
-                <td class="center">{st.session_state.bank_years_until_2013:.2f} έτη × {st.session_state.efap_avg_5y:,.2f} € × {st.session_state.efap_repl_rate:.2f}%</td>
-                <td>{tmima_a:,.2f} €</td>
+                <td class="label-cell">Έτη Τράπεζας έως 31/12/2013</td>
+                <td class="val-blue">{fmt_gr(st.session_state.bank_years_until_2013, 2)}</td>
+                <td class="formula-cell">1. Τμήμα Α (Έτη έως 31/12/2013 × Αναγωγή 14μήνου × {fmt_gr(st.session_state.efap_repl_rate, 0)}%)</td>
+                <td class="result-cell">{fmt_gr(tmima_a, 2)} €</td>
             </tr>
             <tr>
-                <td class="left">2. Τμήμα Β (Από 2014)</td>
-                <td class="center">Συνολικό ποσό τμήματος Β</td>
-                <td>{st.session_state.efap_tmima_b:,.2f} €</td>
+                <td class="label-cell">Μέσος Μισθός 2009–2013 (12μηνο)</td>
+                <td class="val-blue">{fmt_gr(st.session_state.efap_avg_5y, 2)} €</td>
+                <td class="formula-cell">Βάση Υπολογισμού Τμήματος Β (Αποδοχές 2014–2022)</td>
+                <td class="result-cell">{fmt_gr(st.session_state.efap_apodoches_14_22, 2)} €</td>
             </tr>
-            <tr class="total-row">
-                <td class="left">🌟 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ</td>
-                <td class="center">Τμήμα Α + Τμήμα Β</td>
-                <td style="color: #1E3A8A;">{total_efapax:,.2f} €</td>
+            <tr>
+                <td class="label-cell">Αναγωγή σε Μηνιαίο Τακτικό (14μηνο)</td>
+                <td class="val-blue">{fmt_gr(anagogi_14minou, 2)} €</td>
+                <td class="formula-cell">2. Τμήμα Β (Αποδοχές 2014–2022 × {fmt_gr(st.session_state.efap_pronoia_rate, 0)}% × {fmt_gr(st.session_state.efap_apousia_factor, 3)})</td>
+                <td class="result-cell">{fmt_gr(tmima_b, 2)} €</td>
+            </tr>
+            <tr>
+                <td class="label-cell">Συντελεστής Αναπλήρωσης (έως 2013)</td>
+                <td class="val-blue">{fmt_gr(st.session_state.efap_repl_rate, 2)}%</td>
+                <td class="total-green-lbl">ΚΑΘΑΡΟ ΣΥΝΟΛΟ ΕΦΑΠΑΞ e-ΕΦΚΑ (ΑΦΟΡΟΛΟΓΗΤΟ)</td>
+                <td class="total-green-val">{fmt_gr(total_efapax, 2)} €</td>
+            </tr>
+            <tr>
+                <td class="label-cell">Ποσοστό Εισφοράς Πρόνοιας (από 2014)</td>
+                <td class="val-blue">{fmt_gr(st.session_state.efap_pronoia_rate, 2)}%</td>
+                <td class="formula-cell">Τρόπος & Χρόνος Καταβολής</td>
+                <td class="result-cell" style="text-align: center;">Με την έκδοση της Κύριας Σύνταξης</td>
+            </tr>
+            <tr>
+                <td class="label-cell">Συντελεστής Αποτίμησης (2014–2022)</td>
+                <td class="val-blue">{fmt_gr(st.session_state.efap_apousia_factor, 3)}</td>
+                <td class="formula-cell">Φόρος Εισοδήματος</td>
+                <td class="result-cell" style="text-align: center;">0,00 € (Πλήρως Αφορολόγητο)</td>
             </tr>
         </tbody>
     </table>
-    """, unsafe_allow_html=True)
+    """
+
+    try:
+        st.html(efapax_table_html)
+    except:
+        st.markdown(efapax_table_html, unsafe_allow_html=True)
 
     if st.button("💾 Αποθήκευση Εφάπαξ", type="primary"):
         persist_all()
@@ -823,8 +918,10 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
 
 else:
     st.markdown('<div class="panel-card"><div class="panel-header">📋 Τελική Εικόνα & Εκτύπωση</div>', unsafe_allow_html=True)
-    monthly_tak_fin = st.session_state.efap_avg_5y
-    total_efapax_fin = (st.session_state.bank_years_until_2013 * monthly_tak_fin * (st.session_state.efap_repl_rate / 100.0)) + st.session_state.efap_tmima_b
+    anagogi_14minou_fin = st.session_state.efap_avg_5y * (14.0 / 12.0)
+    tmima_a_fin = st.session_state.bank_years_until_2013 * anagogi_14minou_fin * (st.session_state.efap_repl_rate / 100.0)
+    tmima_b_fin = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
+    total_efapax_fin = tmima_a_fin + tmima_b_fin
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}".strip()
     c_name = c_name if c_name else "Ανώνυμος Πελάτης"
     
@@ -835,7 +932,7 @@ else:
         <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη</p>
         <p><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{geniko_katharo:,.2f} € / μήνα</b></p>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ:</b> <b>{total_efapax_fin:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (ΑΦΟΡΟΛΟΓΗΤΟ):</b> <b>{total_efapax_fin:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
     if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"): st.info("💡 Πατήστε **Ctrl + P**.")
