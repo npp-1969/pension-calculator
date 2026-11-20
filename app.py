@@ -241,7 +241,6 @@ st.markdown("""
     .custom-table tr:hover { background-color: #F8FAFC; }
     .custom-table tr.total-row { background-color: #F1F5F9; font-weight: bold; color: #0F172A; }
 
-    /* Ειδικός πίνακας Εφάπαξ όπως το πρότυπο */
     .efapax-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; margin-top: 12px; margin-bottom: 18px; }
     .efapax-table th.efapax-banner {
         background-color: #102A54; color: #FFFFFF; text-align: center;
@@ -410,7 +409,7 @@ bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
 ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
 calc_tot_ensima = 0.0
 avg_sal = float(st.session_state.summary_avg_salary)
-auto_years_until_2013 = 0.0
+auto_bank_years_until_2013 = 0.0
 auto_avg_09_13 = 0.0
 auto_apod_14_22 = 0.0
 
@@ -433,31 +432,31 @@ if 'df_economic' in st.session_state and not st.session_state['df_economic'].emp
     
     calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
 
-    # Έτη έως 31/12/2013
-    ens_until_2013 = df_res[(df_res['ΕΤΟΣ_CLEAN'] > 0) & (df_res['ΕΤΟΣ_CLEAN'] <= 2013)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-    auto_years_until_2013 = round(ens_until_2013 / 300.0, 2)
-
-    # Μέσος Μισθός 2009-2013 (12μηνο)
-    df_09_13 = df_res[(df_res['ΕΤΟΣ_CLEAN'] >= 2009) & (df_res['ΕΤΟΣ_CLEAN'] <= 2013)]
-    if not df_09_13.empty and df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-        auto_avg_09_13 = round((df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'] * df_09_13['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum(), 2)
-
-    # Αποδοχές 2014-2022
-    df_14_22 = df_res[(df_res['ΕΤΟΣ_CLEAN'] >= 2014) & (df_res['ΕΤΟΣ_CLEAN'] <= 2022)]
-    if not df_14_22.empty:
-        auto_apod_14_22 = round(((df_14_22['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_14_22['ΑΠΟΔΟΧΕΣ (€)']).sum(), 2)
-    
     def check_for_text(row, keywords):
         row_str = " ".join([str(v).upper() for v in row.values])
         return any(kw in row_str for kw in keywords)
 
-    df_bank = df_res[df_res.apply(lambda r: check_for_text(r, ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ']), axis=1)]
+    df_bank = df_res[df_res.apply(lambda r: check_for_text(r, ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ', 'ALPHA']), axis=1)]
     if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
         bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
         bank_y = bank_ens / 300.0
         df_bank_post02 = df_bank[df_bank['ΕΤΟΣ_CLEAN'] >= 2002]
         if not df_bank_post02.empty and df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
             bank_avg = (df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+
+        # Έτη Τράπεζας έως 31/12/2013
+        bank_ens_until_2013 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] > 0) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2013)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+        auto_bank_years_until_2013 = round(bank_ens_until_2013 / 300.0, 2)
+
+        # Μέσος Μισθός 2009-2013 (12μηνο) στην Τράπεζα
+        df_09_13 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] >= 2009) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2013)]
+        if not df_09_13.empty and df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
+            auto_avg_09_13 = round((df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'] * df_09_13['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum(), 2)
+
+        # Αποδοχές 2014-2022 στην Τράπεζα (14μηνη/ετήσια βάση αποδοχών περιόδου)
+        df_14_22 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] >= 2014) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2022)]
+        if not df_14_22.empty:
+            auto_apod_14_22 = round(((df_14_22['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_14_22['ΑΠΟΔΟΧΕΣ (€)']).sum(), 2)
 
     df_ika = df_res[df_res.apply(lambda r: check_for_text(r, ['ΙΚΑ']), axis=1)]
     if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
@@ -540,19 +539,19 @@ geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.
 geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if ika_mikto > 0 else 0.0)
 geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if ika_mikto > 0 else 0.0)
 
-# Υπολογισμοί Εφάπαξ βάσει προτύπου πίνακα
-if st.session_state.bank_years_until_2013 == 0.0 and auto_years_until_2013 > 0:
-    st.session_state.bank_years_until_2013 = auto_years_until_2013
+# Αυτόματο γέμισμα αν είναι μηδενικά και υπάρχουν στοιχεία στον πίνακα
+if st.session_state.bank_years_until_2013 == 0.0 and auto_bank_years_until_2013 > 0:
+    st.session_state.bank_years_until_2013 = auto_bank_years_until_2013
 if st.session_state.efap_avg_5y == 0.0 and auto_avg_09_13 > 0:
     st.session_state.efap_avg_5y = auto_avg_09_13
 if st.session_state.efap_apodoches_14_22 == 0.0 and auto_apod_14_22 > 0:
     st.session_state.efap_apodoches_14_22 = auto_apod_14_22
 
-anagogi_14minou = st.session_state.efap_avg_5y * (14.0 / 12.0)
-tmima_a = st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0)
-tmima_b = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
-st.session_state.efap_tmima_b = round(tmima_b, 2)
-total_efapax = tmima_a + tmima_b
+anagogi_14minou = round(st.session_state.efap_avg_5y * (14.0 / 12.0), 2)
+tmima_a = round(st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0), 2)
+tmima_b = round(st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor, 2)
+st.session_state.efap_tmima_b = tmima_b
+total_efapax = round(tmima_a + tmima_b, 2)
 
 if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
     st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
@@ -828,7 +827,17 @@ elif app_section == "📊 Συγκεντρωτικά Αποτελέσματα & 
 elif app_section == "💼 Υπολογισμός Εφάπαξ":
     st.markdown('<div class="panel-card"><div class="panel-header">💼 Υπολογισμός Εφάπαξ Παροχής (πρ. ΤΑΠΙΛΤ-ΑΤ / e-ΕΦΚΑ - Ν. 4387/2016)</div>', unsafe_allow_html=True)
 
-    st.markdown("##### ✏️ Καταχώρηση / Διόρθωση Στοιχείων Υπολογισμού")
+    if st.button("🔄 Αυτόματη Ενημέρωση από Πίνακα Αποδοχών"):
+        if auto_bank_years_until_2013 > 0:
+            st.session_state.bank_years_until_2013 = auto_bank_years_until_2013
+        if auto_avg_09_13 > 0:
+            st.session_state.efap_avg_5y = auto_avg_09_13
+        if auto_apod_14_22 > 0:
+            st.session_state.efap_apodoches_14_22 = auto_apod_14_22
+        persist_all()
+        st.rerun()
+
+    st.markdown("##### ✏️ Στοιχεία Υπολογισμού")
     c1, c2, c3 = st.columns(3)
     with c1:
         y13_in = st.text_input("Έτη Τράπεζας έως 31/12/2013", value=fmt_gr(st.session_state.bank_years_until_2013, 2))
@@ -851,12 +860,11 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
         apot_in = st.text_input("Συντελεστής Αποτίμησης (2014–2022)", value=fmt_gr(st.session_state.efap_apousia_factor, 3))
         st.session_state.efap_apousia_factor = parse_gr_float(apot_in, st.session_state.efap_apousia_factor)
 
-    # Επανυπολογισμός μετά τις αλλαγές της τρέχουσας εκτέλεσης
-    anagogi_14minou = st.session_state.efap_avg_5y * (14.0 / 12.0)
-    tmima_a = st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0)
-    tmima_b = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
-    st.session_state.efap_tmima_b = round(tmima_b, 2)
-    total_efapax = tmima_a + tmima_b
+    anagogi_14minou = round(st.session_state.efap_avg_5y * (14.0 / 12.0), 2)
+    tmima_a = round(st.session_state.bank_years_until_2013 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0), 2)
+    tmima_b = round(st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor, 2)
+    st.session_state.efap_tmima_b = tmima_b
+    total_efapax = round(tmima_a + tmima_b, 2)
 
     efapax_table_html = f"""
     <table class="efapax-table">
@@ -918,10 +926,10 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
 
 else:
     st.markdown('<div class="panel-card"><div class="panel-header">📋 Τελική Εικόνα & Εκτύπωση</div>', unsafe_allow_html=True)
-    anagogi_14minou_fin = st.session_state.efap_avg_5y * (14.0 / 12.0)
-    tmima_a_fin = st.session_state.bank_years_until_2013 * anagogi_14minou_fin * (st.session_state.efap_repl_rate / 100.0)
-    tmima_b_fin = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
-    total_efapax_fin = tmima_a_fin + tmima_b_fin
+    anagogi_14minou_fin = round(st.session_state.efap_avg_5y * (14.0 / 12.0), 2)
+    tmima_a_fin = round(st.session_state.bank_years_until_2013 * anagogi_14minou_fin * (st.session_state.efap_repl_rate / 100.0), 2)
+    tmima_b_fin = round(st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor, 2)
+    total_efapax_fin = round(tmima_a_fin + tmima_b_fin, 2)
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}".strip()
     c_name = c_name if c_name else "Ανώνυμος Πελάτης"
     
