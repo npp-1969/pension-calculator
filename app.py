@@ -483,6 +483,13 @@ def compute_from_df(df_input: pd.DataFrame):
             if not df_1422.empty:
                 a_apod1422 = ((df_1422['ENS_NUM'] / 25.0) * df_1422['APOD_NUM']).sum()
 
+        # Fallback αν δεν υπάρχει Τράπεζα στην περίοδο 2009-2013 αλλά υπάρχουν γραμμές 2009-2013
+        if c_0913 == 0:
+            df_0913_all = df_c[(df_c['ΕΤΟΣ_CLEAN'] >= 2009) & (df_c['ΕΤΟΣ_CLEAN'] <= 2013)]
+            if not df_0913_all.empty and df_0913_all['ENS_NUM'].sum() > 0:
+                c_0913 = len(df_0913_all)
+                a_avg0913 = (df_0913_all['ENS_NUM'] * df_0913_all['APOD_NUM']).sum() / df_0913_all['ENS_NUM'].sum()
+
         df_i = df_c[df_c.apply(is_ika, axis=1)]
         if not df_i.empty:
             i_ens = df_i['ENS_NUM'].sum()
