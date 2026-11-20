@@ -10,10 +10,12 @@ st.set_page_config(page_title="Professional Pension BMS", page_icon="💼", layo
 # ==========================================
 # ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ ΕΛΛΗΝΙΚΩΝ ΑΡΙΘΜΩΝ
 # ==========================================
-def parse_gr_float(val_str: str, default: float = 0.0) -> float:
+def parse_gr_float(val_str, default: float = 0.0) -> float:
     if val_str is None:
         return default
-    clean = str(val_str).replace('€', '').replace('%', '').strip()
+    if isinstance(val_str, (int, float)):
+        return float(val_str) if pd.notna(val_str) else default
+    clean = str(val_str).replace('€', '').replace('%', '').replace('\xa0', '').strip()
     if not clean:
         return default
     if ',' in clean and '.' in clean:
@@ -196,6 +198,30 @@ def calc_annual_tax_total(annual_income: float) -> float:
     discount = max(0.0, 777.0 - ((annual_income - 12000.0) / 1000.0) * 20.0) if annual_income > 12000.0 else 777.0
     return max(0.0, gross_tax - discount)
 
+def parse_pasted_table(raw_text: str) -> pd.DataFrame:
+    if not raw_text or not raw_text.strip():
+        return pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+    final_data = []
+    for line in raw_text.strip().split('\n'):
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+        parts = re.split(r'\t+|\s{2,}', line_clean) if '\t' in line_clean else line_clean.split()
+        if len(parts) >= 6:
+            val_apod = parse_gr_float(parts[-1], 0.0)
+            val_ens = parse_gr_float(parts[-2], 0.0)
+            if val_ens == 0.0 and len(parts) >= 7:
+                val_ens = parse_gr_float(parts[-3], 0.0)
+            final_data.append({
+                "ΕΤΟΣ": parts[0].strip(),
+                "ΑΠΟ (ΗΜ/ΝΙΑ)": parts[1].strip(),
+                "ΕΩΣ (ΗΜ/ΝΙΑ)": parts[2].strip(),
+                "ΦΟΡΕΑΣ": parts[3].strip().upper(),
+                "ΕΝΣΗΜΑ (Η.Ε.)": val_ens,
+                "ΑΠΟΔΟΧΕΣ (€)": val_apod
+            })
+    return pd.DataFrame(final_data) if final_data else pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+
 # Επαγγελματικό CSS Styling
 st.markdown("""
     <style>
@@ -376,98 +402,222 @@ if st.sidebar.button("🧹 Πλήρης Καθαρισμός Στοιχείων 
     st.session_state.efap_apodoches_14_22 = 0.0
     st.session_state.efap_pronoia_rate = 4.0
     st.session_state.efap_apousia_factor = 1.015
-    
     st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
     persist_all()
     st.success("✅ Όλα τα στοιχεία του πελάτη καθαρίστηκαν πλήρως!")
     st.rerun()
 
-df_parsed = pd.DataFrame()
-if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)" and st.session_state.paste_input.strip():
-    try:
-        final_data = []
-        for line in st.session_state.paste_input.strip().split('\n'):
-            parts = line.replace('\t', ' ').split()
-            if len(parts) >= 6:
-                raw_apod = parts[-1].replace('€', '').replace('.', '').replace(',', '.').strip()
-                try: val_apod = float(raw_apod)
-                except:
-                    try: val_apod = float(parts[-2].replace('€', '').replace('.', '').replace(',', '.').strip())
-                    except: val_apod = 0.0
-                try: val_ens = float(parts[-3].replace(',', '.')) if '€' in parts[-1] else float(parts[-2].replace(',', '.'))
-                except: val_ens = 25.0
-                final_data.append({"ΕΤΟΣ": parts[0], "ΑΠΟ (ΗΜ/ΝΙΑ)": parts[1], "ΕΩΣ (ΗΜ/ΝΙΑ)": parts[2], "ΦΟΡΕΑΣ": parts[3].upper(), "ΕΝΣΗΜΑ (Η.Ε.)": val_ens, "ΑΠΟΔΟΧΕΣ (€)": val_apod})
-        df_parsed = pd.DataFrame(final_data)
-    except: pass
+if 'df_economic' not in st.session_state:
+    st.session_state['df_economic'] = parse_pasted_table(st.session_state.paste_input)
 
-if not df_parsed.empty:
-    st.session_state['df_economic'] = df_parsed
-elif 'df_economic' not in st.session_state:
-    st.session_state['df_economic'] = pd.DataFrame(columns=["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)", "ΦΟΡΕΑΣ", "ΕΝΣΗΜΑ (Η.Ε.)", "ΑΠΟΔΟΧΕΣ (€)"])
+def compute_from_df(df_input: pd.DataFrame):
+    b_ens = b_avg = b_y = 0.0
+    i_ens = i_avg = i_y = 0.0
+    tot_ens = 0.0
+    a_sal = float(st.session_state.summary_avg_salary)
+    a_y13 = 0.0
+    a_avg0913 = 0.0
+    a_apod1422 = 0.0
+    c_u13 = c_0913 = c_1422 = 0
 
-bank_ens, bank_avg, bank_y = 0.0, 0.0, 0.0
-ika_ens, ika_avg, ika_y = 0.0, 0.0, 0.0
-calc_tot_ensima = 0.0
-avg_sal = float(st.session_state.summary_avg_salary)
-auto_bank_years_until_2013 = 0.0
-auto_avg_09_13 = 0.0
-auto_apod_14_22 = 0.0
+    if df_input is not None and not df_input.empty:
+        df_c = df_input.copy()
 
-if 'df_economic' in st.session_state and not st.session_state['df_economic'].empty:
-    df_res = st.session_state['df_economic']
+        def extract_year(row):
+            for col in ["ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)"]:
+                if col in row.index:
+                    m = re.search(r'(19\d{2}|20\d{2})', str(row[col]))
+                    if m and 1950 <= int(m.group(1)) <= 2050:
+                        return int(m.group(1))
+            for val in row.values:
+                m = re.search(r'(19\d{2}|20\d{2})', str(val))
+                if m and 1950 <= int(m.group(1)) <= 2050:
+                    return int(m.group(1))
+            return 0
+
+        def is_bank(row):
+            for col in ["ΦΟΡΕΑΣ", "ΕΤΟΣ", "ΑΠΟ (ΗΜ/ΝΙΑ)", "ΕΩΣ (ΗΜ/ΝΙΑ)"]:
+                if col in row.index:
+                    s = str(row[col]).upper()
+                    if any(k in s for k in ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ', 'ALPHA', 'ΤΑΠΙΛΤ']):
+                        return True
+            row_str = " ".join([str(v).upper() for v in row.values])
+            if any(k in row_str for k in ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ', 'ALPHA', 'ΤΑΠΙΛΤ']):
+                return True
+            if 'ΙΚΑ' not in row_str and extract_year(row) > 0:
+                return True
+            return False
+
+        def is_ika(row):
+            row_str = " ".join([str(v).upper() for v in row.values])
+            return 'ΙΚΑ' in row_str
+
+        df_c['ΕΤΟΣ_CLEAN'] = df_c.apply(extract_year, axis=1)
+        ens_col = 'ΕΝΣΗΜΑ (Η.Ε.)' if 'ΕΝΣΗΜΑ (Η.Ε.)' in df_c.columns else df_c.columns[-2]
+        apod_col = 'ΑΠΟΔΟΧΕΣ (€)' if 'ΑΠΟΔΟΧΕΣ (€)' in df_c.columns else df_c.columns[-1]
+
+        df_c['ENS_NUM'] = df_c[ens_col].apply(lambda x: parse_gr_float(x, 0.0))
+        df_c['APOD_NUM'] = df_c[apod_col].apply(lambda x: parse_gr_float(x, 0.0))
+
+        tot_ens = df_c['ENS_NUM'].sum()
+
+        df_b = df_c[df_c.apply(is_bank, axis=1)]
+        if not df_b.empty:
+            b_ens = df_b['ENS_NUM'].sum()
+            b_y = b_ens / 300.0
+            df_b_post02 = df_b[df_b['ΕΤΟΣ_CLEAN'] >= 2002]
+            if not df_b_post02.empty and df_b_post02['ENS_NUM'].sum() > 0:
+                b_avg = (df_b_post02['ENS_NUM'] * df_b_post02['APOD_NUM']).sum() / df_b_post02['ENS_NUM'].sum()
+
+            df_u13 = df_b[(df_b['ΕΤΟΣ_CLEAN'] > 0) & (df_b['ΕΤΟΣ_CLEAN'] <= 2013)]
+            c_u13 = len(df_u13)
+            a_y13 = df_u13['ENS_NUM'].sum() / 300.0
+
+            df_0913 = df_b[(df_b['ΕΤΟΣ_CLEAN'] >= 2009) & (df_b['ΕΤΟΣ_CLEAN'] <= 2013)]
+            c_0913 = len(df_0913)
+            if not df_0913.empty and df_0913['ENS_NUM'].sum() > 0:
+                a_avg0913 = (df_0913['ENS_NUM'] * df_0913['APOD_NUM']).sum() / df_0913['ENS_NUM'].sum()
+
+            df_1422 = df_b[(df_b['ΕΤΟΣ_CLEAN'] >= 2014) & (df_b['ΕΤΟΣ_CLEAN'] <= 2022)]
+            c_1422 = len(df_1422)
+            if not df_1422.empty:
+                a_apod1422 = ((df_1422['ENS_NUM'] / 25.0) * df_1422['APOD_NUM']).sum()
+
+        df_i = df_c[df_c.apply(is_ika, axis=1)]
+        if not df_i.empty:
+            i_ens = df_i['ENS_NUM'].sum()
+            i_y = i_ens / 300.0
+            df_i_post02 = df_i[df_i['ΕΤΟΣ_CLEAN'] >= 2002]
+            if not df_i_post02.empty and df_i_post02['ENS_NUM'].sum() > 0:
+                i_avg = (df_i_post02['ENS_NUM'] * df_i_post02['APOD_NUM']).sum() / df_i_post02['ENS_NUM'].sum()
+
+        df_post02 = df_c[df_c['ΕΤΟΣ_CLEAN'] >= 2002]
+        if not df_post02.empty and df_post02['ENS_NUM'].sum() > 0:
+            a_sal = (df_post02['ENS_NUM'] * df_post02['APOD_NUM']).sum() / df_post02['ENS_NUM'].sum()
+        elif float(st.session_state.summary_avg_salary) > 0:
+            a_sal = float(st.session_state.summary_avg_salary)
+        else:
+            a_sal = 0.0
+
+    return {
+        "bank_ens": b_ens, "bank_avg": b_avg, "bank_y": b_y,
+        "ika_ens": i_ens, "ika_avg": i_avg, "ika_y": i_y,
+        "calc_tot_ensima": tot_ens, "avg_sal": a_sal,
+        "auto_bank_years_until_2013": a_y13,
+        "auto_avg_09_13": a_avg0913,
+        "auto_apod_14_22": a_apod1422,
+        "c_u13": c_u13, "c_0913": c_0913, "c_1422": c_1422
+    }
+
+active_df = st.session_state['df_economic'].copy()
+
+if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
+    st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1: st.session_state.client_data["first_name"] = st.text_input("Όνομα", value=st.session_state.client_data["first_name"])
+    with c2: st.session_state.client_data["last_name"] = st.text_input("Επώνυμο", value=st.session_state.client_data["last_name"])
+    with c3: st.session_state.client_data["gender"] = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"], index=0 if st.session_state.client_data["gender"]=="Άνδρας" else 1)
+
+    c4, c5 = st.columns(2)
+    with c4: st.session_state.client_data["birth_date"] = st.text_input("Ημερομηνία Γέννησης", value=st.session_state.client_data["birth_date"])
+    with c5: st.session_state.client_data["first_work_date"] = st.text_input("Πρώτη Ημέρα Ασφάλισης", value=st.session_state.client_data["first_work_date"])
+
+    cat_options = [
+        "Μισθωτός — Τράπεζα / Ιονική (πρώην ΤΑΠΙΛΤ)", 
+        "Μισθωτός — Τράπεζα (Άλλη)", 
+        "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", 
+        "Δημόσιος τομέας", 
+        "Ελεύθερος επαγγελματίας (πρώην ΟΑΕΕ)"
+    ]
+    current_cat = st.session_state.client_data["insurance_cat"]
+    cat_idx = cat_options.index(current_cat) if current_cat in cat_options else 0
     
-    def extract_year_from_row(row):
-        for val in row.values:
-            val_str = str(val)
-            match = re.search(r'(19\d{2}|20\d{2})', val_str)
-            if match:
-                y = int(match.group(1))
-                if 1950 <= y <= 2050:
-                    return y
-        return 0
+    selected_cat = st.selectbox("Ασφαλιστική Κατηγορία / Φορέας", cat_options, index=cat_idx)
+    st.session_state.client_data["insurance_cat"] = selected_cat
 
-    df_res['ΕΤΟΣ_CLEAN'] = df_res.apply(extract_year_from_row, axis=1)
-    df_res['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_res['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
-    df_res['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_res['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
-    
-    calc_tot_ensima = df_res['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-
-    def check_for_text(row, keywords):
-        row_str = " ".join([str(v).upper() for v in row.values])
-        return any(kw in row_str for kw in keywords)
-
-    df_bank = df_res[df_res.apply(lambda r: check_for_text(r, ['ΤΡΑΠΕΖΑ', 'ΙΟΝΙΚΗ', 'ALPHA', 'ΤΑΠΙΛΤ']), axis=1)]
-    if not df_bank.empty and df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-        bank_ens = df_bank['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        bank_y = bank_ens / 300.0
-        df_bank_post02 = df_bank[df_bank['ΕΤΟΣ_CLEAN'] >= 2002]
-        if not df_bank_post02.empty and df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-            bank_avg = (df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_bank_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_bank_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-
-        bank_ens_until_2013 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] > 0) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2013)]['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        auto_bank_years_until_2013 = bank_ens_until_2013 / 300.0
-
-        df_09_13 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] >= 2009) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2013)]
-        if not df_09_13.empty and df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-            auto_avg_09_13 = (df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'] * df_09_13['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_09_13['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-
-        df_14_22 = df_bank[(df_bank['ΕΤΟΣ_CLEAN'] >= 2014) & (df_bank['ΕΤΟΣ_CLEAN'] <= 2022)]
-        if not df_14_22.empty:
-            auto_apod_14_22 = ((df_14_22['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_14_22['ΑΠΟΔΟΧΕΣ (€)']).sum()
-
-    df_ika = df_res[df_res.apply(lambda r: check_for_text(r, ['ΙΚΑ']), axis=1)]
-    if not df_ika.empty and df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-        ika_ens = df_ika['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-        ika_y = ika_ens / 300.0
-        df_ika_post02 = df_ika[df_ika['ΕΤΟΣ_CLEAN'] >= 2002]
-        if not df_ika_post02.empty and df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-            ika_avg = (df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'] * df_ika_post02['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_ika_post02['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-
-    df_post_2002 = df_res[df_res['ΕΤΟΣ_CLEAN'] >= 2002]
-    if not df_post_2002.empty and df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum() > 0:
-        avg_sal = (df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'] * df_post_2002['ΑΠΟΔΟΧΕΣ (€)']).sum() / df_post_2002['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
+    if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΙΟΝΙΚΗ"]):
+        st.session_state.has_tapilt = True
+        st.session_state.pososto_anapl_custom = 51.29
+        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Το ειδικό ταμείο ενεργοποιήθηκε αυτόματα.")
     else:
-        avg_sal = float(st.session_state.summary_avg_salary) if st.session_state.summary_avg_salary > 0 else 0.0
+        st.session_state.has_tapilt = False
+        st.session_state.pososto_anapl_custom = 50.15
+
+    if st.button("💾 Αποθήκευση Προσωπικών", type="primary"): 
+        persist_all()
+        st.success("✅ Τα προσωπικά στοιχεία αποθηκεύτηκαν!")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχές":
+    st.markdown('<div class="panel-card"><div class="panel-header">💰 Οικονομικά Στοιχεία & Ασφαλιστικό Ιστορικό</div>', unsafe_allow_html=True)
+    
+    modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά"]
+    m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
+    st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης αποδοχών:", modes, index=m_idx, horizontal=True)
+
+    if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
+        new_paste = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", value=st.session_state.paste_input, height=120)
+        if new_paste != st.session_state.paste_input:
+            st.session_state.paste_input = new_paste
+            parsed_now = parse_pasted_table(new_paste)
+            if not parsed_now.empty:
+                st.session_state['df_economic'] = parsed_now
+
+        df_edited = st.data_editor(st.session_state['df_economic'], num_rows="dynamic", use_container_width=True, hide_index=True)
+        st.session_state['df_economic'] = df_edited
+        active_df = df_edited.copy()
+
+        m_info = compute_from_df(active_df)
+        total_ensima_disp = m_info["calc_tot_ensima"]
+        total_apodoches_disp = ((active_df['ΕΝΣΗΜΑ (Η.Ε.)'].apply(lambda x: parse_gr_float(x, 0.0)) / 25.0) * active_df['ΑΠΟΔΟΧΕΣ (€)'].apply(lambda x: parse_gr_float(x, 0.0))).sum() if not active_df.empty else 0.0
+        total_years_disp = total_ensima_disp / 300.0
+
+        st.markdown(f"""
+        <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 15px 20px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; font-size: 13px; color: #1E293B;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div>📌 <b>ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ:</b> <span style="color: #1E3A8A; font-weight: bold;">{int(total_ensima_disp):,} Η.Ε.</span> ({total_years_disp:.2f} έτη)</div>
+                <div>💶 <b>ΓΕΝΙΚΟ ΣΥΝΟΛΟ ΑΠΟΔΟΧΩΝ:</b> <span style="color: #1E3A8A; font-weight: bold;">{total_apodoches_disp:,.2f} €</span></div>
+            </div>
+            <hr style="margin: 6px 0; border: none; border-top: 1px solid #CBD5E1;">
+            <div style="text-align: right;">
+                📈 <b>ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002):</b> <span style="color: #16A34A; font-weight: bold;">{m_info["avg_sal"]:,.2f} €</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        col_s1, col_s2 = st.columns(2)
+        with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.01)
+        with col_s2: st.session_state.summary_avg_salary = st.number_input("Συντάξιμες Αποδοχές από 2002 (€)", value=float(st.session_state.summary_avg_salary), step=10.0)
+
+    st.markdown("---")
+    st.markdown("#### ⚙️ Βασικές Παράμετροι Συνταξιοδότησης")
+    m_tmp = compute_from_df(active_df)
+    tot_y_tmp = m_tmp["calc_tot_ensima"] / 300.0 if m_tmp["calc_tot_ensima"] > 0 else float(st.session_state.summary_years)
+    col_p1, col_p2 = st.columns(2)
+    with col_p1: st.session_state.summary_years = st.number_input("Χρόνια Ασφάλισης (για Κύρια)", value=float(tot_y_tmp), step=0.01)
+    with col_p2: st.session_state.pososto_anapl_custom = st.number_input("Ποσοστό Αναπλήρωσης (%)", value=float(st.session_state.pososto_anapl_custom), step=0.01)
+
+    if st.button("💾 Αποθήκευση Οικονομικών", type="primary"):
+        m_save = compute_from_df(active_df)
+        st.session_state.bank_years_until_2013 = round(m_save["auto_bank_years_until_2013"], 2)
+        st.session_state.efap_avg_5y = round(m_save["auto_avg_09_13"], 2)
+        st.session_state.efap_apodoches_14_22 = round(m_save["auto_apod_14_22"], 2)
+        persist_all()
+        st.success("✅ Αποθηκεύτηκαν επιτυχώς!")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+metrics = compute_from_df(active_df)
+bank_ens = metrics["bank_ens"]
+bank_avg = metrics["bank_avg"]
+bank_y = metrics["bank_y"]
+ika_ens = metrics["ika_ens"]
+ika_avg = metrics["ika_avg"]
+ika_y = metrics["ika_y"]
+calc_tot_ensima = metrics["calc_tot_ensima"]
+avg_sal = metrics["avg_sal"]
+auto_bank_years_until_2013 = metrics["auto_bank_years_until_2013"]
+auto_avg_09_13 = metrics["auto_avg_09_13"]
+auto_apod_14_22 = metrics["auto_apod_14_22"]
 
 tot_years = calc_tot_ensima / 300.0 if calc_tot_ensima > 0 else float(st.session_state.summary_years)
 
@@ -536,106 +686,22 @@ geniko_ygeia = ygeia_main + (ygeia_tapilt if st.session_state.has_tapilt else 0.
 geniko_krat_total = krat_main_total + (krat_tapilt_total if st.session_state.has_tapilt else 0.0) + (krat_ika_total if ika_mikto > 0 else 0.0)
 geniko_katharo = katharo_main + (tapilt_katharo if st.session_state.has_tapilt else 0.0) + (katharo_ika if ika_mikto > 0 else 0.0)
 
-# Αυτόματη ενημέρωση Εφάπαξ από τα Οικονομικά Στοιχεία
-st.session_state.bank_years_until_2013 = round(auto_bank_years_until_2013, 2)
-st.session_state.efap_avg_5y = round(auto_avg_09_13, 2)
-st.session_state.efap_apodoches_14_22 = round(auto_apod_14_22, 2)
+# Ζωντανός υπολογισμός Εφάπαξ από το Οικονομικό Ιστορικό
+ef_years_13 = round(auto_bank_years_until_2013, 2)
+ef_avg_09_13 = round(auto_avg_09_13, 2)
+ef_apod_14_22 = round(auto_apod_14_22, 2)
 
-anagogi_14minou_exact = st.session_state.efap_avg_5y * (12.0 / 14.0)
-tmima_a_exact = st.session_state.bank_years_until_2013 * anagogi_14minou_exact * (st.session_state.efap_repl_rate / 100.0)
-tmima_b_exact = st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor
-total_efapax_exact = tmima_a_exact + tmima_b_exact
+st.session_state.bank_years_until_2013 = ef_years_13
+st.session_state.efap_avg_5y = ef_avg_09_13
+st.session_state.efap_apodoches_14_22 = ef_apod_14_22
 
-anagogi_14minou = round(anagogi_14minou_exact, 2)
-tmima_a = round(tmima_a_exact, 2)
-tmima_b = round(tmima_b_exact, 2)
+anagogi_14minou = round(ef_avg_09_13 * (12.0 / 14.0), 2)
+tmima_a = round(ef_years_13 * anagogi_14minou * (st.session_state.efap_repl_rate / 100.0), 2)
+tmima_b = round(ef_apod_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor, 2)
 st.session_state.efap_tmima_b = tmima_b
-total_efapax = round(total_efapax_exact, 2)
+total_efapax = round(tmima_a + tmima_b, 2)
 
-if app_section == "👤 Προσωπικά & Ασφαλιστικά Στοιχεία":
-    st.markdown('<div class="panel-card"><div class="panel-header">👤 Προσωπικά & Ασφαλιστικά Στοιχεία</div>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    with c1: st.session_state.client_data["first_name"] = st.text_input("Όνομα", value=st.session_state.client_data["first_name"])
-    with c2: st.session_state.client_data["last_name"] = st.text_input("Επώνυμο", value=st.session_state.client_data["last_name"])
-    with c3: st.session_state.client_data["gender"] = st.selectbox("Φύλο", ["Άνδρας", "Γυναίκα"], index=0 if st.session_state.client_data["gender"]=="Άνδρας" else 1)
-
-    c4, c5 = st.columns(2)
-    with c4: st.session_state.client_data["birth_date"] = st.text_input("Ημερομηνία Γέννησης", value=st.session_state.client_data["birth_date"])
-    with c5: st.session_state.client_data["first_work_date"] = st.text_input("Πρώτη Ημέρα Ασφάλισης", value=st.session_state.client_data["first_work_date"])
-
-    cat_options = [
-        "Μισθωτός — Τράπεζα / Ιονική (πρώην ΤΑΠΙΛΤ)", 
-        "Μισθωτός — Τράπεζα (Άλλη)", 
-        "Μισθωτός — Ιδιωτικός τομέας (πρώην ΙΚΑ-ΕΤΑΜ)", 
-        "Δημόσιος τομέας", 
-        "Ελεύθερος επαγγελματής (πρώην ΟΑΕΕ)"
-    ]
-    current_cat = st.session_state.client_data["insurance_cat"]
-    cat_idx = cat_options.index(current_cat) if current_cat in cat_options else 0
-    
-    selected_cat = st.selectbox("Ασφαλιστική Κατηγορία / Φορέας", cat_options, index=cat_idx)
-    st.session_state.client_data["insurance_cat"] = selected_cat
-
-    if any(kw in selected_cat.upper() for kw in ["ΤΡΑΠΕΖΑ", "ΤΑΠΙΛΤ", "ΙΟΝΙΚΗ"]):
-        st.session_state.has_tapilt = True
-        st.session_state.pososto_anapl_custom = 51.29
-        st.warning("⚠️ **Επιλέξατε Τράπεζα/Ιονική (ΤΑΠΙΛΤ).** Το ειδικό ταμείο ενεργοποιήθηκε αυτόματα.")
-    else:
-        st.session_state.has_tapilt = False
-        st.session_state.pososto_anapl_custom = 50.15
-
-    if st.button("💾 Αποθήκευση Προσωπικών", type="primary"): 
-        persist_all()
-        st.success("✅ Τα προσωπικά στοιχεία αποθηκεύτηκαν!")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "💰 Οικονομικό Ιστορικό & Αποδοχές":
-    st.markdown('<div class="panel-card"><div class="panel-header">💰 Οικονομικά Στοιχεία & Ασφαλιστικό Ιστορικό</div>', unsafe_allow_html=True)
-    
-    modes = ["🔄 Αναλυτικά (Πίνακας Περιόδων)", "⚡ Συγκεντρωτικά"]
-    m_idx = modes.index(st.session_state.econ_mode) if st.session_state.econ_mode in modes else 0
-    st.session_state.econ_mode = st.radio("Τρόπος καταχώρησης αποδοχών:", modes, index=m_idx, horizontal=True)
-
-    if st.session_state.econ_mode == "🔄 Αναλυτικά (Πίνακας Περιόδων)":
-        st.session_state.paste_input = st.text_area("Επικόλληση δεδομένων Excel (ΕΤΟΣ | ΑΠΟ | ΕΩΣ | ΦΟΡΕΑΣ | ΗΜΕΡΕΣ | ΑΠΟΔΟΧΕΣ):", value=st.session_state.paste_input, height=120)
-        if 'df_economic' in st.session_state:
-            df_edited = st.data_editor(st.session_state['df_economic'], num_rows="dynamic", use_container_width=True, hide_index=True)
-            df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] = pd.to_numeric(df_edited['ΕΝΣΗΜΑ (Η.Ε.)'], errors='coerce').fillna(0)
-            df_edited['ΑΠΟΔΟΧΕΣ (€)'] = pd.to_numeric(df_edited['ΑΠΟΔΟΧΕΣ (€)'], errors='coerce').fillna(0.0)
-            df_edited['ΕΤΟΣ_NUM'] = pd.to_numeric(df_edited['ΕΤΟΣ'], errors='coerce').fillna(0)
-            st.session_state['df_economic'] = df_edited
-            
-            total_ensima_disp = df_edited['ΕΝΣΗΜΑ (Η.Ε.)'].sum()
-            total_apodoches_disp = ((df_edited['ΕΝΣΗΜΑ (Η.Ε.)'] / 25.0) * df_edited['ΑΠΟΔΟΧΕΣ (€)']).sum()
-            total_years_disp = total_ensima_disp / 300.0
-
-            st.markdown(f"""
-            <div style="background-color: #F1F5F9; border: 1px solid #CBD5E1; padding: 15px 20px; border-radius: 8px; margin-top: 10px; margin-bottom: 20px; font-size: 13px; color: #1E293B;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <div>📌 <b>ΣΥΝΟΛΟ ΕΝΣΗΜΩΝ:</b> <span style="color: #1E3A8A; font-weight: bold;">{int(total_ensima_disp):,} Η.Ε.</span> ({total_years_disp:.2f} έτη)</div>
-                    <div>💶 <b>ΓΕΝΙΚΟ ΣΥΝΟΛΟ ΑΠΟΔΟΧΩΝ:</b> <span style="color: #1E3A8A; font-weight: bold;">{total_apodoches_disp:,.2f} €</span></div>
-                </div>
-                <hr style="margin: 6px 0; border: none; border-top: 1px solid #CBD5E1;">
-                <div style="text-align: right;">
-                    📈 <b>ΣΤΑΘΜΙΣΜΕΝΟΣ Μ.Ο. ΑΠΟΔΟΧΩΝ (από 2002):</b> <span style="color: #16A34A; font-weight: bold;">{avg_sal:,.2f} €</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        col_s1, col_s2 = st.columns(2)
-        with col_s1: st.session_state.summary_years = st.number_input("Συνολικά Έτη Ασφάλισης", value=float(st.session_state.summary_years), step=0.01)
-        with col_s2: st.session_state.summary_avg_salary = st.number_input("Συντάξιμες Αποδοχές από 2002 (€)", value=float(st.session_state.summary_avg_salary), step=10.0)
-
-    st.markdown("---")
-    st.markdown("#### ⚙️ Βασικές Παράμετροι Συνταξιοδότησης")
-    col_p1, col_p2 = st.columns(2)
-    with col_p1: st.session_state.summary_years = st.number_input("Χρόνια Ασφάλισης (για Κύρια)", value=float(tot_years), step=0.01)
-    with col_p2: st.session_state.pososto_anapl_custom = st.number_input("Ποσοστό Αναπλήρωσης (%)", value=float(st.session_state.pososto_anapl_custom), step=0.01)
-
-    if st.button("💾 Αποθήκευση Οικονομικών", type="primary"): persist_all(); st.success("✅ Αποθηκεύτηκαν επιτυχώς!")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-elif app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)":
+if app_section == "⚙️ Ρυθμίσεις & Ειδικά Ταμεία (ΤΑΠΙΛΤ)":
     st.markdown('<div class="panel-card"><div class="panel-header">⚙️ Ρυθμίσεις Προσαύξησης (Άρθρο 30 Ν. 4387/2016) & Επικουρικής</div>', unsafe_allow_html=True)
     
     st.session_state.has_tapilt = st.checkbox("✅ Ο πελάτης διαθέτει Προσαύξηση Κύριας & Επικουρική ΤΑΠΙΛΤ (Ιονική Τράπεζα)", value=bool(st.session_state.has_tapilt))
@@ -836,15 +902,15 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
         <tbody>
             <tr>
                 <td class="label-cell">Έτη Τράπεζας έως 31/12/2013</td>
-                <td class="val-blue">{fmt_gr(st.session_state.bank_years_until_2013, 2)}</td>
+                <td class="val-blue">{fmt_gr(ef_years_13, 2)}</td>
                 <td class="formula-cell">1. Τμήμα Α (Έτη έως 31/12/2013 × Αναγωγή 14μήνου × {fmt_gr(st.session_state.efap_repl_rate, 0)}%)</td>
                 <td class="result-cell">{fmt_gr(tmima_a, 2)} €</td>
             </tr>
             <tr>
                 <td class="label-cell">Μέσος Μισθός 2009–2013 (12μηνο)</td>
-                <td class="val-blue">{fmt_gr(st.session_state.efap_avg_5y, 2)} €</td>
+                <td class="val-blue">{fmt_gr(ef_avg_09_13, 2)} €</td>
                 <td class="formula-cell">Βάση Υπολογισμού Τμήματος Β (Αποδοχές 2014–2022)</td>
-                <td class="result-cell">{fmt_gr(st.session_state.efap_apodoches_14_22, 2)} €</td>
+                <td class="result-cell">{fmt_gr(ef_apod_14_22, 2)} €</td>
             </tr>
             <tr>
                 <td class="label-cell">Αναγωγή σε Μηνιαίο Τακτικό (14μηνο)</td>
@@ -879,17 +945,18 @@ elif app_section == "💼 Υπολογισμός Εφάπαξ":
     except:
         st.markdown(efapax_table_html, unsafe_allow_html=True)
 
+    st.caption(
+        f"Έλεγχος εγγραφών από Οικονομικό Ιστορικό: έως 2013 ({metrics['c_u13']} γραμμές) | "
+        f"2009–2013 ({metrics['c_0913']} γραμμές) | 2014–2022 ({metrics['c_1422']} γραμμές)"
+    )
+
     if st.button("💾 Αποθήκευση Εφάπαξ", type="primary"):
         persist_all()
         st.success("✅ Τα στοιχεία εφάπαξ αποθηκεύτηκαν!")
     st.markdown('</div>', unsafe_allow_html=True)
 
-else:
+elif app_section == "📋 Τελική Εικόνα":
     st.markdown('<div class="panel-card"><div class="panel-header">📋 Τελική Εικόνα & Εκτύπωση</div>', unsafe_allow_html=True)
-    anagogi_14minou_fin = round(st.session_state.efap_avg_5y * (12.0 / 14.0), 2)
-    tmima_a_fin = round(st.session_state.bank_years_until_2013 * (st.session_state.efap_avg_5y * (12.0 / 14.0)) * (st.session_state.efap_repl_rate / 100.0), 2)
-    tmima_b_fin = round(st.session_state.efap_apodoches_14_22 * (st.session_state.efap_pronoia_rate / 100.0) * st.session_state.efap_apousia_factor, 2)
-    total_efapax_fin = round(tmima_a_fin + tmima_b_fin, 2)
     c_name = f"{st.session_state.client_data['first_name']} {st.session_state.client_data['last_name']}".strip()
     c_name = c_name if c_name else "Ανώνυμος Πελάτης"
     
@@ -900,7 +967,7 @@ else:
         <p><b>Συνολικά Έτη Ασφάλισης:</b> {tot_years:.2f} έτη</p>
         <p><b>💶 ΣΥΝΟΛΙΚΗ ΚΑΘΑΡΗ ΜΗΝΙΑΙΑ ΣΥΝΤΑΞΗ:</b> <b>{geniko_katharo:,.2f} € / μήνα</b></p>
         <hr style="margin: 10px 0;">
-        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (ΑΦΟΡΟΛΟΓΗΤΟ):</b> <b>{total_efapax_fin:,.2f} €</b></p>
+        <p style="font-size: 16px; color: #16A34A;"><b>💼 ΣΥΝΟΛΙΚΟ ΚΑΘΑΡΟ ΕΦΑΠΑΞ (ΑΦΟΡΟΛΟΓΗΤΟ):</b> <b>{total_efapax:,.2f} €</b></p>
     </div>
     """, unsafe_allow_html=True)
     if st.button("🖨️ Εκτύπωση / Αποθήκευση PDF", type="primary"): st.info("💡 Πατήστε **Ctrl + P**.")
